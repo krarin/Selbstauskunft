@@ -19,19 +19,15 @@
     --line:#e2e8f0; --border:#cbd5e1; --surface:#f8fafc; --white:#fff; --req:#e11d48;
     /* spacing (8px scale) */
     --s2:8px; --s3:12px; --s4:16px; --s5:20px; --s6:24px; --s8:32px; --s10:40px;
-    /* horizontal gutter — laptop default, tighter on large external monitors */
-    --gutter:80px;
     /* density */
     --field-h:38px; --label-size:12.5px; --input-size:14.5px;
   }
-  /* external desktop: use more of the screen, a bit less gutter */
-  @media(min-width:1680px){:root{--gutter:36px;}}
   body.compact{--field-h:30px;--input-size:14px;--s5:14px;--s6:18px;--s8:24px;}
   body.no-help .help{display:none;}
 
   *{box-sizing:border-box;}
   body{margin:0;font-family:'IBM Plex Sans',system-ui,sans-serif;color:var(--ink);background:#fff;-webkit-font-smoothing:antialiased;}
-  .app{display:grid;grid-template-columns:236px 1fr;width:100%;min-height:100vh;}
+  .app{display:grid;grid-template-columns:236px 1fr;max-width:1180px;margin:0 auto;min-height:100vh;}
 
   /* ---- nav ---- */
   .nav{padding:var(--s8) var(--s6);border-right:1px solid var(--line);position:sticky;top:0;align-self:start;height:100vh;}
@@ -48,7 +44,7 @@
   .seg button.on{background:#fff;color:var(--teal-700);font-weight:600;box-shadow:0 1px 2px rgba(15,23,42,.08);}
 
   /* ---- content ---- */
-  .content{padding:var(--s10) var(--gutter) 120px;}
+  .content{padding:var(--s10) 56px 120px;}
   .page-title{font-size:26px;font-weight:600;letter-spacing:-.01em;margin:0 0 6px;}
   .lede{font-size:14px;color:var(--muted);max-width:56ch;line-height:1.5;margin:0 0 var(--s8);}
   .lede .req{color:var(--req);font-weight:600;}
@@ -146,7 +142,8 @@
   .child-row .x:hover{background:var(--surface);color:var(--ink);}
 
   /* sticky action bar */
-  .actionbar{position:fixed;left:236px;right:0;bottom:0;background:rgba(255,255,255,.92);backdrop-filter:blur(8px);border-top:1px solid var(--line);display:flex;align-items:center;gap:16px;padding:12px var(--gutter);}
+  .actionbar{position:fixed;left:0;right:0;bottom:0;background:rgba(255,255,255,.92);backdrop-filter:blur(8px);border-top:1px solid var(--line);display:flex;justify-content:center;}
+  .actionbar-inner{width:100%;max-width:1180px;display:flex;align-items:center;gap:16px;padding:12px 56px 12px calc(236px + 56px);}
   .save-state{font-size:13px;color:var(--muted);display:flex;align-items:center;gap:7px;margin-right:auto;}
   .dot{width:7px;height:7px;border-radius:50%;background:var(--teal-500);}
   .btn{font-family:inherit;font-size:14px;font-weight:600;height:38px;padding:0 20px;border-radius:9px;cursor:pointer;border:1px solid transparent;}
@@ -565,11 +562,11 @@
   </main>
 </div>
 
-<div class="actionbar">
+<div class="actionbar"><div class="actionbar-inner">
   <div class="save-state"><span class="dot"></span> Als Entwurf gespeichert · 12:04</div>
   <button class="btn ghost">Abbrechen</button>
   <button class="btn primary">Weiter</button>
-</div>
+</div></div>
 
 <!-- template: child row (one line, repeatable) -->
 <template id="tpl-kind">
