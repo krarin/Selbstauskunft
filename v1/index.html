@@ -118,11 +118,11 @@
     <a href="#start" class="active">Start</a>
     <a href="#person">Angaben zur Person</a>
     <!-- object-section nav entries (only the active one shows) -->
-    <a href="#immobilie"   class="object-nav" data-navfor="Kauf">Immobilie</a>
-    <a href="#neubau"      class="object-nav" data-navfor="Neubau">Neubau</a>
-    <a href="#anschluss"   class="object-nav" data-navfor="Anschlussfinanzierung">Anschlussfinanzierung</a>
-    <a href="#modern"      class="object-nav" data-navfor="Modernisierung">Modernisierung</a>
-    <a href="#umschuldung" class="object-nav" data-navfor="Umschuldung">Umschuldung</a>
+    <a href="#immobilie"   class="object-nav" data-navfor="immobilie">Immobilie</a>
+    <a href="#neubau"      class="object-nav" data-navfor="neubau">Neubau</a>
+    <a href="#anschluss"   class="object-nav" data-navfor="anschluss">Anschlussfinanzierung</a>
+    <a href="#modern"      class="object-nav" data-navfor="modernisierung">Modernisierung</a>
+    <a href="#kapital"     class="object-nav" data-navfor="kapital">Kapitalbeschaffung</a>
     <a href="#finanzen">Finanzen</a>
     <a href="#details">Finanzierungsdetails</a>
     <div class="divider"></div>
@@ -140,22 +140,72 @@
     <!-- ===================== START ===================== -->
     <section class="section" id="start">
       <div class="section-head"><h2>Start</h2><span class="kicker">Grunddaten der Finanzierung</span></div>
+
+      <!-- Q1 — Finanzierungszweck (immer sichtbar) -->
       <div class="grid">
         <div class="field col-12">
-          <label>Finanzierungszweck <span class="req">*</span></label>
+          <label>Was möchten Sie finanzieren? <span class="req">*</span></label>
           <div class="choices" data-single id="zweck">
-            <button type="button" class="choice" data-value="Kauf" aria-pressed="true"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Kauf</button>
-            <button type="button" class="choice" data-value="Neubau" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Neubau</button>
-            <button type="button" class="choice" data-value="Anschlussfinanzierung" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Anschlussfinanzierung</button>
-            <button type="button" class="choice" data-value="Modernisierung" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Modernisierung</button>
-            <button type="button" class="choice" data-value="Umschuldung" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Umschuldung</button>
+            <button type="button" class="choice" data-value="neubau-bautraeger" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Neubau vom Bauträger</button>
+            <button type="button" class="choice" data-value="kauf" aria-pressed="true"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Kauf einer bestehenden Immobilie</button>
+            <button type="button" class="choice" data-value="bauvorhaben" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Eigenes Bauvorhaben</button>
+            <button type="button" class="choice" data-value="modernisierung" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Modernisierung</button>
+            <button type="button" class="choice" data-value="anschluss" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Anschlussfinanzierung</button>
+            <button type="button" class="choice" data-value="kapitalbeschaffung" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Kapitalbeschaffung</button>
           </div>
         </div>
-        <div class="field col-6">
-          <label>Anzahl Darlehensnehmer <span class="req">*</span></label>
-          <div class="choices" data-single>
-            <button type="button" class="choice" data-value="1" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>1 Person</button>
-            <button type="button" class="choice" data-value="2" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>2 Personen</button>
+      </div>
+
+      <!-- Q2 — Immobilie gefunden? (nur bei Kauf einer bestehenden Immobilie) -->
+      <div class="reveal" id="c-gefunden"><div class="reveal-inner"><div class="pad">
+        <div class="field">
+          <label>Haben Sie bereits eine Immobilie gefunden? <span class="req">*</span></label>
+          <div class="choices" data-single id="gefunden">
+            <button type="button" class="choice" data-value="Ja" aria-pressed="true"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Ja</button>
+            <button type="button" class="choice" data-value="Nein" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Nein</button>
+          </div>
+        </div>
+      </div></div></div>
+
+      <!-- Q3 — Immobilienart (wenn ein konkretes Objekt bekannt ist) -->
+      <div class="reveal" id="c-immobilienart"><div class="reveal-inner"><div class="pad">
+        <div class="field">
+          <label>Um welche Immobilienart handelt es sich? <span class="req">*</span></label>
+          <div class="choices" data-single id="immobilienart">
+            <button type="button" class="choice" data-value="Eigentumswohnung" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Eigentumswohnung</button>
+            <button type="button" class="choice" data-value="Mehrfamilienhaus" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Mehrfamilienhaus</button>
+            <button type="button" class="choice" data-value="Doppelhaushälfte" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Doppelhaushälfte</button>
+            <button type="button" class="choice" data-value="Reihenendhaus" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Reihenendhaus</button>
+            <button type="button" class="choice" data-value="Grundstück" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Grundstück</button>
+            <button type="button" class="choice" data-value="Reihenmittelhaus" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Reihenmittelhaus</button>
+            <button type="button" class="choice" data-value="Wohn- und Geschäftshaus" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Wohn- und Geschäftshaus</button>
+            <button type="button" class="choice" data-value="Einfamilienhaus" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Einfamilienhaus</button>
+            <button type="button" class="choice" data-value="Zweifamilienhaus" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Zweifamilienhaus</button>
+          </div>
+        </div>
+      </div></div></div>
+
+      <!-- Q4 — Nutzung (wenn ein konkretes Objekt bekannt ist) -->
+      <div class="reveal" id="c-nutzung"><div class="reveal-inner"><div class="pad">
+        <div class="field">
+          <label>Wie möchten Sie die Immobilie nutzen? <span class="req">*</span></label>
+          <p class="help">Einige Banken gewähren einen Zinsnachlass, wenn die Immobilie eigengenutzt wird. Eine KfW-Förderung ist bei vermieteten Objekten teilweise möglich.</p>
+          <div class="choices" data-single id="nutzung">
+            <button type="button" class="choice" data-value="Selbst nutzen" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Selbst nutzen</button>
+            <button type="button" class="choice" data-value="Vermieten" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Vermieten</button>
+            <button type="button" class="choice" data-value="Teilweise vermieten" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Teilweise vermieten</button>
+          </div>
+        </div>
+      </div></div></div>
+
+      <!-- Q5 — Darlehensnehmer + Eckdaten (immer sichtbar) -->
+      <div class="grid" style="margin-top:var(--s5)">
+        <div class="field col-12">
+          <label>Möchten Sie die Finanzierung alleine oder mit einer weiteren Person beantragen? <span class="req">*</span></label>
+          <p class="help">Falls Sie verheiratet sind, stellen Sie den Antrag bitte gemeinsam mit Ihrem Ehepartner. Dies ist eine Voraussetzung der meisten Kreditgeber.</p>
+          <div class="choices" data-single id="darlehensnehmer">
+            <button type="button" class="choice" data-value="1" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Alleine</button>
+            <button type="button" class="choice" data-value="2" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Mit einer weiteren Person</button>
           </div>
         </div>
         <div class="field col-3"><label>Gewünschter Darlehensbetrag <span class="req">*</span></label><div class="with-unit"><input inputmode="decimal" value="0,00"><span class="unit">€</span></div></div>
@@ -210,7 +260,7 @@
     </section>
 
     <!-- ===================== OBJECT SECTION: KAUF → IMMOBILIE (open by default) ===================== -->
-    <div class="reveal object-section open" data-for="Kauf"><div class="reveal-inner"><div class="pad">
+    <div class="reveal object-section open" data-for="immobilie"><div class="reveal-inner"><div class="pad">
     <section class="section" id="immobilie">
       <div class="section-head"><h2>Immobilie</h2><span class="kicker">Kauf einer bestehenden Immobilie</span></div>
 
@@ -306,9 +356,9 @@
     </div></div></div>
 
     <!-- ===================== OBJECT SECTION: NEUBAU (scaffold) ===================== -->
-    <div class="reveal object-section" data-for="Neubau"><div class="reveal-inner"><div class="pad">
+    <div class="reveal object-section" data-for="neubau"><div class="reveal-inner"><div class="pad">
     <section class="section" id="neubau">
-      <div class="section-head"><h2>Neubau</h2><span class="kicker">Neubauvorhaben</span></div>
+      <div class="section-head"><h2>Neubau</h2><span class="kicker">Neubau vom Bauträger / eigenes Bauvorhaben</span></div>
       <div class="subhead">Objektadresse</div>
       <div class="grid">
         <div class="field col-8"><label>Straße <span class="req">*</span></label><input type="text"></div>
@@ -327,7 +377,7 @@
     </div></div></div>
 
     <!-- ===================== OBJECT SECTION: ANSCHLUSSFINANZIERUNG (scaffold) ===================== -->
-    <div class="reveal object-section" data-for="Anschlussfinanzierung"><div class="reveal-inner"><div class="pad">
+    <div class="reveal object-section" data-for="anschluss"><div class="reveal-inner"><div class="pad">
     <section class="section" id="anschluss">
       <div class="section-head"><h2>Anschlussfinanzierung</h2><span class="kicker">Bestehendes Darlehen</span></div>
       <div class="grid">
@@ -340,7 +390,7 @@
     </div></div></div>
 
     <!-- ===================== OBJECT SECTION: MODERNISIERUNG (scaffold) ===================== -->
-    <div class="reveal object-section" data-for="Modernisierung"><div class="reveal-inner"><div class="pad">
+    <div class="reveal object-section" data-for="modernisierung"><div class="reveal-inner"><div class="pad">
     <section class="section" id="modern">
       <div class="section-head"><h2>Modernisierung</h2><span class="kicker">Modernisierungsvorhaben</span></div>
       <div class="grid">
@@ -351,15 +401,15 @@
     </section>
     </div></div></div>
 
-    <!-- ===================== OBJECT SECTION: UMSCHULDUNG (scaffold) ===================== -->
-    <div class="reveal object-section" data-for="Umschuldung"><div class="reveal-inner"><div class="pad">
-    <section class="section" id="umschuldung">
-      <div class="section-head"><h2>Umschuldung</h2><span class="kicker">Abzulösende Verbindlichkeit</span></div>
+    <!-- ===================== OBJECT SECTION: KAPITALBESCHAFFUNG (scaffold) ===================== -->
+    <div class="reveal object-section" data-for="kapital"><div class="reveal-inner"><div class="pad">
+    <section class="section" id="kapital">
+      <div class="section-head"><h2>Kapitalbeschaffung</h2><span class="kicker">Beleihung einer bestehenden Immobilie</span></div>
       <div class="grid">
-        <div class="field col-3"><label>Abzulösender Betrag <span class="req">*</span></label><div class="with-unit"><input inputmode="decimal"><span class="unit">€</span></div></div>
-        <div class="field col-4"><label>Aktueller Gläubiger <span class="req">*</span></label><input type="text"></div>
+        <div class="field col-3"><label>Gewünschter Kapitalbetrag <span class="req">*</span></label><div class="with-unit"><input inputmode="decimal"><span class="unit">€</span></div></div>
+        <div class="field col-4"><label>Verwendungszweck <span class="req">*</span></label><input type="text"></div>
       </div>
-      <div class="note">Gerüst — weitere Felder (Zinssatz, Laufzeit, Sicherheiten) noch zu definieren.</div>
+      <div class="note">Gerüst — Objektangaben und Angaben zu bestehenden Belastungen noch zu definieren.</div>
     </section>
     </div></div></div>
 
@@ -434,22 +484,49 @@
     }));
   }
   document.querySelectorAll('.choices[data-single]').forEach(g=>{
-    if(g.closest('#tpl-stellplatz') || g.id==='zweck') return;
+    if(g.closest('#tpl-stellplatz') || g.id==='zweck' || g.id==='gefunden') return;
     wireGroup(g);
   });
 
-  // Finanzierungszweck → swap object section + nav entry
+  // ---- Start intake cascade ----------------------------------------------
+  // Finanzierungszweck (+ "Immobilie gefunden?") drive: which follow-up
+  // questions reveal, and which object section / nav entry is shown.
+  const selectedValue = g => { const b = g && g.querySelector('.choice[aria-pressed="true"]'); return b ? b.dataset.value : null; };
+
   const zweck = document.getElementById('zweck');
-  function selectFinanceType(val){
-    document.querySelectorAll('.object-section').forEach(s=>openReveal(s, s.dataset.for===val));
-    document.querySelectorAll('.nav a.object-nav').forEach(a=>a.classList.toggle('show', a.dataset.navfor===val));
+  const gefunden = document.getElementById('gefunden');
+
+  // finance purpose → object section key
+  const SECTION_FOR = {
+    'neubau-bautraeger':'neubau',
+    'bauvorhaben':'neubau',
+    'modernisierung':'modernisierung',
+    'anschluss':'anschluss',
+    'kapitalbeschaffung':'kapital'
+  };
+
+  function updateStart(){
+    const purpose = selectedValue(zweck);
+    const found = selectedValue(gefunden);
+    // a concrete object is known for new-builds/own projects, or for a
+    // purchase once the buyer has found the property.
+    const objectKnown = purpose==='neubau-bautraeger' || purpose==='bauvorhaben' || (purpose==='kauf' && found==='Ja');
+
+    // follow-up questions
+    openReveal(document.getElementById('c-gefunden'), purpose==='kauf');
+    openReveal(document.getElementById('c-immobilienart'), objectKnown);
+    openReveal(document.getElementById('c-nutzung'), objectKnown);
+
+    // object section + nav entry (Kauf only once a property is found)
+    let sectionKey = SECTION_FOR[purpose] || null;
+    if(purpose==='kauf') sectionKey = (found==='Ja') ? 'immobilie' : null;
+    document.querySelectorAll('.object-section').forEach(s=>openReveal(s, s.dataset.for===sectionKey));
+    document.querySelectorAll('.nav a.object-nav').forEach(a=>a.classList.toggle('show', a.dataset.navfor===sectionKey));
   }
-  zweck.querySelectorAll('.choice').forEach(c=>c.addEventListener('click',()=>{
-    setPressed(zweck,c);
-    selectFinanceType(c.dataset.value);
-  }));
-  // default = Kauf (Immobilie open on load)
-  selectFinanceType('Kauf');
+
+  zweck.querySelectorAll('.choice').forEach(c=>c.addEventListener('click',()=>{ setPressed(zweck,c); updateStart(); }));
+  gefunden.querySelectorAll('.choice').forEach(c=>c.addEventListener('click',()=>{ setPressed(gefunden,c); updateStart(); }));
+  updateStart(); // defaults: Kauf + bereits gefunden → Immobilie section open
 
   // Stellplatz repeatable group
   const spContainer = document.getElementById('stellplaetze');
