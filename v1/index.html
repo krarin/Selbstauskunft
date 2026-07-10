@@ -190,17 +190,18 @@
 
       <!-- Q1 — Finanzierungszweck (immer sichtbar) -->
       <div class="grid">
-        <div class="field col-12">
+        <div class="field col-6">
           <label>Was möchten Sie finanzieren? <span class="req">*</span></label>
-          <div class="choices grid-auto" data-single id="zweck">
-            <button type="button" class="choice" data-value="neubau-bautraeger" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Neubau vom Bauträger</button>
-            <button type="button" class="choice" data-value="kauf" aria-pressed="true"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Kauf einer bestehenden Immobilie</button>
-            <button type="button" class="choice" data-value="bauvorhaben" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Eigenes Bauvorhaben</button>
-            <button type="button" class="choice" data-value="modernisierung" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Modernisierung</button>
-            <button type="button" class="choice" data-value="anschluss" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Anschlussfinanzierung</button>
-            <button type="button" class="choice" data-value="kapitalbeschaffung" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Kapitalbeschaffung</button>
-          </div>
+          <select id="zweck">
+            <option value="neubau-bautraeger">Neubau vom Bauträger</option>
+            <option value="kauf" selected>Kauf einer bestehenden Immobilie</option>
+            <option value="bauvorhaben">Eigenes Bauvorhaben</option>
+            <option value="modernisierung">Modernisierung</option>
+            <option value="anschluss">Anschlussfinanzierung</option>
+            <option value="kapitalbeschaffung">Kapitalbeschaffung</option>
+          </select>
         </div>
+        <div class="field col-6"></div>
       </div>
 
       <!-- Q2 — Immobilie gefunden? (nur bei Kauf einer bestehenden Immobilie) -->
@@ -216,19 +217,20 @@
 
       <!-- Q3 — Immobilienart (wenn ein konkretes Objekt bekannt ist) -->
       <div class="reveal" id="c-immobilienart"><div class="reveal-inner"><div class="pad">
-        <div class="field">
+        <div class="field" style="max-width:360px">
           <label>Um welche Immobilienart handelt es sich? <span class="req">*</span></label>
-          <div class="choices grid-auto" data-single id="immobilienart">
-            <button type="button" class="choice" data-value="Eigentumswohnung" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Eigentumswohnung</button>
-            <button type="button" class="choice" data-value="Mehrfamilienhaus" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Mehrfamilienhaus</button>
-            <button type="button" class="choice" data-value="Doppelhaushälfte" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Doppelhaushälfte</button>
-            <button type="button" class="choice" data-value="Reihenendhaus" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Reihenendhaus</button>
-            <button type="button" class="choice" data-value="Grundstück" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Grundstück</button>
-            <button type="button" class="choice" data-value="Reihenmittelhaus" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Reihenmittelhaus</button>
-            <button type="button" class="choice" data-value="Wohn- und Geschäftshaus" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Wohn- und Geschäftshaus</button>
-            <button type="button" class="choice" data-value="Einfamilienhaus" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Einfamilienhaus</button>
-            <button type="button" class="choice" data-value="Zweifamilienhaus" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Zweifamilienhaus</button>
-          </div>
+          <select id="immobilienart">
+            <option value="">Bitte wählen</option>
+            <option>Eigentumswohnung</option>
+            <option>Mehrfamilienhaus</option>
+            <option>Doppelhaushälfte</option>
+            <option>Reihenendhaus</option>
+            <option>Grundstück</option>
+            <option>Reihenmittelhaus</option>
+            <option>Wohn- und Geschäftshaus</option>
+            <option>Einfamilienhaus</option>
+            <option>Zweifamilienhaus</option>
+          </select>
         </div>
       </div></div></div>
 
@@ -593,17 +595,18 @@
 <template id="tpl-stellplatz">
   <div class="subcard">
     <div class="subcard-head"><strong class="sp-title">Stellplatz 1</strong><button type="button" class="x" title="Entfernen">×</button></div>
-    <div class="field col-12">
+    <div class="field col-6">
       <label>Art des Stellplatzes <span class="req">*</span></label>
-      <div class="choices grid-choices sp-art" data-single>
-        <button type="button" class="choice" data-value="Stellplatz" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Stellplatz</button>
-        <button type="button" class="choice" data-value="Carport" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Carport</button>
-        <button type="button" class="choice" data-value="Garage" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Garage</button>
-        <button type="button" class="choice" data-value="Doppelgarage" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Doppelgarage</button>
-        <button type="button" class="choice" data-value="Kellergarage" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Kellergarage</button>
-        <button type="button" class="choice" data-value="Tiefgaragenstellplatz" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Tiefgaragenstellplatz</button>
-        <button type="button" class="choice" data-value="Duplexgarage" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Duplexgarage</button>
-      </div>
+      <select class="sp-art">
+        <option value="">Bitte wählen</option>
+        <option>Stellplatz</option>
+        <option>Carport</option>
+        <option>Garage</option>
+        <option>Doppelgarage</option>
+        <option>Kellergarage</option>
+        <option>Tiefgaragenstellplatz</option>
+        <option>Duplexgarage</option>
+      </select>
     </div>
     <div class="field col-12" style="margin-top:var(--s5)">
       <label>Ist der Stellplatz vermietet?</label>
@@ -649,7 +652,11 @@
   // ---- Start intake cascade ----------------------------------------------
   // Finanzierungszweck (+ "Immobilie gefunden?") drive: which follow-up
   // questions reveal, and which object section / nav entry is shown.
-  const selectedValue = g => { const b = g && g.querySelector('.choice[aria-pressed="true"]'); return b ? b.dataset.value : null; };
+  const selectedValue = g => {
+    if(!g) return null;
+    if(g.tagName==='SELECT') return g.value || null;
+    const b = g.querySelector('.choice[aria-pressed="true"]'); return b ? b.dataset.value : null;
+  };
 
   const zweck = document.getElementById('zweck');
   const gefunden = document.getElementById('gefunden');
@@ -682,7 +689,7 @@
     document.querySelectorAll('.nav a.object-nav').forEach(a=>a.classList.toggle('show', a.dataset.navfor===sectionKey));
   }
 
-  zweck.querySelectorAll('.choice').forEach(c=>c.addEventListener('click',()=>{ setPressed(zweck,c); updateStart(); }));
+  zweck.addEventListener('change', updateStart);
   gefunden.querySelectorAll('.choice').forEach(c=>c.addEventListener('click',()=>{ setPressed(gefunden,c); updateStart(); }));
   updateStart(); // defaults: Kauf + bereits gefunden → Immobilie section open
 
@@ -776,7 +783,6 @@
   const renumber = ()=> spContainer.querySelectorAll('.sp-title').forEach((t,i)=>t.textContent='Stellplatz '+(i+1));
   function addStellplatz(){
     const node = tpl.content.firstElementChild.cloneNode(true);
-    node.querySelector('.sp-art').querySelectorAll('.choice').forEach(c=>c.addEventListener('click',()=>setPressed(node.querySelector('.sp-art'),c)));
     const vg = node.querySelector('.sp-vermietet'); const mr = node.querySelector('.sp-miete-reveal');
     vg.querySelectorAll('.choice').forEach(c=>c.addEventListener('click',()=>{ setPressed(vg,c); openReveal(mr, c.dataset.value==='Ja'); }));
     node.querySelector('.x').addEventListener('click',()=>{ node.remove(); renumber(); });
