@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Selbstauskunft – Prototypen · FinLink</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap');
+
+  :root{
+    --teal-700:#0f766e; --teal-600:#0d9488; --teal-500:#14b8a6;
+    --teal-50:#f0fdfa; --teal-ring:rgba(13,148,136,.28);
+    --ink:#0f172a; --ink-2:#334155; --muted:#64748b; --faint:#94a3b8;
+    --line:#e2e8f0; --border:#cbd5e1; --surface:#f8fafc; --white:#fff;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:'IBM Plex Sans',system-ui,sans-serif;color:var(--ink);background:#fff;-webkit-font-smoothing:antialiased;}
+  .wrap{max-width:860px;margin:0 auto;padding:64px 32px 120px;}
+
+  .eyebrow{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--teal-600);font-weight:600;margin:0 0 10px;}
+  h1{font-size:26px;font-weight:600;letter-spacing:-.01em;margin:0 0 6px;}
+  .lede{font-size:14px;color:var(--muted);max-width:56ch;line-height:1.5;margin:0 0 40px;}
+
+  .versions{display:flex;flex-direction:column;gap:16px;}
+
+  .card{display:block;text-decoration:none;color:inherit;background:var(--surface);
+        border:1px solid var(--line);border-radius:14px;padding:24px 28px;
+        transition:border-color .12s, box-shadow .12s;}
+  .card:hover{border-color:var(--teal-600);box-shadow:0 2px 10px rgba(15,23,42,.06);}
+  .card:focus-visible{outline:none;border-color:var(--teal-500);box-shadow:0 0 0 3px var(--teal-ring);}
+
+  .card-head{display:flex;align-items:baseline;gap:12px;margin-bottom:6px;}
+  .vtag{font-size:12px;font-weight:600;color:var(--teal-700);background:var(--teal-50);
+        border:1px solid var(--teal-600);border-radius:6px;padding:2px 8px;letter-spacing:.02em;}
+  .card-head h2{font-size:17px;font-weight:600;color:var(--ink);margin:0;letter-spacing:-.005em;}
+  .card-head .date{margin-left:auto;font-size:12px;color:var(--faint);font-weight:500;}
+  .card p{font-size:13.5px;color:var(--muted);line-height:1.5;margin:0;max-width:64ch;}
+
+  .placeholder{border-style:dashed;border-color:var(--border);background:var(--white);}
+  .placeholder .vtag{color:var(--faint);background:var(--surface);border-color:var(--border);}
+  .placeholder h2{color:var(--muted);}
+  .placeholder:hover{border-color:var(--border);box-shadow:none;cursor:default;}
+
+  .footer{margin-top:56px;padding-top:20px;border-top:1px solid var(--line);
+          font-size:12px;color:var(--faint);line-height:1.6;}
+  .footer code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px;
+               background:var(--surface);border:1px solid var(--line);border-radius:5px;padding:1px 5px;color:var(--ink-2);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <p class="eyebrow">FinLink · Prototypen</p>
+  <h1>Selbstauskunft – Design-Versionen</h1>
+  <p class="lede">Übersicht aller Design-Iterationen des Selbstauskunft-Formulars.
+     Jede Version ist ein eigenständiger, klickbarer Prototyp.</p>
+
+  <div class="versions">
+
+    <a class="card" href="v1/">
+      <div class="card-head">
+        <span class="vtag">V1</span>
+        <h2>Power-User-Formular</h2>
+        <span class="date">Juli 2026</span>
+      </div>
+      <p>Teal-Akzent, IBM Plex Sans, 12-Spalten-Grid, Dichte-Umschalter (komfortabel/kompakt),
+         segmentierte Auswahl statt Dropdowns, konditionale Abschnitte je Finanzierungstyp.</p>
+    </a>
+
+    <!-- ==================================================================
+         Neue Version hinzufügen:
+         1. Ordner duplizieren:  cp -r v1 v2
+         2. Design in v2/index.html anpassen
+         3. Diese Vorlage kopieren, einkommentieren und Texte anpassen:
+
+    <a class="card" href="v2/">
+      <div class="card-head">
+        <span class="vtag">V2</span>
+        <h2>Titel der Design-Idee</h2>
+        <span class="date">Monat 2026</span>
+      </div>
+      <p>Kurze Beschreibung: Was ist an dieser Version anders?</p>
+    </a>
+    =================================================================== -->
+
+    <div class="card placeholder">
+      <div class="card-head">
+        <span class="vtag">V2</span>
+        <h2>Nächste Design-Idee</h2>
+      </div>
+      <p>Noch nicht angelegt — Ordner <code>v1</code> nach <code>v2</code> kopieren und die
+         auskommentierte Karten-Vorlage in <code>index.html</code> aktivieren.</p>
+    </div>
+
+  </div>
+
+  <div class="footer">
+    Interner Prototyp · kein Produktivsystem · Styles &amp; Komponenten siehe
+    <code>DESIGN-SYSTEM.md</code> im Repository.
+  </div>
+</div>
+</body>
+</html>
