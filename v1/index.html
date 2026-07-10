@@ -23,6 +23,7 @@
     --field-h:38px; --label-size:12.5px; --input-size:14.5px;
   }
   body.compact{--field-h:30px;--input-size:14px;--s5:14px;--s6:18px;--s8:24px;}
+  body.no-help .help{display:none;}
 
   *{box-sizing:border-box;}
   body{margin:0;font-family:'IBM Plex Sans',system-ui,sans-serif;color:var(--ink);background:#fff;-webkit-font-smoothing:antialiased;}
@@ -52,7 +53,7 @@
   .section-head{display:flex;align-items:baseline;gap:12px;padding-bottom:var(--s4);margin-bottom:var(--s6);border-bottom:1px solid var(--line);}
   .section-head h2{font-size:17px;font-weight:600;color:var(--teal-700);margin:0;letter-spacing:-.005em;}
   .section-head .kicker{font-size:12px;color:var(--faint);font-weight:500;}
-  .subhead{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--teal-600);font-weight:600;margin:var(--s6) 0 var(--s4);}
+  .subhead{font-size:13px;color:var(--teal-600);font-weight:600;margin:var(--s6) 0 var(--s4);}
   .subhead:first-of-type{margin-top:0;}
 
   .grid{display:grid;grid-template-columns:repeat(12,1fr);gap:var(--s5);}
@@ -102,6 +103,39 @@
 
   .note{font-size:13px;color:var(--muted);background:#fffbeb;border:1px solid #fde68a;border-radius:9px;padding:10px 14px;margin-top:var(--s4);line-height:1.45;}
 
+  /* nav sub-group */
+  .nav .group{font-size:12.5px;font-weight:600;color:var(--ink-2);padding:12px 10px 4px;}
+  .nav a.sub{padding-left:22px;font-size:13.5px;}
+
+  /* applicants side-by-side */
+  .applicants{display:grid;grid-template-columns:1fr;gap:var(--s5);}
+  .applicants.two{grid-template-columns:repeat(2,minmax(0,1fr));}
+  .applicant{background:#fff;border:1px solid var(--line);border-radius:12px;padding:var(--s5) var(--s6) var(--s6);}
+  .applicant-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding-bottom:var(--s3);margin-bottom:var(--s5);border-bottom:1px solid var(--line);}
+  .applicant-title{font-size:13.5px;color:var(--teal-700);font-weight:600;}
+  .applicant .x{background:none;border:0;cursor:pointer;color:var(--muted);font-size:18px;line-height:1;padding:2px 6px;border-radius:6px;}
+  .applicant .x:hover{background:var(--surface);color:var(--ink);}
+  .section-head .add-btn{margin:0 0 0 auto;}
+  @media(max-width:960px){.applicants.two{grid-template-columns:1fr;}}
+
+  /* nav person group with edit pencil */
+  .nav .group{display:flex;align-items:center;gap:6px;}
+  .nav .group .pencil{width:13px;height:13px;color:var(--faint);flex:none;}
+
+  /* compact segmented choices (child rows) */
+  .choices.mini{gap:6px;}
+  .choices.mini .choice{height:28px;padding:0 10px;font-size:12.5px;gap:5px;}
+  .choices.mini .choice .tick{width:12px;height:12px;}
+
+  /* repeatable child rows — one line */
+  .child-row{display:flex;flex-wrap:wrap;align-items:flex-end;gap:var(--s3);padding:10px 0;border-bottom:1px dashed var(--line);}
+  .child-row:last-of-type{border-bottom:0;}
+  .child-row .field{gap:4px;}
+  .child-row .c-name{flex:1 1 140px;min-width:120px;}
+  .child-row .c-date{flex:0 0 118px;}
+  .child-row .x{background:none;border:0;cursor:pointer;color:var(--muted);font-size:18px;line-height:1;padding:2px 6px;border-radius:6px;align-self:center;}
+  .child-row .x:hover{background:var(--surface);color:var(--ink);}
+
   /* sticky action bar */
   .actionbar{position:fixed;left:236px;right:0;bottom:0;background:rgba(255,255,255,.92);backdrop-filter:blur(8px);border-top:1px solid var(--line);display:flex;align-items:center;gap:16px;padding:12px 56px;}
   .save-state{font-size:13px;color:var(--muted);display:flex;align-items:center;gap:7px;margin-right:auto;}
@@ -116,7 +150,11 @@
 <div class="app">
   <aside class="nav">
     <a href="#start" class="active">Start</a>
-    <a href="#person">Angaben zur Person</a>
+    <div class="group"><span id="person-group-title">Über Antragsteller 1</span><svg class="pencil" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 13.5V16h2.5l7.7-7.7-2.5-2.5L4 13.5z"/><path d="M12 4.3l2.5 2.5"/></svg></div>
+    <a href="#pd"        class="sub">Persönliche Details</a>
+    <a href="#beruf"     class="sub">Berufliche Situation</a>
+    <a href="#einkommen" class="sub">Einkommen</a>
+    <a href="#ausgaben"  class="sub">Ausgaben</a>
     <!-- object-section nav entries (only the active one shows) -->
     <a href="#immobilie"   class="object-nav" data-navfor="immobilie">Immobilie</a>
     <a href="#neubau"      class="object-nav" data-navfor="neubau">Neubau</a>
@@ -130,6 +168,11 @@
     <div class="seg" role="group" aria-label="Dichte">
       <button data-density="comfort" class="on">Komfortabel</button>
       <button data-density="compact">Kompakt</button>
+    </div>
+    <div class="eyebrow" style="margin-top:var(--s5)">Helpertext clientfacing</div>
+    <div class="seg" role="group" aria-label="Helpertext clientfacing">
+      <button data-help="on" class="on">Ein</button>
+      <button data-help="off">Aus</button>
     </div>
   </aside>
 
@@ -213,49 +256,132 @@
       </div>
     </section>
 
-    <!-- ===================== ANGABEN ZUR PERSON ===================== -->
-    <section class="section" id="person">
-      <div class="section-head"><h2>Angaben zur Person</h2><span class="kicker">Darlehensnehmer 1</span></div>
-      <div class="grid">
-        <div class="field col-6">
-          <label>Anrede <span class="req">*</span></label>
-          <div class="choices" data-single>
-            <button type="button" class="choice" data-value="Frau" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Frau</button>
-            <button type="button" class="choice" data-value="Herr" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Herr</button>
-            <button type="button" class="choice" data-value="Divers" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Divers</button>
+    <!-- ===================== PERSÖNLICHE DETAILS ===================== -->
+    <section class="section" id="pd">
+      <div class="section-head"><h2>Persönliche Details</h2><span class="kicker">Angaben zur Person</span>
+        <button type="button" class="add-btn" id="add-applicant">+ Antragsteller 2 hinzufügen</button>
+      </div>
+      <div class="applicants" data-applicants>
+        <div class="applicant" data-applicant="1">
+          <div class="applicant-head"><span class="applicant-title">Antragsteller 1</span></div>
+          <div class="grid">
+            <div class="field col-12">
+              <label>Anrede <span class="req">*</span></label>
+              <div class="choices" data-single>
+                <button type="button" class="choice" data-value="Frau" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Frau</button>
+                <button type="button" class="choice" data-value="Herr" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Herr</button>
+                <button type="button" class="choice" data-value="Divers" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Divers</button>
+              </div>
+            </div>
+            <div class="field col-6"><label>Titel</label><select><option value="">Kein Titel</option><option>Dr.</option><option>Prof.</option><option>Prof. Dr.</option></select></div>
+            <div class="field col-6"></div>
+            <div class="field col-6"><label>Vorname <span class="req">*</span></label><input type="text" data-role="vorname"></div>
+            <div class="field col-6"><label>Nachname <span class="req">*</span></label><input type="text" data-role="nachname"></div>
+            <div class="field col-6"><label>Geburtsdatum <span class="req">*</span></label><input type="text" placeholder="tt.mm.jjjj" inputmode="numeric"></div>
+            <div class="field col-6"><label>Geburtsort <span class="req">*</span></label><input type="text"></div>
+            <div class="field col-12"><label>Staatsangehörigkeit <span class="req">*</span></label><input type="text" placeholder="tippen zum Filtern…"></div>
+            <div class="field col-12">
+              <label>Familienstand <span class="req">*</span></label>
+              <div class="choices" data-single data-show-when="verheiratet">
+                <button type="button" class="choice" data-value="ledig" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>ledig</button>
+                <button type="button" class="choice" data-value="verheiratet" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>verheiratet</button>
+                <button type="button" class="choice" data-value="geschieden" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>geschieden</button>
+                <button type="button" class="choice" data-value="verwitwet" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>verwitwet</button>
+                <button type="button" class="choice" data-value="eingetr" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>eingetr. Lebenspartnerschaft</button>
+              </div>
+              <div class="reveal"><div class="reveal-inner"><div class="pad">
+                <div class="field" style="max-width:340px"><label>In welchem Güterstand leben Sie? <span class="req">*</span></label><select><option>Zugewinngemeinschaft</option><option>Gütertrennung</option><option>Gütergemeinschaft</option></select></div>
+              </div></div></div>
+            </div>
+            <div class="field col-12">
+              <label>Leben Kinder im Haushalt? <span class="req">*</span></label>
+              <div class="choices" data-single data-show-when="Ja">
+                <button type="button" class="choice" data-value="Ja" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Ja</button>
+                <button type="button" class="choice" data-value="Nein" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Nein</button>
+              </div>
+              <div class="reveal"><div class="reveal-inner"><div class="pad">
+                <div class="kinder-list"></div>
+                <button type="button" class="add-btn kinder-add">+ Kind hinzufügen</button>
+              </div></div></div>
+            </div>
+            <div class="field col-8"><label>Straße <span class="req">*</span></label><input type="text"></div>
+            <div class="field col-4"><label>Hausnr. <span class="req">*</span></label><input type="text"></div>
+            <div class="field col-4"><label>PLZ <span class="req">*</span></label><input type="text" inputmode="numeric"></div>
+            <div class="field col-8"><label>Ort <span class="req">*</span></label><input type="text"></div>
+            <div class="field col-6"><label>Wohnhaft seit</label><input type="text" placeholder="tt.mm.jjjj" inputmode="numeric"></div>
           </div>
         </div>
-        <div class="field col-3"><label>Titel</label><select><option value="">Kein Titel</option><option>Dr.</option><option>Prof.</option><option>Prof. Dr.</option></select></div>
-        <div class="field col-3"></div>
-        <div class="field col-6"><label>Vorname <span class="req">*</span></label><input type="text"></div>
-        <div class="field col-6"><label>Nachname <span class="req">*</span></label><input type="text"></div>
-        <div class="field col-3"><label>Geburtsdatum <span class="req">*</span></label><input type="text" placeholder="tt.mm.jjjj" inputmode="numeric"></div>
-        <div class="field col-3"><label>Geburtsort <span class="req">*</span></label><input type="text"></div>
-        <div class="field col-6"><label>Staatsangehörigkeit <span class="req">*</span></label><input type="text" placeholder="tippen zum Filtern…"></div>
-        <div class="field col-12">
-          <label>Familienstand <span class="req">*</span></label>
-          <div class="choices" data-single>
-            <button type="button" class="choice" data-value="ledig" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>ledig</button>
-            <button type="button" class="choice" data-value="verheiratet" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>verheiratet</button>
-            <button type="button" class="choice" data-value="geschieden" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>geschieden</button>
-            <button type="button" class="choice" data-value="verwitwet" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>verwitwet</button>
-            <button type="button" class="choice" data-value="eingetr" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>eingetr. Lebenspartnerschaft</button>
+      </div>
+    </section>
+
+    <!-- ===================== BERUFLICHE SITUATION ===================== -->
+    <section class="section" id="beruf">
+      <div class="section-head"><h2>Berufliche Situation</h2><span class="kicker">Beschäftigung</span></div>
+      <div class="applicants" data-applicants>
+        <div class="applicant" data-applicant="1">
+          <div class="applicant-head"><span class="applicant-title">Antragsteller 1</span></div>
+          <div class="grid">
+            <div class="field col-12">
+              <label>Beschäftigungsverhältnis <span class="req">*</span></label>
+              <div class="choices" data-single>
+                <button type="button" class="choice" data-value="Angestellt" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Angestellt</button>
+                <button type="button" class="choice" data-value="Beamter" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Beamtin / Beamter</button>
+                <button type="button" class="choice" data-value="Selbstständig" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Selbstständig</button>
+                <button type="button" class="choice" data-value="Freiberuflich" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Freiberuflich</button>
+                <button type="button" class="choice" data-value="Arbeiter" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Arbeiterin / Arbeiter</button>
+                <button type="button" class="choice" data-value="Rentner" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Rentnerin / Rentner</button>
+                <button type="button" class="choice" data-value="Ausbildung" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>In Ausbildung</button>
+                <button type="button" class="choice" data-value="Nicht erwerbstätig" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Nicht erwerbstätig</button>
+              </div>
+            </div>
+            <div class="field col-6"><label>Ausgeübter Beruf <span class="req">*</span></label><input type="text"></div>
+            <div class="field col-6"><label>Branche</label><select><option value="">Bitte wählen</option><option>Bau &amp; Handwerk</option><option>Handel</option><option>IT &amp; Telekommunikation</option><option>Gesundheit &amp; Soziales</option><option>Öffentlicher Dienst</option><option>Industrie &amp; Produktion</option><option>Finanzen &amp; Versicherung</option><option>Sonstige</option></select></div>
+            <div class="field col-6"><label>Arbeitgeber <span class="req">*</span></label><input type="text"></div>
+            <div class="field col-6"><label>Beschäftigt seit <span class="req">*</span></label><input type="text" placeholder="mm.jjjj" inputmode="numeric"></div>
+            <div class="field col-12">
+              <label>Ist das Arbeitsverhältnis befristet?</label>
+              <div class="choices" data-single data-show-when="Ja">
+                <button type="button" class="choice" data-value="Ja" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Ja</button>
+                <button type="button" class="choice" data-value="Nein" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Nein</button>
+              </div>
+              <div class="reveal"><div class="reveal-inner"><div class="pad">
+                <div class="field" style="max-width:220px"><label>Befristet bis <span class="req">*</span></label><input type="text" placeholder="mm.jjjj" inputmode="numeric"></div>
+              </div></div></div>
+            </div>
           </div>
         </div>
-        <div class="field col-6">
-          <label>Leben Kinder im Haushalt? <span class="req">*</span></label>
-          <div class="choices" data-single>
-            <button type="button" class="choice" data-value="Ja" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Ja</button>
-            <button type="button" class="choice" data-value="Nein" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Nein</button>
+      </div>
+    </section>
+
+    <!-- ===================== EINKOMMEN ===================== -->
+    <section class="section" id="einkommen">
+      <div class="section-head"><h2>Einkommen</h2><span class="kicker">Monatliche Einkünfte</span></div>
+      <div class="applicants" data-applicants>
+        <div class="applicant" data-applicant="1">
+          <div class="applicant-head"><span class="applicant-title">Antragsteller 1</span></div>
+          <div class="grid">
+            <div class="field col-6"><label>Monatliches Nettoeinkommen <span class="req">*</span></label><div class="with-unit"><input inputmode="decimal"><span class="unit">€</span></div></div>
+            <div class="field col-6"><label>Anzahl Gehälter pro Jahr</label><select><option>12</option><option>13</option><option>14</option></select></div>
+            <div class="field col-6"><label>Weitere monatliche Einkünfte</label><p class="help">Z. B. Mieteinnahmen, Kapitalerträge oder regelmäßige Zuwendungen.</p><div class="with-unit"><input inputmode="decimal"><span class="unit">€</span></div></div>
+            <div class="field col-6"><label>Kindergeld</label><div class="with-unit"><input inputmode="decimal"><span class="unit">€</span></div></div>
           </div>
         </div>
-        <div class="field col-6"></div>
-        <div class="field col-8"><label>Straße <span class="req">*</span></label><input type="text"></div>
-        <div class="field col-4"><label>Hausnr. <span class="req">*</span></label><input type="text"></div>
-        <div class="field col-3"><label>PLZ <span class="req">*</span></label><input type="text" inputmode="numeric"></div>
-        <div class="field col-6"><label>Ort <span class="req">*</span></label><input type="text"></div>
-        <div class="field col-3"></div>
-        <div class="field col-3"><label>Wohnhaft seit</label><input type="text" placeholder="tt.mm.jjjj" inputmode="numeric"></div>
+      </div>
+    </section>
+
+    <!-- ===================== AUSGABEN ===================== -->
+    <section class="section" id="ausgaben">
+      <div class="section-head"><h2>Ausgaben</h2><span class="kicker">Monatliche Verpflichtungen</span></div>
+      <div class="applicants" data-applicants>
+        <div class="applicant" data-applicant="1">
+          <div class="applicant-head"><span class="applicant-title">Antragsteller 1</span></div>
+          <div class="grid">
+            <div class="field col-6"><label>Aktuelle Warmmiete</label><p class="help">Entfällt, sofern Sie die finanzierte Immobilie selbst nutzen.</p><div class="with-unit"><input inputmode="decimal"><span class="unit">€</span></div></div>
+            <div class="field col-6"><label>Summe monatlicher Kreditraten</label><div class="with-unit"><input inputmode="decimal"><span class="unit">€</span></div></div>
+            <div class="field col-6"><label>Unterhaltsverpflichtungen</label><div class="with-unit"><input inputmode="decimal"><span class="unit">€</span></div></div>
+            <div class="field col-6"><label>Sonstige monatliche Ausgaben</label><div class="with-unit"><input inputmode="decimal"><span class="unit">€</span></div></div>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -434,6 +560,29 @@
   <button class="btn primary">Weiter</button>
 </div>
 
+<!-- template: child row (one line, repeatable) -->
+<template id="tpl-kind">
+  <div class="child-row">
+    <div class="field c-name"><label>Name</label><input type="text"></div>
+    <div class="field c-date"><label>Geburtsdatum</label><input type="text" placeholder="tt.mm.jjjj" inputmode="numeric"></div>
+    <div class="field">
+      <label>Kindergeld?</label>
+      <div class="choices mini" data-single>
+        <button type="button" class="choice" data-value="Ja" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>ja</button>
+        <button type="button" class="choice" data-value="Nein" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>nein</button>
+      </div>
+    </div>
+    <div class="field">
+      <label>Unterhaltseinnahmen?</label>
+      <div class="choices mini" data-single>
+        <button type="button" class="choice" data-value="Keine" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Keine</button>
+        <button type="button" class="choice" data-value="Ja" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Ja</button>
+      </div>
+    </div>
+    <button type="button" class="x" title="Kind entfernen">×</button>
+  </div>
+</template>
+
 <!-- template: Stellplatz sub-card -->
 <template id="tpl-stellplatz">
   <div class="subcard">
@@ -467,12 +616,15 @@
   const openReveal = (el,open)=>{ if(el) el.classList.toggle('open', open); };
   const setPressed = (group,btn)=>{ group.querySelectorAll('.choice').forEach(x=>x.setAttribute('aria-pressed','false')); btn.setAttribute('aria-pressed','true'); };
 
-  // density toggle
-  document.querySelectorAll('.seg button').forEach(b=>b.addEventListener('click',()=>{
-    document.querySelectorAll('.seg button').forEach(x=>x.classList.remove('on'));
-    b.classList.add('on');
-    document.body.classList.toggle('compact', b.dataset.density==='compact');
-  }));
+  // segmented toggles — density + client-facing helper text (scoped per group)
+  document.querySelectorAll('.seg').forEach(seg=>{
+    seg.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{
+      seg.querySelectorAll('button').forEach(x=>x.classList.remove('on'));
+      b.classList.add('on');
+      if(b.dataset.density) document.body.classList.toggle('compact', b.dataset.density==='compact');
+      if(b.dataset.help)    document.body.classList.toggle('no-help', b.dataset.help==='off');
+    }));
+  });
 
   // generic single-select + intra-section conditional (data-controls / data-show-when)
   function wireGroup(group){
@@ -484,7 +636,7 @@
     }));
   }
   document.querySelectorAll('.choices[data-single]').forEach(g=>{
-    if(g.closest('#tpl-stellplatz') || g.id==='zweck' || g.id==='gefunden') return;
+    if(g.closest('#tpl-stellplatz') || g.closest('.applicant') || g.id==='zweck' || g.id==='gefunden' || g.id==='darlehensnehmer') return;
     wireGroup(g);
   });
 
@@ -527,6 +679,90 @@
   zweck.querySelectorAll('.choice').forEach(c=>c.addEventListener('click',()=>{ setPressed(zweck,c); updateStart(); }));
   gefunden.querySelectorAll('.choice').forEach(c=>c.addEventListener('click',()=>{ setPressed(gefunden,c); updateStart(); }));
   updateStart(); // defaults: Kauf + bereits gefunden → Immobilie section open
+
+  // ---- Antragsteller (persons) -------------------------------------------
+  // Each of the four person sections holds an .applicants grid. Applicant 1 is
+  // in markup; applicant 2 is cloned identically on demand and shown beside it.
+  let applicantCount = 1;
+
+  function refreshTitle(n){
+    const q = sel => document.querySelector('.applicant[data-applicant="'+n+'"] '+sel);
+    const v = (q('[data-role="vorname"]')||{}).value || '';
+    const s = (q('[data-role="nachname"]')||{}).value || '';
+    const name = (v+' '+s).trim();
+    document.querySelectorAll('.applicant[data-applicant="'+n+'"] .applicant-title')
+      .forEach(t=>t.textContent = 'Antragsteller '+n+(name?' – '+name:''));
+    if(String(n)==='1'){ const g=document.getElementById('person-group-title'); if(g) g.textContent='Über '+(v.trim()||'Antragsteller 1'); }
+  }
+
+  function wireChildRow(row){
+    row.querySelectorAll('.choices[data-single]').forEach(g=>g.querySelectorAll('.choice')
+      .forEach(c=>c.addEventListener('click',()=>setPressed(g,c))));
+    const x = row.querySelector('.x'); if(x) x.addEventListener('click',()=>row.remove());
+  }
+  const kindTpl = document.getElementById('tpl-kind');
+  function addChild(list){
+    const node = kindTpl.content.firstElementChild.cloneNode(true);
+    wireChildRow(node); list.appendChild(node);
+  }
+
+  function initApplicantPanel(panel){
+    panel.querySelectorAll('.choices[data-single]').forEach(g=>{
+      if(g.closest('.child-row')) return;
+      const when = g.dataset.showWhen;
+      const reveal = when ? (g.closest('.field')||panel).querySelector('.reveal') : null;
+      g.querySelectorAll('.choice').forEach(c=>c.addEventListener('click',()=>{
+        setPressed(g,c);
+        if(reveal && when) openReveal(reveal, c.dataset.value===when);
+      }));
+    });
+    panel.querySelectorAll('.child-row').forEach(wireChildRow);
+    const addKind = panel.querySelector('.kinder-add');
+    if(addKind) addKind.addEventListener('click',()=>addChild(panel.querySelector('.kinder-list')));
+    const n = panel.dataset.applicant;
+    panel.querySelectorAll('[data-role="vorname"],[data-role="nachname"]')
+      .forEach(inp=>inp.addEventListener('input',()=>refreshTitle(n)));
+  }
+
+  function cloneApplicant2(container){
+    const a2 = container.querySelector('.applicant[data-applicant="1"]').cloneNode(true);
+    a2.dataset.applicant = '2';
+    a2.querySelectorAll('.child-row').forEach(r=>r.remove());
+    a2.querySelectorAll('input').forEach(i=>i.value='');
+    a2.querySelectorAll('select').forEach(s=>s.selectedIndex=0);
+    a2.querySelectorAll('.choice').forEach(c=>c.setAttribute('aria-pressed','false'));
+    a2.querySelectorAll('.reveal').forEach(r=>r.classList.remove('open'));
+    const title = a2.querySelector('.applicant-title'); if(title) title.textContent='Antragsteller 2';
+    const head = a2.querySelector('.applicant-head');
+    if(head && !head.querySelector('.x')){
+      const x=document.createElement('button');
+      x.type='button'; x.className='x'; x.title='Antragsteller 2 entfernen'; x.textContent='×';
+      x.addEventListener('click',()=>setApplicants(1));
+      head.appendChild(x);
+    }
+    container.appendChild(a2);
+    initApplicantPanel(a2);
+  }
+
+  function setApplicants(n){
+    applicantCount = n;
+    document.querySelectorAll('[data-applicants]').forEach(container=>{
+      const a2 = container.querySelector('.applicant[data-applicant="2"]');
+      if(n===2){ if(!a2) cloneApplicant2(container); container.classList.add('two'); }
+      else { if(a2) a2.remove(); container.classList.remove('two'); }
+    });
+    const add = document.getElementById('add-applicant'); if(add) add.style.display = (n===2)?'none':'';
+    const dn = document.getElementById('darlehensnehmer');
+    const btn = dn && dn.querySelector('.choice[data-value="'+n+'"]'); if(btn) setPressed(dn,btn);
+    refreshTitle(1); refreshTitle(2);
+  }
+
+  document.querySelectorAll('.applicant[data-applicant="1"]').forEach(initApplicantPanel);
+  document.getElementById('add-applicant').addEventListener('click',()=>setApplicants(2));
+  const dnGroup = document.getElementById('darlehensnehmer');
+  dnGroup.querySelectorAll('.choice').forEach(c=>c.addEventListener('click',()=>{
+    setPressed(dnGroup,c); setApplicants(c.dataset.value==='2'?2:1);
+  }));
 
   // Stellplatz repeatable group
   const spContainer = document.getElementById('stellplaetze');
