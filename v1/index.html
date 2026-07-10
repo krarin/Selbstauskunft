@@ -58,6 +58,8 @@
 
   .grid{display:grid;grid-template-columns:repeat(12,1fr);gap:var(--s5);}
   .field{display:flex;flex-direction:column;gap:6px;}
+  /* bottom-align controls so inputs share a baseline even when a neighbouring label wraps to two lines */
+  .field>input,.field>select,.field>.with-unit{margin-top:auto;}
   .col-12{grid-column:span 12;} .col-8{grid-column:span 8;} .col-6{grid-column:span 6;}
   .col-4{grid-column:span 4;} .col-3{grid-column:span 3;}
 
@@ -156,6 +158,7 @@
     <a href="#start" class="active">Start</a>
     <div class="group"><span id="person-group-title">Über Antragsteller 1</span><svg class="pencil" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 13.5V16h2.5l7.7-7.7-2.5-2.5L4 13.5z"/><path d="M12 4.3l2.5 2.5"/></svg></div>
     <a href="#pd"        class="sub">Persönliche Details</a>
+    <a href="#kinder"    class="sub">Kinder</a>
     <a href="#beruf"     class="sub">Berufliche Situation</a>
     <a href="#einkommen" class="sub">Einkommen</a>
     <a href="#ausgaben"  class="sub">Ausgaben</a>
@@ -257,7 +260,7 @@
             <button type="button" class="choice" data-value="2" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Mit einer weiteren Person</button>
           </div>
         </div>
-        <div class="field col-3"><label>Gewünschter Darlehensbetrag <span class="req">*</span></label><div class="with-unit"><input inputmode="decimal" value="0,00"><span class="unit">€</span></div></div>
+        <div class="field col-4"><label style="white-space:nowrap">Gewünschter Darlehensbetrag <span class="req">*</span></label><div class="with-unit"><input inputmode="decimal" value="0,00"><span class="unit">€</span></div></div>
         <div class="field col-3"><label>Beraterin / Berater</label><input type="text" placeholder="Suchen…"></div>
       </div>
     </section>
@@ -299,23 +302,30 @@
                 <div class="field" style="max-width:340px"><label>In welchem Güterstand leben Sie? <span class="req">*</span></label><select><option>Zugewinngemeinschaft</option><option>Gütertrennung</option><option>Gütergemeinschaft</option></select></div>
               </div></div></div>
             </div>
-            <div class="field col-12">
-              <label>Leben Kinder im Haushalt? <span class="req">*</span></label>
-              <div class="choices" data-single data-show-when="Ja">
-                <button type="button" class="choice" data-value="Ja" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Ja</button>
-                <button type="button" class="choice" data-value="Nein" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Nein</button>
-              </div>
-              <div class="reveal"><div class="reveal-inner"><div class="pad">
-                <div class="kinder-list"></div>
-                <button type="button" class="add-btn kinder-add">+ Kind hinzufügen</button>
-              </div></div></div>
-            </div>
             <div class="field col-8"><label>Straße <span class="req">*</span></label><input type="text"></div>
             <div class="field col-4"><label>Hausnr. <span class="req">*</span></label><input type="text"></div>
             <div class="field col-4"><label>PLZ <span class="req">*</span></label><input type="text" inputmode="numeric"></div>
             <div class="field col-8"><label>Ort <span class="req">*</span></label><input type="text"></div>
             <div class="field col-6"><label>Wohnhaft seit</label><input type="text" placeholder="tt.mm.jjjj" inputmode="numeric"></div>
           </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== KINDER ===================== -->
+    <section class="section" id="kinder">
+      <div class="section-head"><h2>Kinder</h2><span class="kicker">Angaben zum Haushalt</span></div>
+      <div class="grid">
+        <div class="field col-12">
+          <label>Leben Kinder im Haushalt? <span class="req">*</span></label>
+          <div class="choices" id="kinder-toggle" data-single data-show-when="Ja">
+            <button type="button" class="choice" data-value="Ja" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Ja</button>
+            <button type="button" class="choice" data-value="Nein" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Nein</button>
+          </div>
+          <div class="reveal"><div class="reveal-inner"><div class="pad">
+            <div class="kinder-list"></div>
+            <button type="button" class="add-btn kinder-add">+ Kind hinzufügen</button>
+          </div></div></div>
         </div>
       </div>
     </section>
@@ -729,9 +739,6 @@
         if(reveal && when) openReveal(reveal, c.dataset.value===when);
       }));
     });
-    panel.querySelectorAll('.child-row').forEach(wireChildRow);
-    const addKind = panel.querySelector('.kinder-add');
-    if(addKind) addKind.addEventListener('click',()=>addChild(panel.querySelector('.kinder-list')));
     const n = panel.dataset.applicant;
     panel.querySelectorAll('[data-role="vorname"],[data-role="nachname"]')
       .forEach(inp=>inp.addEventListener('input',()=>refreshTitle(n)));
@@ -776,6 +783,19 @@
   dnGroup.querySelectorAll('.choice').forEach(c=>c.addEventListener('click',()=>{
     setPressed(dnGroup,c); setApplicants(c.dataset.value==='2'?2:1);
   }));
+
+  // ---- Kinder (household-level, shared by both applicants) ---------------
+  const kinderSection = document.getElementById('kinder');
+  if(kinderSection){
+    const toggle = kinderSection.querySelector('#kinder-toggle');
+    const reveal = kinderSection.querySelector('.reveal');
+    toggle.querySelectorAll('.choice').forEach(c=>c.addEventListener('click',()=>{
+      setPressed(toggle,c); openReveal(reveal, c.dataset.value==='Ja');
+    }));
+    const addKind = kinderSection.querySelector('.kinder-add');
+    const list = kinderSection.querySelector('.kinder-list');
+    addKind.addEventListener('click',()=>addChild(list));
+  }
 
   // Stellplatz repeatable group
   const spContainer = document.getElementById('stellplaetze');
