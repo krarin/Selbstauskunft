@@ -83,6 +83,11 @@
   /* segmented single-select */
   .choices{display:flex;flex-wrap:wrap;gap:8px;}
   .choices.grid-choices{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));max-width:520px;}
+  /* aligned grid for many-option groups — tidy columns, capped width, more contrast */
+  .choices.grid-auto{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:8px;max-width:840px;}
+  .choices.grid-auto .choice{width:100%;justify-content:flex-start;text-align:left;white-space:normal;line-height:1.25;height:auto;min-height:var(--field-h);padding:9px 14px;border-color:#b3c0cf;box-shadow:0 1px 1.5px rgba(15,23,42,.05);}
+  .choices.grid-auto .choice .tick{display:inline-block;visibility:hidden;flex:none;}
+  .choices.grid-auto .choice[aria-pressed="true"] .tick{visibility:visible;}
   .choice{font-family:inherit;font-size:14px;font-weight:500;color:var(--ink-2);background:#fff;border:1px solid var(--border);height:var(--field-h);padding:0 16px;border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;gap:8px;transition:all .12s;white-space:nowrap;}
   .choice:hover{border-color:var(--teal-500);color:var(--ink);}
   .choice:focus-visible{outline:none;box-shadow:0 0 0 3px var(--teal-ring);border-color:var(--teal-500);}
@@ -192,7 +197,7 @@
       <div class="grid">
         <div class="field col-12">
           <label>Was möchten Sie finanzieren? <span class="req">*</span></label>
-          <div class="choices" data-single id="zweck">
+          <div class="choices grid-auto" data-single id="zweck">
             <button type="button" class="choice" data-value="neubau-bautraeger" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Neubau vom Bauträger</button>
             <button type="button" class="choice" data-value="kauf" aria-pressed="true"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Kauf einer bestehenden Immobilie</button>
             <button type="button" class="choice" data-value="bauvorhaben" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Eigenes Bauvorhaben</button>
@@ -218,7 +223,7 @@
       <div class="reveal" id="c-immobilienart"><div class="reveal-inner"><div class="pad">
         <div class="field">
           <label>Um welche Immobilienart handelt es sich? <span class="req">*</span></label>
-          <div class="choices" data-single id="immobilienart">
+          <div class="choices grid-auto" data-single id="immobilienart">
             <button type="button" class="choice" data-value="Eigentumswohnung" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Eigentumswohnung</button>
             <button type="button" class="choice" data-value="Mehrfamilienhaus" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Mehrfamilienhaus</button>
             <button type="button" class="choice" data-value="Doppelhaushälfte" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Doppelhaushälfte</button>
@@ -286,7 +291,7 @@
             <div class="field col-12"><label>Staatsangehörigkeit <span class="req">*</span></label><input type="text" placeholder="tippen zum Filtern…"></div>
             <div class="field col-12">
               <label>Familienstand <span class="req">*</span></label>
-              <div class="choices" data-single data-show-when="verheiratet">
+              <div class="choices grid-auto" data-single data-show-when="verheiratet">
                 <button type="button" class="choice" data-value="ledig" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>ledig</button>
                 <button type="button" class="choice" data-value="verheiratet" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>verheiratet</button>
                 <button type="button" class="choice" data-value="geschieden" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>geschieden</button>
@@ -325,19 +330,21 @@
         <div class="applicant" data-applicant="1">
           <div class="applicant-head"><span class="applicant-title">Antragsteller 1</span></div>
           <div class="grid">
-            <div class="field col-12">
+            <div class="field col-6">
               <label>Beschäftigungsverhältnis <span class="req">*</span></label>
-              <div class="choices" data-single>
-                <button type="button" class="choice" data-value="Angestellt" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Angestellt</button>
-                <button type="button" class="choice" data-value="Beamter" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Beamtin / Beamter</button>
-                <button type="button" class="choice" data-value="Selbstständig" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Selbstständig</button>
-                <button type="button" class="choice" data-value="Freiberuflich" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Freiberuflich</button>
-                <button type="button" class="choice" data-value="Arbeiter" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Arbeiterin / Arbeiter</button>
-                <button type="button" class="choice" data-value="Rentner" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Rentnerin / Rentner</button>
-                <button type="button" class="choice" data-value="Ausbildung" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>In Ausbildung</button>
-                <button type="button" class="choice" data-value="Nicht erwerbstätig" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Nicht erwerbstätig</button>
-              </div>
+              <select>
+                <option value="">Bitte wählen</option>
+                <option>Angestellt</option>
+                <option>Beamtin / Beamter</option>
+                <option>Selbstständig</option>
+                <option>Freiberuflich</option>
+                <option>Arbeiterin / Arbeiter</option>
+                <option>Rentnerin / Rentner</option>
+                <option>In Ausbildung</option>
+                <option>Nicht erwerbstätig</option>
+              </select>
             </div>
+            <div class="field col-6"></div>
             <div class="field col-6"><label>Ausgeübter Beruf <span class="req">*</span></label><input type="text"></div>
             <div class="field col-6"><label>Branche</label><select><option value="">Bitte wählen</option><option>Bau &amp; Handwerk</option><option>Handel</option><option>IT &amp; Telekommunikation</option><option>Gesundheit &amp; Soziales</option><option>Öffentlicher Dienst</option><option>Industrie &amp; Produktion</option><option>Finanzen &amp; Versicherung</option><option>Sonstige</option></select></div>
             <div class="field col-6"><label>Arbeitgeber <span class="req">*</span></label><input type="text"></div>
