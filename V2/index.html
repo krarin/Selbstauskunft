@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Selbstauskunft – FinLink</title>
+<style>
+  /* =====================================================================
+     FinLink Forms — design system (see DESIGN-SYSTEM.md for the reusable copy)
+     ===================================================================== */
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap');
+
+  :root{
+    /* brand accent — default: Teal (see "branding themes" below) */
+    --brand-700:#317574; --brand-600:#46A6A4; --brand-500:#46A6A4;
+    --brand-100:#BEEAE9; --brand-50:#E5F7F6; --brand-ring:rgba(70,166,164,.28);
+    /* neutrals */
+    --ink:#0f172a; --ink-2:#334155; --muted:#64748b; --faint:#94a3b8;
+    --line:#e2e8f0; --border:#cbd5e1; --surface:#f8fafc; --white:#fff; --req:#e11d48;
+    /* spacing (8px scale) */
+    --s2:8px; --s3:12px; --s4:16px; --s5:20px; --s6:24px; --s8:32px; --s10:40px;
+    /* density */
+    --field-h:38px; --label-size:12.5px; --input-size:14.5px;
+  }
+  body.compact{--field-h:30px;--input-size:14px;--s5:14px;--s6:18px;--s8:24px;}
+  body.no-help .help{display:none;}
+
+  /* ---- branding themes — override the brand-* accent tokens ---- */
+  /* Blue */
+  body.theme-blue{
+    --brand-700:#003EB4; --brand-600:#2F70E8; --brand-500:#2F70E8;
+    --brand-100:#96B7F3; --brand-50:#CEDDFE; --brand-ring:rgba(47,112,232,.28);
+  }
+  /* Neutral — B&W / greyscale; focus is dark black */
+  body.theme-neutral{
+    --brand-700:#282828; --brand-600:#282828; --brand-500:#282828;
+    --brand-100:#A8AEBA; --brand-50:#EAEAEA; --brand-ring:rgba(40,40,40,.18);
+  }
+  body.theme-neutral .btn.primary:hover{background:#000;}
+
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:'IBM Plex Sans',system-ui,sans-serif;color:var(--ink);background:#fff;-webkit-font-smoothing:antialiased;}
+  .app{display:grid;grid-template-columns:236px 1fr;max-width:1180px;margin:0 auto;min-height:100vh;}
+
+  /* ---- nav ---- */
+  .nav{padding:var(--s8) var(--s6);border-right:1px solid var(--line);position:sticky;top:0;align-self:start;height:100vh;}
+  .nav a{display:block;text-decoration:none;color:var(--muted);font-size:14px;font-weight:500;padding:8px 10px;border-radius:8px;margin-bottom:2px;border-left:2px solid transparent;transition:.12s;}
+  .nav a:hover{background:var(--surface);color:var(--ink-2);}
+  .nav a.active{color:var(--brand-700);background:var(--brand-50);border-left:2px solid var(--brand-600);font-weight:600;}
+  .nav a.object-nav{display:none;}
+  .nav a.object-nav.show{display:block;animation:navin .3s ease;}
+  @keyframes navin{from{opacity:0;transform:translateX(-4px);}to{opacity:1;transform:none;}}
+  .nav .divider{height:1px;background:var(--line);margin:var(--s6) 10px;}
+  .nav .eyebrow{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);font-weight:600;padding:0 10px;margin-bottom:10px;}
+  .seg{display:inline-flex;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:3px;gap:2px;margin:0 8px;}
+  .seg button{font-family:inherit;font-size:12.5px;font-weight:500;color:var(--muted);border:0;background:transparent;padding:5px 12px;border-radius:6px;cursor:pointer;}
+  .seg button.on{background:#fff;color:var(--brand-700);font-weight:600;box-shadow:0 1px 2px rgba(15,23,42,.08);}
+  .seg.brand button{padding:5px 9px;}
+
+  /* ---- content ---- */
+  .content{padding:var(--s10) 56px 120px;}
+  .page-title{font-size:26px;font-weight:600;letter-spacing:-.01em;margin:0 0 6px;}
+  .lede{font-size:14px;color:var(--muted);max-width:56ch;line-height:1.5;margin:0 0 var(--s8);}
+  .lede .req{color:var(--req);font-weight:600;}
+
+  .section{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:var(--s8) var(--s8) var(--s10);margin-bottom:var(--s6);}
+  .section-head{display:flex;align-items:baseline;gap:12px;padding-bottom:var(--s4);margin-bottom:var(--s6);border-bottom:1px solid var(--line);}
+  .section-head h2{font-size:17px;font-weight:600;color:var(--brand-700);margin:0;letter-spacing:-.005em;}
+  .section-head .kicker{font-size:12px;color:var(--faint);font-weight:500;}
+  .subhead{font-size:13px;color:var(--brand-600);font-weight:600;margin:var(--s6) 0 var(--s4);}
+  .subhead:first-of-type{margin-top:0;}
+
+  .grid{display:grid;grid-template-columns:repeat(12,1fr);gap:var(--s5);}
+  .field{display:flex;flex-direction:column;gap:6px;}
+  /* bottom-align controls so inputs share a baseline even when a neighbouring label wraps to two lines */
+  .field>input,.field>select,.field>.with-unit{margin-top:auto;}
+  .col-12{grid-column:span 12;} .col-8{grid-column:span 8;} .col-6{grid-column:span 6;}
+  .col-4{grid-column:span 4;} .col-3{grid-column:span 3;}
+
+  label{font-size:var(--label-size);font-weight:500;color:var(--muted);}
+  label .req{color:var(--req);margin-left:2px;}
+  .help{font-size:12px;color:var(--muted);line-height:1.4;margin:-2px 0 2px;max-width:64ch;}
+
+  input,select{font-family:inherit;font-size:var(--input-size);color:var(--ink);height:var(--field-h);border:1px solid var(--border);border-radius:8px;background:#fff;padding:0 12px;width:100%;transition:border-color .12s,box-shadow .12s;}
+  input::placeholder{color:var(--faint);}
+  input:hover,select:hover{border-color:#b6c2d1;}
+  input:focus-visible,select:focus-visible{outline:none;border-color:var(--brand-500);box-shadow:0 0 0 3px var(--brand-ring);}
+  input.num{text-align:right;font-variant-numeric:tabular-nums;}
+  select{appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%2364748b' stroke-width='1.5'><path d='M4 6l4 4 4-4'/></svg>");background-repeat:no-repeat;background-position:right 10px center;padding-right:32px;}
+
+  .with-unit{position:relative;}
+  .with-unit input{padding-right:56px;text-align:right;font-variant-numeric:tabular-nums;}
+  .with-unit .unit{position:absolute;right:1px;top:1px;bottom:1px;display:flex;align-items:center;padding:0 12px;color:var(--brand-700);font-size:13px;font-weight:500;border-left:1px solid var(--line);background:var(--brand-50);border-radius:0 7px 7px 0;pointer-events:none;}
+
+  /* segmented single-select */
+  .choices{display:flex;flex-wrap:wrap;gap:8px;}
+  .choices.grid-choices{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));max-width:520px;}
+  /* aligned grid for many-option groups — tidy columns, capped width, more contrast */
+  .choices.grid-auto{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:8px;max-width:840px;}
+  .choices.grid-auto .choice{width:100%;justify-content:flex-start;text-align:left;white-space:normal;line-height:1.25;height:auto;min-height:var(--field-h);padding:9px 14px;border-color:#b3c0cf;box-shadow:0 1px 1.5px rgba(15,23,42,.05);}
+  .choice{font-family:inherit;font-size:14px;font-weight:500;color:var(--ink-2);background:#fff;border:1px solid var(--border);height:var(--field-h);padding:0 16px;border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;gap:8px;transition:all .12s;white-space:nowrap;}
+  .choice:hover{border-color:var(--brand-500);color:var(--ink);}
+  .choice:focus-visible{outline:none;box-shadow:0 0 0 3px var(--brand-ring);border-color:var(--brand-500);}
+  .choice[aria-pressed="true"]{background:var(--brand-50);border-color:var(--brand-600);color:var(--brand-700);font-weight:600;}
+  .choice .tick{width:15px;height:15px;display:none;}
+  .choice[aria-pressed="true"] .tick{display:inline-block;}
+
+  /* conditional reveal */
+  .reveal{display:grid;grid-template-rows:0fr;opacity:0;transition:grid-template-rows .3s ease,opacity .25s ease;}
+  /* the inner clips during the animation — widen it 6px past the content
+     (negative margins) and pad .pad back in, so focus rings aren't cut off */
+  .reveal>.reveal-inner{overflow:hidden;min-height:0;margin:0 -6px -6px;}
+  .reveal.open{grid-template-rows:1fr;opacity:1;}
+  .reveal .pad{padding:var(--s5) 6px 6px;}
+
+  /* nested sub-card + repeatable group */
+  .subcard{background:#fff;border:1px solid var(--line);border-radius:12px;padding:var(--s5) var(--s6) var(--s6);margin-top:var(--s4);}
+  .subcard-head{display:flex;align-items:center;justify-content:space-between;padding-bottom:var(--s3);margin-bottom:var(--s5);border-bottom:1px solid var(--line);}
+  .subcard-head strong{font-size:13.5px;color:var(--ink);font-weight:600;}
+  .subcard-head .x{background:none;border:0;cursor:pointer;color:var(--muted);font-size:18px;line-height:1;padding:4px;border-radius:6px;}
+  .subcard-head .x:hover{background:var(--surface);color:var(--ink);}
+  .add-btn{font-family:inherit;font-size:13.5px;font-weight:600;color:var(--brand-700);background:#fff;border:1px dashed var(--brand-600);border-radius:9px;height:var(--field-h);padding:0 16px;cursor:pointer;margin-top:var(--s4);transition:.12s;}
+  .add-btn:hover{background:var(--brand-50);}
+
+  .note{font-size:13px;color:var(--muted);background:#fffbeb;border:1px solid #fde68a;border-radius:9px;padding:10px 14px;margin-top:var(--s4);line-height:1.45;}
+
+  /* nav sub-group */
+  .nav .group{font-size:12.5px;font-weight:600;color:var(--ink-2);padding:12px 10px 4px;}
+  .nav a.sub{padding-left:22px;font-size:13.5px;}
+
+  /* applicants side-by-side */
+  .applicants{display:grid;grid-template-columns:1fr;gap:var(--s5);}
+  .applicants.two{grid-template-columns:repeat(2,minmax(0,1fr));}
+  .applicant{background:#fff;border:1px solid var(--line);border-radius:12px;padding:var(--s5) var(--s6) var(--s6);}
+  .applicant-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding-bottom:var(--s3);margin-bottom:var(--s5);border-bottom:1px solid var(--line);}
+  .applicant-title{font-size:13.5px;color:var(--brand-700);font-weight:600;}
+  .applicant .x{background:none;border:0;cursor:pointer;color:var(--muted);font-size:18px;line-height:1;padding:2px 6px;border-radius:6px;}
+  .applicant .x:hover{background:var(--surface);color:var(--ink);}
+  .section-head .add-btn{margin:0 0 0 auto;}
+  @media(max-width:960px){.applicants.two{grid-template-columns:1fr;}}
+
+  /* nav person group with edit pencil */
+  .nav .group{display:flex;align-items:center;gap:6px;}
+  .nav .group .pencil{width:13px;height:13px;color:var(--faint);flex:none;}
+
+  /* compact segmented choices (child rows) */
+  .choices.mini{gap:6px;}
+  .choices.mini .choice{height:28px;padding:0 10px;font-size:12.5px;gap:5px;}
+  .choices.mini .choice .tick{width:12px;height:12px;}
+
+  /* repeatable child rows — one line */
+  .child-row{display:flex;flex-wrap:wrap;align-items:flex-end;gap:var(--s3);padding:10px 0;border-bottom:1px dashed var(--line);}
+  .child-row:last-of-type{border-bottom:0;}
+  .child-row .field{gap:4px;}
+  .child-row .c-name{flex:1 1 140px;min-width:120px;}
+  .child-row .c-date{flex:0 0 118px;}
+  .child-row .x{background:none;border:0;cursor:pointer;color:var(--muted);font-size:18px;line-height:1;padding:2px 6px;border-radius:6px;align-self:center;}
+  .child-row .x:hover{background:var(--surface);color:var(--ink);}
+
+  /* sticky action bar */
+  .actionbar{position:fixed;left:0;right:0;bottom:0;background:rgba(255,255,255,.92);backdrop-filter:blur(8px);border-top:1px solid var(--line);display:flex;justify-content:center;}
+  .actionbar-inner{width:100%;max-width:1180px;display:flex;align-items:center;gap:16px;padding:12px 56px 12px calc(236px + 56px);}
+  .save-state{font-size:13px;color:var(--muted);display:flex;align-items:center;gap:7px;margin-right:auto;}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--brand-500);}
+  .btn{font-family:inherit;font-size:14px;font-weight:600;height:38px;padding:0 20px;border-radius:9px;cursor:pointer;border:1px solid transparent;}
+  .btn.ghost{background:#fff;border-color:var(--border);color:var(--ink-2);}
+  .btn.primary{background:var(--brand-600);color:#fff;}
+  .btn.primary:hover{background:var(--brand-700);}
+
+  /* ===== responsive — tablet & mobile ===== */
+  @media(max-width:900px){
+    .app{grid-template-columns:1fr;}
+    /* sidebar becomes a sticky, horizontally scrollable top bar */
+    .nav{position:sticky;top:0;z-index:20;height:auto;display:flex;align-items:center;gap:2px;
+         overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;
+         border-right:0;border-bottom:1px solid var(--line);padding:10px 16px;
+         background:rgba(255,255,255,.95);backdrop-filter:blur(8px);}
+    .nav::-webkit-scrollbar{display:none;}
+    .nav a{white-space:nowrap;margin-bottom:0;border-left:0;flex:none;}
+    .nav a.active{border-left:0;}
+    .nav a.sub{padding-left:10px;font-size:14px;}
+    .nav .group,.nav .divider,.nav .eyebrow,.nav .seg{display:none;}
+    .content{padding:28px 20px 140px;}
+    .page-title{font-size:22px;}
+    .section{padding:var(--s6) var(--s5) var(--s8);}
+    .applicant,.subcard{padding:var(--s4) var(--s4) var(--s5);}
+    .actionbar-inner{padding:10px 20px;}
+  }
+  @media(max-width:720px){
+    body,body.compact{--input-size:16px;--field-h:42px;} /* 16px prevents iOS focus zoom */
+    .grid{gap:var(--s4);}
+    .col-8,.col-6{grid-column:span 12;}
+    .col-4,.col-3{grid-column:span 6;}
+    .field[style*="max-width"]{max-width:none !important;}
+    .choices.grid-auto,.choices.grid-choices{grid-template-columns:1fr;max-width:none;}
+    .child-row .c-name{flex-basis:100%;}
+    .content{padding:24px 16px 150px;}
+    .section{border-radius:12px;}
+  }
+  @media(max-width:480px){
+    .save-state{display:none;}
+    .actionbar-inner{gap:10px;}
+    .btn{flex:1;}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="nav">
+    <a href="#start" class="active">Start</a>
+    <div class="group"><span id="person-group-title">Über Antragsteller 1</span><svg class="pencil" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 13.5V16h2.5l7.7-7.7-2.5-2.5L4 13.5z"/><path d="M12 4.3l2.5 2.5"/></svg></div>
+    <a href="#pd"        class="sub">Persönliche Details</a>
+    <a href="#kinder"    class="sub">Kinder</a>
+    <a href="#beruf"     class="sub">Berufliche Situation</a>
+    <a href="#einkommen" class="sub">Einkommen</a>
+    <a href="#ausgaben"  class="sub">Ausgaben</a>
+    <!-- object-section nav entries (only the active one shows) -->
+    <a href="#immobilie"   class="object-nav" data-navfor="immobilie">Immobilie</a>
+    <a href="#neubau"      class="object-nav" data-navfor="neubau">Neubau</a>
+    <a href="#anschluss"   class="object-nav" data-navfor="anschluss">Anschlussfinanzierung</a>
+    <a href="#modern"      class="object-nav" data-navfor="modernisierung">Modernisierung</a>
+    <a href="#kapital"     class="object-nav" data-navfor="kapital">Kapitalbeschaffung</a>
+    <a href="#finanzen">Finanzen</a>
+    <a href="#details">Finanzierungsdetails</a>
+    <div class="divider"></div>
+    <div class="eyebrow">Dichte</div>
+    <div class="seg" role="group" aria-label="Dichte">
+      <button data-density="comfort" class="on">Komfortabel</button>
+      <button data-density="compact">Kompakt</button>
+    </div>
+    <div class="eyebrow" style="margin-top:var(--s5)">Helpertext clientfacing</div>
+    <div class="seg" role="group" aria-label="Helpertext clientfacing">
+      <button data-help="on" class="on">Ein</button>
+      <button data-help="off">Aus</button>
+    </div>
+    <div class="eyebrow" style="margin-top:var(--s5)">Branding</div>
+    <div class="seg brand" role="group" aria-label="Branding">
+      <button data-theme="teal" class="on">Teal</button>
+      <button data-theme="blue">Blue</button>
+      <button data-theme="neutral">Neutral</button>
+    </div>
+  </aside>
+
+  <main class="content">
+    <h1 class="page-title">Selbstauskunft</h1>
+    <p class="lede">Bitte füllen Sie die folgenden Angaben vollständig aus. Ihre Eingaben werden automatisch als Entwurf gespeichert. Pflichtfelder sind mit <span class="req">*</span> markiert.</p>
+
+    <!-- ===================== START ===================== -->
+    <section class="section" id="start">
+      <div class="section-head"><h2>Start</h2><span class="kicker">Grunddaten der Finanzierung</span></div>
+
+      <!-- Q1 — Finanzierungszweck (immer sichtbar) -->
+      <div class="grid">
+        <div class="field col-6">
+          <label>Was möchten Sie finanzieren? <span class="req">*</span></label>
+          <select id="zweck">
+            <option value="neubau-bautraeger">Neubau vom Bauträger</option>
+            <option value="kauf" selected>Kauf einer bestehenden Immobilie</option>
+            <option value="bauvorhaben">Eigenes Bauvorhaben</option>
+            <option value="modernisierung">Modernisierung</option>
+            <option value="anschluss">Anschlussfinanzierung</option>
+            <option value="kapitalbeschaffung">Kapitalbeschaffung</option>
+          </select>
+        </div>
+        <div class="field col-6"></div>
+      </div>
+
+      <!-- Q2 — Immobilie gefunden? (nur bei Kauf einer bestehenden Immobilie) -->
+      <div class="reveal" id="c-gefunden"><div class="reveal-inner"><div class="pad">
+        <div class="field">
+          <label>Haben Sie bereits eine Immobilie gefunden? <span class="req">*</span></label>
+          <div class="choices" data-single id="gefunden">
+            <button type="button" class="choice" data-value="Ja" aria-pressed="true"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Ja</button>
+            <button type="button" class="choice" data-value="Nein" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Nein</button>
+          </div>
+        </div>
+      </div></div></div>
+
+      <!-- Q3 — Immobilienart (wenn ein konkretes Objekt bekannt ist) -->
+      <div class="reveal" id="c-immobilienart"><div class="reveal-inner"><div class="pad">
+        <div class="field" style="max-width:360px">
+          <label>Um welche Immobilienart handelt es sich? <span class="req">*</span></label>
+          <select id="immobilienart">
+            <option value="">Bitte wählen</option>
+            <option>Eigentumswohnung</option>
+            <option>Mehrfamilienhaus</option>
+            <option>Doppelhaushälfte</option>
+            <option>Reihenendhaus</option>
+            <option>Grundstück</option>
+            <option>Reihenmittelhaus</option>
+            <option>Wohn- und Geschäftshaus</option>
+            <option>Einfamilienhaus</option>
+            <option>Zweifamilienhaus</option>
+          </select>
+        </div>
+      </div></div></div>
+
+      <!-- Q4 — Nutzung (wenn ein konkretes Objekt bekannt ist) -->
+      <div class="reveal" id="c-nutzung"><div class="reveal-inner"><div class="pad">
+        <div class="field" style="max-width:360px">
+          <label>Wie möchten Sie die Immobilie nutzen? <span class="req">*</span></label>
+          <p class="help">Einige Banken gewähren einen Zinsnachlass, wenn die Immobilie eigengenutzt wird. Eine KfW-Förderung ist bei vermieteten Objekten teilweise möglich.</p>
+          <select id="nutzung">
+            <option value="">Bitte wählen</option>
+            <option>Selbst nutzen</option>
+            <option>Vermieten</option>
+            <option>Teilweise vermieten</option>
+          </select>
+        </div>
+      </div></div></div>
+
+      <!-- Q5 — Darlehensnehmer + Eckdaten (immer sichtbar) -->
+      <div class="grid" style="margin-top:var(--s5)">
+        <div class="field col-12">
+          <label>Möchten Sie die Finanzierung alleine oder mit einer weiteren Person beantragen? <span class="req">*</span></label>
+          <p class="help">Falls Sie verheiratet sind, stellen Sie den Antrag bitte gemeinsam mit Ihrem Ehepartner. Dies ist eine Voraussetzung der meisten Kreditgeber.</p>
+          <select id="darlehensnehmer" style="max-width:360px">
+            <option value="">Bitte wählen</option>
+            <option value="1">Alleine</option>
+            <option value="2">Mit einer weiteren Person</option>
+          </select>
+        </div>
+        <div class="field col-4"><label style="white-space:nowrap">Gewünschter Darlehensbetrag <span class="req">*</span></label><div class="with-unit"><input inputmode="decimal" value="0,00"><span class="unit">€</span></div></div>
+        <div class="field col-3"><label>Beraterin / Berater</label><input type="text" placeholder="Suchen…"></div>
+      </div>
+    </section>
+
+    <!-- ===================== PERSÖNLICHE DETAILS ===================== -->
+    <section class="section" id="pd">
+      <div class="section-head"><h2>Persönliche Details</h2><span class="kicker">Angaben zur Person</span>
+        <button type="button" class="add-btn" id="add-applicant">+ Antragsteller 2 hinzufügen</button>
+      </div>
+      <div class="applicants" data-applicants>
+        <div class="applicant" data-applicant="1">
+          <div class="applicant-head"><span class="applicant-title">Antragsteller 1</span></div>
+          <div class="grid">
+            <div class="field col-6">
+              <label>Anrede <span class="req">*</span></label>
+              <select><option value="">Bitte wählen</option><option>Frau</option><option>Herr</option><option>Divers</option></select>
+            </div>
+            <div class="field col-6"><label>Titel</label><select><option value="">Kein Titel</option><option>Dr.</option><option>Prof.</option><option>Prof. Dr.</option></select></div>
+            <div class="field col-6"><label>Vorname <span class="req">*</span></label><input type="text" data-role="vorname"></div>
+            <div class="field col-6"><label>Nachname <span class="req">*</span></label><input type="text" data-role="nachname"></div>
+            <div class="field col-6"><label>Geburtsdatum <span class="req">*</span></label><input type="text" placeholder="tt.mm.jjjj" inputmode="numeric"></div>
+            <div class="field col-6"><label>Geburtsort <span class="req">*</span></label><input type="text"></div>
+            <div class="field col-12"><label>Staatsangehörigkeit <span class="req">*</span></label><input type="text" placeholder="tippen zum Filtern…"></div>
+            <div class="field col-12">
+              <label>Familienstand <span class="req">*</span></label>
+              <select data-show-when="verheiratet" style="max-width:360px">
+                <option value="">Bitte wählen</option>
+                <option value="ledig">ledig</option>
+                <option value="verheiratet">verheiratet</option>
+                <option value="geschieden">geschieden</option>
+                <option value="verwitwet">verwitwet</option>
+                <option value="eingetr">eingetr. Lebenspartnerschaft</option>
+              </select>
+              <div class="reveal"><div class="reveal-inner"><div class="pad">
+                <div class="field" style="max-width:340px"><label>In welchem Güterstand leben Sie? <span class="req">*</span></label><select><option>Zugewinngemeinschaft</option><option>Gütertrennung</option><option>Gütergemeinschaft</option></select></div>
+              </div></div></div>
+            </div>
+            <div class="field col-8"><label>Straße <span class="req">*</span></label><input type="text"></div>
+            <div class="field col-4"><label>Hausnr. <span class="req">*</span></label><input type="text"></div>
+            <div class="field col-4"><label>PLZ <span class="req">*</span></label><input type="text" inputmode="numeric"></div>
+            <div class="field col-8"><label>Ort <span class="req">*</span></label><input type="text"></div>
+            <div class="field col-6"><label>Wohnhaft seit</label><input type="text" placeholder="tt.mm.jjjj" inputmode="numeric"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== KINDER ===================== -->
+    <section class="section" id="kinder">
+      <div class="section-head"><h2>Kinder</h2><span class="kicker">Angaben zum Haushalt</span></div>
+      <div class="grid">
+        <div class="field col-12">
+          <label>Leben Kinder im Haushalt? <span class="req">*</span></label>
+          <div class="choices" id="kinder-toggle" data-single data-show-when="Ja">
+            <button type="button" class="choice" data-value="Ja" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Ja</button>
+            <button type="button" class="choice" data-value="Nein" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Nein</button>
+          </div>
+          <div class="reveal"><div class="reveal-inner"><div class="pad">
+            <div class="kinder-list"></div>
+            <button type="button" class="add-btn kinder-add">+ Kind hinzufügen</button>
+          </div></div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== BERUFLICHE SITUATION ===================== -->
+    <section class="section" id="beruf">
+      <div class="section-head"><h2>Berufliche Situation</h2><span class="kicker">Beschäftigung</span></div>
+      <div class="applicants" data-applicants>
+        <div class="applicant" data-applicant="1">
+          <div class="applicant-head"><span class="applicant-title">Antragsteller 1</span></div>
+          <div class="grid">
+            <div class="field col-6">
+              <label>Beschäftigungsverhältnis <span class="req">*</span></label>
+              <select>
+                <option value="">Bitte wählen</option>
+                <option>Angestellt</option>
+                <option>Beamtin / Beamter</option>
+                <option>Selbstständig</option>
+                <option>Freiberuflich</option>
+                <option>Arbeiterin / Arbeiter</option>
+                <option>Rentnerin / Rentner</option>
+                <option>In Ausbildung</option>
+                <option>Nicht erwerbstätig</option>
+              </select>
+            </div>
+            <div class="field col-6"></div>
+            <div class="field col-6"><label>Ausgeübter Beruf <span class="req">*</span></label><input type="text"></div>
+            <div class="field col-6"><label>Branche</label><select><option value="">Bitte wählen</option><option>Bau &amp; Handwerk</option><option>Handel</option><option>IT &amp; Telekommunikation</option><option>Gesundheit &amp; Soziales</option><option>Öffentlicher Dienst</option><option>Industrie &amp; Produktion</option><option>Finanzen &amp; Versicherung</option><option>Sonstige</option></select></div>
+            <div class="field col-6"><label>Arbeitgeber <span class="req">*</span></label><input type="text"></div>
+            <div class="field col-6"><label>Beschäftigt seit <span class="req">*</span></label><input type="text" placeholder="mm.jjjj" inputmode="numeric"></div>
+            <div class="field col-12">
+              <label>Ist das Arbeitsverhältnis befristet?</label>
+              <div class="choices" data-single data-show-when="Ja">
+                <button type="button" class="choice" data-value="Ja" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Ja</button>
+                <button type="button" class="choice" data-value="Nein" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Nein</button>
+              </div>
+              <div class="reveal"><div class="reveal-inner"><div class="pad">
+                <div class="field" style="max-width:220px"><label>Befristet bis <span class="req">*</span></label><input type="text" placeholder="mm.jjjj" inputmode="numeric"></div>
+              </div></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== EINKOMMEN ===================== -->
+    <section class="section" id="einkommen">
+      <div class="section-head"><h2>Einkommen</h2><span class="kicker">Monatliche Einkünfte</span></div>
+      <div class="applicants" data-applicants>
+        <div class="applicant" data-applicant="1">
+          <div class="applicant-head"><span class="applicant-title">Antragsteller 1</span></div>
+          <div class="grid">
+            <div class="field col-6"><label>Monatliches Nettoeinkommen <span class="req">*</span></label><div class="with-unit"><input inputmode="decimal"><span class="unit">€</span></div></div>
+            <div class="field col-6"><label>Anzahl Gehälter pro Jahr</label><select><option>12</option><option>13</option><option>14</option></select></div>
+            <div class="field col-6"><label>Weitere monatliche Einkünfte</label><p class="help">Z. B. Mieteinnahmen, Kapitalerträge oder regelmäßige Zuwendungen.</p><div class="with-unit"><input inputmode="decimal"><span class="unit">€</span></div></div>
+            <div class="field col-6"><label>Kindergeld</label><div class="with-unit"><input inputmode="decimal"><span class="unit">€</span></div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== AUSGABEN ===================== -->
+    <section class="section" id="ausgaben">
+      <div class="section-head"><h2>Ausgaben</h2><span class="kicker">Monatliche Verpflichtungen</span></div>
+      <div class="applicants" data-applicants>
+        <div class="applicant" data-applicant="1">
+          <div class="applicant-head"><span class="applicant-title">Antragsteller 1</span></div>
+          <div class="grid">
+            <div class="field col-6"><label>Aktuelle Warmmiete</label><p class="help">Entfällt, sofern Sie die finanzierte Immobilie selbst nutzen.</p><div class="with-unit"><input inputmode="decimal"><span class="unit">€</span></div></div>
+            <div class="field col-6"><label>Summe monatlicher Kreditraten</label><div class="with-unit"><input inputmode="decimal"><span class="unit">€</span></div></div>
+            <div class="field col-6"><label>Unterhaltsverpflichtungen</label><div class="with-unit"><input inputmode="decimal"><span class="unit">€</span></div></div>
+            <div class="field col-6"><label>Sonstige monatliche Ausgaben</label><div class="with-unit"><input inputmode="decimal"><span class="unit">€</span></div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== OBJECT SECTION: KAUF → IMMOBILIE (open by default) ===================== -->
+    <div class="reveal object-section open" data-for="immobilie"><div class="reveal-inner"><div class="pad">
+    <section class="section" id="immobilie">
+      <div class="section-head"><h2>Immobilie</h2><span class="kicker">Kauf einer bestehenden Immobilie</span></div>
+
+      <div class="subhead">Objektadresse</div>
+      <div class="grid">
+        <div class="field col-8"><label>Straße <span class="req">*</span></label><input type="text"></div>
+        <div class="field col-4"><label>Hausnr. <span class="req">*</span></label><input type="text"></div>
+        <div class="field col-3"><label>PLZ <span class="req">*</span></label><input type="text" inputmode="numeric"></div>
+        <div class="field col-6"><label>Ort <span class="req">*</span></label><input type="text"></div>
+      </div>
+
+      <div class="subhead">Objektdaten</div>
+      <div class="grid">
+        <div class="field col-3"><label>Baujahr <span class="req">*</span></label><input type="text" placeholder="jjjj" inputmode="numeric"></div>
+        <div class="field col-6">
+          <label>KfW-Energieeffizienzklasse</label>
+          <p class="help">Den Energieeffizienzstandard entnehmen Sie dem Exposé Ihrer Immobilie.</p>
+          <select><option value="">Bitte wählen</option><option>Effizienzhaus-Standard 55</option><option>Effizienzhaus-Standard 40</option><option>Effizienzhaus-Standard 40 plus</option><option>Effizienzhaus-Standard 40 QNG</option><option>Ich bin mir nicht sicher</option><option>Andere</option></select>
+        </div>
+        <div class="field col-3"><label>Grundstücksfläche <span class="req">*</span></label><div class="with-unit"><input inputmode="decimal"><span class="unit">m²</span></div></div>
+        <div class="field col-3"><label>Wohnfläche <span class="req">*</span></label><p class="help">Gesamte nachweisbare Fläche aller Räume.</p><div class="with-unit"><input inputmode="decimal"><span class="unit">m²</span></div></div>
+        <div class="field col-3"><label>Zimmer</label><input class="num" inputmode="numeric"></div>
+        <div class="field col-3"><label>Geschosse</label><p class="help">Ohne Keller und Dachgeschoss.</p><input class="num" inputmode="numeric"></div>
+        <div class="field col-3">
+          <label>Etage der Immobilie</label>
+          <select><option value="">Bitte wählen</option><option>Untergeschoss</option><option>Erdgeschoss</option><option>Erstes Obergeschoss</option><option>Zweites Obergeschoss</option><option>Drittes Obergeschoss</option><option>Viertes Obergeschoss</option><option>Fünftes Obergeschoss</option><option>Sechstes Obergeschoss oder höher</option></select>
+        </div>
+        <div class="field col-4"><label>Endenergiebedarf</label><p class="help">Laut Energieausweis.</p><div class="with-unit"><input inputmode="decimal"><span class="unit">kWh/m²</span></div></div>
+      </div>
+
+      <div class="grid" style="margin-top:var(--s5)">
+        <div class="field col-12">
+          <label>Kennen Sie die Gesamtanzahl der Wohnungen im Gebäude?</label>
+          <div class="choices" data-single data-controls="#c-wohnungen" data-show-when="Ja">
+            <button type="button" class="choice" data-value="Ja" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Ja</button>
+            <button type="button" class="choice" data-value="Nein" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Nein</button>
+          </div>
+          <div class="reveal" id="c-wohnungen"><div class="reveal-inner"><div class="pad">
+            <div class="field col-3" style="max-width:220px"><label>Anzahl Wohnungen im Gebäude <span class="req">*</span></label><input class="num" inputmode="numeric"></div>
+          </div></div></div>
+        </div>
+      </div>
+
+      <div class="subhead">Bauweise</div>
+      <div class="grid">
+        <div class="field col-12">
+          <label>Ist die Immobilie in Massivbauweise gebaut?</label>
+          <div class="choices" data-single data-controls="#c-bauweise" data-show-when="Nein">
+            <button type="button" class="choice" data-value="Ja" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Ja</button>
+            <button type="button" class="choice" data-value="Nein" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Nein</button>
+          </div>
+          <div class="reveal" id="c-bauweise"><div class="reveal-inner"><div class="pad">
+            <div class="field col-6" style="max-width:420px"><label>In welcher Bauweise ist die Immobilie gebaut? <span class="req">*</span></label><p class="help">Für eine akkurate Bewertung des Verkehrswertes erforderlich.</p><select><option value="">Bitte wählen</option><option>Plattenbauweise</option><option>Holzbauweise</option><option>Blockbauweise</option><option>Fachwerkbauweise</option><option>Fertigbauweise</option><option>Andere</option></select></div>
+          </div></div></div>
+        </div>
+      </div>
+
+      <div class="subhead">Erbbaurecht</div>
+      <div class="grid">
+        <div class="field col-12">
+          <label>Besteht ein Erbbaurecht für die Immobilie?</label>
+          <p class="help">Ein Erbbaurecht ist ein im Grundbuch eingetragenes Recht, meist gegen Zahlung eines Erbbauzinses, auf fremdem Grundstück ein Bauwerk zu errichten.</p>
+          <select data-controls="#c-erbbau" data-show-when="Ja" style="max-width:360px">
+            <option value="">Bitte wählen</option>
+            <option>Ja</option>
+            <option>Nein</option>
+            <option>Weiß nicht</option>
+          </select>
+          <div class="reveal" id="c-erbbau"><div class="reveal-inner"><div class="pad">
+            <div class="grid">
+              <div class="field col-3"><label>Jährlicher Erbbauzins <span class="req">*</span></label><div class="with-unit"><input inputmode="decimal"><span class="unit">€</span></div></div>
+              <div class="field col-4"><label>Grundstückseigentümer <span class="req">*</span></label><select><option value="">Bitte wählen</option><option>Kirche</option><option>Kommune / Stadt</option><option>Stiftung</option><option>Privatperson</option><option>Sonstige</option></select></div>
+              <div class="field col-3"><label>Ende des Erbbaurechtsvertrags <span class="req">*</span></label><input type="text" placeholder="tt.mm.jjjj" inputmode="numeric"></div>
+            </div>
+          </div></div></div>
+        </div>
+      </div>
+
+      <div class="subhead">Stellplätze</div>
+      <div class="grid">
+        <div class="field col-12">
+          <label>Verfügt die Immobilie über Parkplätze?</label>
+          <div class="choices" data-single data-controls="#c-park" data-show-when="Ja">
+            <button type="button" class="choice" data-value="Ja" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Ja</button>
+            <button type="button" class="choice" data-value="Nein" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Nein</button>
+          </div>
+          <div class="reveal" id="c-park"><div class="reveal-inner"><div class="pad">
+            <div id="stellplaetze"></div>
+            <button type="button" class="add-btn" id="add-stellplatz">+ Stellplatz hinzufügen</button>
+          </div></div></div>
+        </div>
+      </div>
+    </section>
+    </div></div></div>
+
+    <!-- ===================== OBJECT SECTION: NEUBAU (scaffold) ===================== -->
+    <div class="reveal object-section" data-for="neubau"><div class="reveal-inner"><div class="pad">
+    <section class="section" id="neubau">
+      <div class="section-head"><h2>Neubau</h2><span class="kicker">Neubau vom Bauträger / eigenes Bauvorhaben</span></div>
+      <div class="subhead">Objektadresse</div>
+      <div class="grid">
+        <div class="field col-8"><label>Straße <span class="req">*</span></label><input type="text"></div>
+        <div class="field col-4"><label>Hausnr.</label><input type="text"></div>
+        <div class="field col-3"><label>PLZ <span class="req">*</span></label><input type="text" inputmode="numeric"></div>
+        <div class="field col-6"><label>Ort <span class="req">*</span></label><input type="text"></div>
+      </div>
+      <div class="subhead">Bauvorhaben</div>
+      <div class="grid">
+        <div class="field col-3"><label>Geplante Fertigstellung <span class="req">*</span></label><input type="text" placeholder="mm.jjjj" inputmode="numeric"></div>
+        <div class="field col-4"><label>Angestrebter KfW-Neubaustandard</label><select><option value="">Bitte wählen</option><option>Effizienzhaus 40</option><option>Effizienzhaus 40 QNG</option><option>Kein Förderstandard</option></select></div>
+        <div class="field col-3"><label>Grundstücksfläche <span class="req">*</span></label><div class="with-unit"><input inputmode="decimal"><span class="unit">m²</span></div></div>
+      </div>
+      <div class="note">Gerüst — finanzierungsspezifische Neubau-Felder (Baukosten, Eigenleistung, Grundstückskauf) noch zu definieren.</div>
+    </section>
+    </div></div></div>
+
+    <!-- ===================== OBJECT SECTION: ANSCHLUSSFINANZIERUNG (scaffold) ===================== -->
+    <div class="reveal object-section" data-for="anschluss"><div class="reveal-inner"><div class="pad">
+    <section class="section" id="anschluss">
+      <div class="section-head"><h2>Anschlussfinanzierung</h2><span class="kicker">Bestehendes Darlehen</span></div>
+      <div class="grid">
+        <div class="field col-4"><label>Aktueller Darlehensgeber <span class="req">*</span></label><input type="text" placeholder="tippen zum Filtern…"></div>
+        <div class="field col-3"><label>Aktuelle Restschuld <span class="req">*</span></label><div class="with-unit"><input inputmode="decimal"><span class="unit">€</span></div></div>
+        <div class="field col-3"><label>Ende der Zinsbindung <span class="req">*</span></label><input type="text" placeholder="tt.mm.jjjj" inputmode="numeric"></div>
+      </div>
+      <div class="note">Gerüst — weitere Felder (aktueller Sollzins, Sondertilgungsrechte, Objektangaben) noch zu definieren.</div>
+    </section>
+    </div></div></div>
+
+    <!-- ===================== OBJECT SECTION: MODERNISIERUNG (scaffold) ===================== -->
+    <div class="reveal object-section" data-for="modernisierung"><div class="reveal-inner"><div class="pad">
+    <section class="section" id="modern">
+      <div class="section-head"><h2>Modernisierung</h2><span class="kicker">Modernisierungsvorhaben</span></div>
+      <div class="grid">
+        <div class="field col-3"><label>Modernisierungssumme <span class="req">*</span></label><div class="with-unit"><input inputmode="decimal"><span class="unit">€</span></div></div>
+        <div class="field col-4"><label>Art der Maßnahmen</label><select><option value="">Bitte wählen</option><option>Energetische Sanierung</option><option>Umbau / Anbau</option><option>Modernisierung Bad / Küche</option><option>Sonstiges</option></select></div>
+      </div>
+      <div class="note">Gerüst — Objektangaben und Maßnahmen-Detailfelder noch zu definieren.</div>
+    </section>
+    </div></div></div>
+
+    <!-- ===================== OBJECT SECTION: KAPITALBESCHAFFUNG (scaffold) ===================== -->
+    <div class="reveal object-section" data-for="kapital"><div class="reveal-inner"><div class="pad">
+    <section class="section" id="kapital">
+      <div class="section-head"><h2>Kapitalbeschaffung</h2><span class="kicker">Beleihung einer bestehenden Immobilie</span></div>
+      <div class="grid">
+        <div class="field col-3"><label>Gewünschter Kapitalbetrag <span class="req">*</span></label><div class="with-unit"><input inputmode="decimal"><span class="unit">€</span></div></div>
+        <div class="field col-4"><label>Verwendungszweck <span class="req">*</span></label><input type="text"></div>
+      </div>
+      <div class="note">Gerüst — Objektangaben und Angaben zu bestehenden Belastungen noch zu definieren.</div>
+    </section>
+    </div></div></div>
+
+    <!-- ===================== FINANZEN (placeholder) ===================== -->
+    <section class="section" id="finanzen">
+      <div class="section-head"><h2>Finanzen</h2><span class="kicker">Einkommen &amp; Ausgaben</span></div>
+      <div class="note">Bestehender Abschnitt — Feldinhalte in Arbeit.</div>
+    </section>
+
+    <!-- ===================== FINANZIERUNGSDETAILS (placeholder) ===================== -->
+    <section class="section" id="details">
+      <div class="section-head"><h2>Finanzierungsdetails</h2><span class="kicker">Konditionen</span></div>
+      <div class="note">Bestehender Abschnitt — Feldinhalte in Arbeit.</div>
+    </section>
+
+  </main>
+</div>
+
+<div class="actionbar"><div class="actionbar-inner">
+  <div class="save-state"><span class="dot"></span> Als Entwurf gespeichert · 12:04</div>
+  <button class="btn ghost">Abbrechen</button>
+  <button class="btn primary">Weiter</button>
+</div></div>
+
+<!-- template: child row (one line, repeatable) -->
+<template id="tpl-kind">
+  <div class="child-row">
+    <div class="field c-name"><label>Name</label><input type="text"></div>
+    <div class="field c-date"><label>Geburtsdatum</label><input type="text" placeholder="tt.mm.jjjj" inputmode="numeric"></div>
+    <div class="field">
+      <label>Kindergeld?</label>
+      <div class="choices mini" data-single>
+        <button type="button" class="choice" data-value="Ja" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>ja</button>
+        <button type="button" class="choice" data-value="Nein" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>nein</button>
+      </div>
+    </div>
+    <div class="field">
+      <label>Unterhaltseinnahmen?</label>
+      <div class="choices mini" data-single>
+        <button type="button" class="choice" data-value="Keine" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Keine</button>
+        <button type="button" class="choice" data-value="Ja" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Ja</button>
+      </div>
+    </div>
+    <button type="button" class="x" title="Kind entfernen">×</button>
+  </div>
+</template>
+
+<!-- template: Stellplatz sub-card -->
+<template id="tpl-stellplatz">
+  <div class="subcard">
+    <div class="subcard-head"><strong class="sp-title">Stellplatz 1</strong><button type="button" class="x" title="Entfernen">×</button></div>
+    <div class="field col-6">
+      <label>Art des Stellplatzes <span class="req">*</span></label>
+      <select class="sp-art">
+        <option value="">Bitte wählen</option>
+        <option>Stellplatz</option>
+        <option>Carport</option>
+        <option>Garage</option>
+        <option>Doppelgarage</option>
+        <option>Kellergarage</option>
+        <option>Tiefgaragenstellplatz</option>
+        <option>Duplexgarage</option>
+      </select>
+    </div>
+    <div class="field col-12" style="margin-top:var(--s5)">
+      <label>Ist der Stellplatz vermietet?</label>
+      <div class="choices sp-vermietet" data-single>
+        <button type="button" class="choice" data-value="Ja" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Ja</button>
+        <button type="button" class="choice" data-value="Nein" aria-pressed="false"><svg class="tick" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 10l3.5 3.5L15 6"/></svg>Nein</button>
+      </div>
+      <div class="reveal sp-miete-reveal"><div class="reveal-inner"><div class="pad">
+        <div class="field col-3" style="max-width:220px"><label>Monatliche Mieteinnahmen <span class="req">*</span></label><div class="with-unit"><input inputmode="decimal"><span class="unit">€</span></div></div>
+      </div></div></div>
+    </div>
+  </div>
+</template>
+
+<script>
+  const openReveal = (el,open)=>{ if(el) el.classList.toggle('open', open); };
+  const setPressed = (group,btn)=>{ group.querySelectorAll('.choice').forEach(x=>x.setAttribute('aria-pressed','false')); btn.setAttribute('aria-pressed','true'); };
+
+  // segmented toggles — density + client-facing helper text (scoped per group)
+  document.querySelectorAll('.seg').forEach(seg=>{
+    seg.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{
+      seg.querySelectorAll('button').forEach(x=>x.classList.remove('on'));
+      b.classList.add('on');
+      if(b.dataset.density) document.body.classList.toggle('compact', b.dataset.density==='compact');
+      if(b.dataset.help)    document.body.classList.toggle('no-help', b.dataset.help==='off');
+      if(b.dataset.theme){
+        document.body.classList.remove('theme-teal','theme-blue','theme-neutral');
+        document.body.classList.add('theme-'+b.dataset.theme);
+      }
+    }));
+  });
+
+  // generic single-select + intra-section conditional (data-controls / data-show-when)
+  function wireGroup(group){
+    const ctl = group.dataset.controls ? document.querySelector(group.dataset.controls) : null;
+    const when = group.dataset.showWhen;
+    group.querySelectorAll('.choice').forEach(c=>c.addEventListener('click',()=>{
+      setPressed(group,c);
+      if(ctl && when) openReveal(ctl, (c.dataset.value||c.textContent.trim())===when);
+    }));
+  }
+  document.querySelectorAll('.choices[data-single]').forEach(g=>{
+    if(g.closest('#tpl-stellplatz') || g.closest('.applicant') || g.id==='gefunden') return;
+    wireGroup(g);
+  });
+
+  // selects driving an intra-section conditional (data-controls / data-show-when)
+  document.querySelectorAll('select[data-controls]').forEach(sel=>{
+    const ctl = document.querySelector(sel.dataset.controls);
+    sel.addEventListener('change',()=>openReveal(ctl, sel.value===sel.dataset.showWhen));
+  });
+
+  // ---- Start intake cascade ----------------------------------------------
+  // Finanzierungszweck (+ "Immobilie gefunden?") drive: which follow-up
+  // questions reveal, and which object section / nav entry is shown.
+  const selectedValue = g => {
+    if(!g) return null;
+    if(g.tagName==='SELECT') return g.value || null;
+    const b = g.querySelector('.choice[aria-pressed="true"]'); return b ? b.dataset.value : null;
+  };
+
+  const zweck = document.getElementById('zweck');
+  const gefunden = document.getElementById('gefunden');
+
+  // finance purpose → object section key
+  const SECTION_FOR = {
+    'neubau-bautraeger':'neubau',
+    'bauvorhaben':'neubau',
+    'modernisierung':'modernisierung',
+    'anschluss':'anschluss',
+    'kapitalbeschaffung':'kapital'
+  };
+
+  function updateStart(){
+    const purpose = selectedValue(zweck);
+    const found = selectedValue(gefunden);
+    // a concrete object is known for new-builds/own projects, or for a
+    // purchase once the buyer has found the property.
+    const objectKnown = purpose==='neubau-bautraeger' || purpose==='bauvorhaben' || (purpose==='kauf' && found==='Ja');
+
+    // follow-up questions
+    openReveal(document.getElementById('c-gefunden'), purpose==='kauf');
+    openReveal(document.getElementById('c-immobilienart'), objectKnown);
+    openReveal(document.getElementById('c-nutzung'), objectKnown);
+
+    // object section + nav entry (Kauf only once a property is found)
+    let sectionKey = SECTION_FOR[purpose] || null;
+    if(purpose==='kauf') sectionKey = (found==='Ja') ? 'immobilie' : null;
+    document.querySelectorAll('.object-section').forEach(s=>openReveal(s, s.dataset.for===sectionKey));
+    document.querySelectorAll('.nav a.object-nav').forEach(a=>a.classList.toggle('show', a.dataset.navfor===sectionKey));
+  }
+
+  zweck.addEventListener('change', updateStart);
+  gefunden.querySelectorAll('.choice').forEach(c=>c.addEventListener('click',()=>{ setPressed(gefunden,c); updateStart(); }));
+  updateStart(); // defaults: Kauf + bereits gefunden → Immobilie section open
+
+  // ---- Antragsteller (persons) -------------------------------------------
+  // Each of the four person sections holds an .applicants grid. Applicant 1 is
+  // in markup; applicant 2 is cloned identically on demand and shown beside it.
+  let applicantCount = 1;
+
+  function refreshTitle(n){
+    const q = sel => document.querySelector('.applicant[data-applicant="'+n+'"] '+sel);
+    const v = (q('[data-role="vorname"]')||{}).value || '';
+    const s = (q('[data-role="nachname"]')||{}).value || '';
+    const name = (v+' '+s).trim();
+    document.querySelectorAll('.applicant[data-applicant="'+n+'"] .applicant-title')
+      .forEach(t=>t.textContent = 'Antragsteller '+n+(name?' – '+name:''));
+    if(String(n)==='1'){ const g=document.getElementById('person-group-title'); if(g) g.textContent='Über '+(v.trim()||'Antragsteller 1'); }
+  }
+
+  function wireChildRow(row){
+    row.querySelectorAll('.choices[data-single]').forEach(g=>g.querySelectorAll('.choice')
+      .forEach(c=>c.addEventListener('click',()=>setPressed(g,c))));
+    const x = row.querySelector('.x'); if(x) x.addEventListener('click',()=>row.remove());
+  }
+  const kindTpl = document.getElementById('tpl-kind');
+  function addChild(list){
+    const node = kindTpl.content.firstElementChild.cloneNode(true);
+    wireChildRow(node); list.appendChild(node);
+  }
+
+  function initApplicantPanel(panel){
+    panel.querySelectorAll('.choices[data-single]').forEach(g=>{
+      if(g.closest('.child-row')) return;
+      const when = g.dataset.showWhen;
+      const reveal = when ? (g.closest('.field')||panel).querySelector('.reveal') : null;
+      g.querySelectorAll('.choice').forEach(c=>c.addEventListener('click',()=>{
+        setPressed(g,c);
+        if(reveal && when) openReveal(reveal, c.dataset.value===when);
+      }));
+    });
+    // selects driving a conditional reveal (e.g. Familienstand → Güterstand)
+    panel.querySelectorAll('select[data-show-when]').forEach(sel=>{
+      const reveal = (sel.closest('.field')||panel).querySelector('.reveal');
+      sel.addEventListener('change',()=>openReveal(reveal, sel.value===sel.dataset.showWhen));
+    });
+    const n = panel.dataset.applicant;
+    panel.querySelectorAll('[data-role="vorname"],[data-role="nachname"]')
+      .forEach(inp=>inp.addEventListener('input',()=>refreshTitle(n)));
+  }
+
+  function cloneApplicant2(container){
+    const a2 = container.querySelector('.applicant[data-applicant="1"]').cloneNode(true);
+    a2.dataset.applicant = '2';
+    a2.querySelectorAll('.child-row').forEach(r=>r.remove());
+    a2.querySelectorAll('input').forEach(i=>i.value='');
+    a2.querySelectorAll('select').forEach(s=>s.selectedIndex=0);
+    a2.querySelectorAll('.choice').forEach(c=>c.setAttribute('aria-pressed','false'));
+    a2.querySelectorAll('.reveal').forEach(r=>r.classList.remove('open'));
+    const title = a2.querySelector('.applicant-title'); if(title) title.textContent='Antragsteller 2';
+    const head = a2.querySelector('.applicant-head');
+    if(head && !head.querySelector('.x')){
+      const x=document.createElement('button');
+      x.type='button'; x.className='x'; x.title='Antragsteller 2 entfernen'; x.textContent='×';
+      x.addEventListener('click',()=>setApplicants(1));
+      head.appendChild(x);
+    }
+    container.appendChild(a2);
+    initApplicantPanel(a2);
+  }
+
+  function setApplicants(n){
+    applicantCount = n;
+    document.querySelectorAll('[data-applicants]').forEach(container=>{
+      const a2 = container.querySelector('.applicant[data-applicant="2"]');
+      if(n===2){ if(!a2) cloneApplicant2(container); container.classList.add('two'); }
+      else { if(a2) a2.remove(); container.classList.remove('two'); }
+    });
+    const add = document.getElementById('add-applicant'); if(add) add.style.display = (n===2)?'none':'';
+    const dn = document.getElementById('darlehensnehmer');
+    if(dn) dn.value = String(n);
+    refreshTitle(1); refreshTitle(2);
+  }
+
+  document.querySelectorAll('.applicant[data-applicant="1"]').forEach(initApplicantPanel);
+  document.getElementById('add-applicant').addEventListener('click',()=>setApplicants(2));
+  const dnGroup = document.getElementById('darlehensnehmer');
+  dnGroup.addEventListener('change',()=>setApplicants(dnGroup.value==='2'?2:1));
+
+  // ---- Kinder (household-level, shared by both applicants) ---------------
+  const kinderSection = document.getElementById('kinder');
+  if(kinderSection){
+    const toggle = kinderSection.querySelector('#kinder-toggle');
+    const reveal = kinderSection.querySelector('.reveal');
+    toggle.querySelectorAll('.choice').forEach(c=>c.addEventListener('click',()=>{
+      setPressed(toggle,c); openReveal(reveal, c.dataset.value==='Ja');
+    }));
+    const addKind = kinderSection.querySelector('.kinder-add');
+    const list = kinderSection.querySelector('.kinder-list');
+    addKind.addEventListener('click',()=>addChild(list));
+  }
+
+  // Stellplatz repeatable group
+  const spContainer = document.getElementById('stellplaetze');
+  const tpl = document.getElementById('tpl-stellplatz');
+  const renumber = ()=> spContainer.querySelectorAll('.sp-title').forEach((t,i)=>t.textContent='Stellplatz '+(i+1));
+  function addStellplatz(){
+    const node = tpl.content.firstElementChild.cloneNode(true);
+    const vg = node.querySelector('.sp-vermietet'); const mr = node.querySelector('.sp-miete-reveal');
+    vg.querySelectorAll('.choice').forEach(c=>c.addEventListener('click',()=>{ setPressed(vg,c); openReveal(mr, c.dataset.value==='Ja'); }));
+    node.querySelector('.x').addEventListener('click',()=>{ node.remove(); renumber(); });
+    spContainer.appendChild(node); renumber();
+  }
+  document.getElementById('add-stellplatz').addEventListener('click', addStellplatz);
+  addStellplatz();
+</script>
+</body>
+</html>

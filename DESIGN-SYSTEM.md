@@ -1,6 +1,6 @@
 # FinLink Forms — Design System
 
-The reusable style layer behind the Selbstauskunft prototype. Use it as the single source of truth when adding sections so everything stays consistent. Design language: **teal accent, neutral surfaces, IBM Plex Sans, top-aligned persistent labels, 8px rhythm, power-user density with a comfortable/compact toggle.**
+The reusable style layer behind the Selbstauskunft prototype. Use it as the single source of truth when adding sections so everything stays consistent. Design language: **single brand accent (themeable: Teal / Blue / Neutral), neutral surfaces, IBM Plex Sans, top-aligned persistent labels, 8px rhythm, power-user density with a comfortable/compact toggle.**
 
 ---
 
@@ -8,13 +8,38 @@ The reusable style layer behind the Selbstauskunft prototype. Use it as the sing
 
 ### Color
 
+Accent colors are **brand tokens** — never hard-code an accent hex in components. Every accent use goes through `--brand-*`, which the active branding theme defines.
+
+| Token | Role |
+|---|---|
+| `--brand-700` | Section headers, active nav, selected chip text, unit suffix text, primary button hover |
+| `--brand-600` | Primary button, selected chip border, subheads, add-btn |
+| `--brand-500` | Focus border, chip hover border, save-state dot |
+| `--brand-100` | Reserved light accent (illustrations, charts) |
+| `--brand-50` | Selected chip fill, unit suffix bg, active nav bg |
+| `--brand-ring` | Focus ring (`rgba` of the primary at ~.28, Neutral ~.18) |
+
+### Branding themes
+
+Switched via a `body` class (`theme-teal` is the `:root` default); toggle lives in the sidebar under **Branding**. `document.body.classList.add('theme-blue' | 'theme-neutral')`.
+
+| Token | Teal (default) | Blue (`.theme-blue`) | Neutral (`.theme-neutral`) |
+|---|---|---|---|
+| `--brand-700` | `#317574` | `#003EB4` | `#282828` |
+| `--brand-600` | `#46A6A4` | `#2F70E8` | `#282828` |
+| `--brand-500` | `#46A6A4` | `#2F70E8` | `#282828` |
+| `--brand-100` | `#BEEAE9` | `#96B7F3` | `#A8AEBA` |
+| `--brand-50` | `#E5F7F6` | `#CEDDFE` | `#EAEAEA` |
+| `--brand-ring` | `rgba(70,166,164,.28)` | `rgba(47,112,232,.28)` | `rgba(40,40,40,.18)` |
+
+Unused palette steps kept for reference: Teal `#7FD6D4`, Blue `#001F5B` (deep navy), Neutral `#F6F8FB` / `#686D78`.
+
+**Neutral is fully greyscale** — even the form-field focus border/ring is dark black (`#282828`), and the primary button hovers to `#000`. Semantic colors (`--req` red, amber `.note`) stay constant across themes.
+
+### Neutrals (theme-independent)
+
 | Token | Hex | Role |
 |---|---|---|
-| `--teal-700` | `#0f766e` | Section headers, active nav, selected chip text |
-| `--teal-600` | `#0d9488` | Primary button, selected chip border, subheads |
-| `--teal-500` | `#14b8a6` | Focus border |
-| `--teal-50` | `#f0fdfa` | Selected chip fill, unit suffix, active nav bg |
-| `--teal-ring` | `rgba(13,148,136,.28)` | Focus ring |
 | `--ink` | `#0f172a` | Primary / structural text, input values |
 | `--ink-2` | `#334155` | Unselected chip text, ghost button text |
 | `--muted` | `#64748b` | Labels, secondary text, help text |
@@ -25,7 +50,7 @@ The reusable style layer behind the Selbstauskunft prototype. Use it as the sing
 | `--white` | `#fff` | Inputs, chips, sub-cards |
 | `--req` | `#e11d48` | Required asterisk |
 
-**Rule: teal is the only accent. No blue anywhere.**
+**Rule: one brand accent at a time. Never mix themes, never introduce a second accent.**
 
 ### Spacing — 8px scale
 `--s2:8` · `--s3:12` · `--s4:16` · `--s5:20` · `--s6:24` · `--s8:32` · `--s10:40`
@@ -54,8 +79,8 @@ Do not go below a 24px click target (WCAG 2.5.8).
 | Element | Size / weight | Color |
 |---|---|---|
 | Page title | 26 / 600, `-0.01em` | `--ink` |
-| Section header (h2) | 17 / 600 | `--teal-700` |
-| Subhead (eyebrow) | 11 / 600, uppercase, `.12em` | `--teal-600` |
+| Section header (h2) | 17 / 600 | `--brand-700` |
+| Subhead (eyebrow) | 11 / 600, uppercase, `.12em` | `--brand-600` |
 | Field label | 12.5 / 500 | `--muted` |
 | Input value | 14.5 / 400 | `--ink` |
 | Help text | 12 / 400, line-height 1.4 | `--muted` |
@@ -70,11 +95,11 @@ Class names map 1:1 to the stylesheet. Copy the `<style>` block from `selbstausk
 - **Section** — `.section` (surface + border + radius) → `.section-head` (`h2` + `.kicker`, hairline under). Chunk long sections with `.subhead` eyebrows.
 - **Grid** — `.grid` is 12 columns. Field spans: `.col-12 / .col-8 / .col-6 / .col-4 / .col-3`. Width = expected content (PLZ `.col-3`, Ort `.col-6`, Straße `.col-8` + Hausnr `.col-4`).
 - **Field** — `.field` wraps `label` → optional `.help` → control. Required: `<span class="req">*</span>` inside the label.
-- **Input / select** — full-width, `--field-h` tall, teal `:focus-visible` ring. `select` uses a custom teal-neutral chevron.
+- **Input / select** — full-width, `--field-h` tall, brand `:focus-visible` ring. `select` uses a custom neutral chevron.
 - **Unit input** — `.with-unit` wrapping `input` + `<span class="unit">m²</span>` (also `€`, `kWh/m²`). Right-aligns the number, tabular figures.
-- **Segmented single-select** — `.choices[data-single]` of `.choice` buttons. **No radio dot.** Selection = `aria-pressed="true"` → teal-50 fill + teal-600 border + checkmark. Use for 2–5 options (§ power-user: visible beats a dropdown). `.grid-choices` for a 2-col grid (e.g. Stellplatz types).
+- **Segmented single-select** — `.choices[data-single]` of `.choice` buttons. **No radio dot.** Selection = `aria-pressed="true"` → brand-50 fill + brand-600 border + checkmark. Use for 2–5 options (§ power-user: visible beats a dropdown). `.grid-choices` for a 2-col grid (e.g. Stellplatz types).
 - **Conditional reveal** — `.reveal > .reveal-inner > .pad`. Animates `grid-template-rows 0fr→1fr` + opacity. Toggle `.open`.
-- **Sub-card / repeatable group** — `.subcard` (`.subcard-head` with title + `.x` remove) + `.add-btn` (dashed teal). See Stellplatz `<template>`.
+- **Sub-card / repeatable group** — `.subcard` (`.subcard-head` with title + `.x` remove) + `.add-btn` (dashed brand accent). See Stellplatz `<template>`.
 - **Note** — `.note` (soft amber) for scaffolds / helper callouts.
 - **Nav** — `.nav a`, active = `.active`. Conditional entries use `.object-nav` + `.show`.
 - **Action bar** — sticky `.actionbar` with `.save-state`, `.btn.ghost`, `.btn.primary`.
