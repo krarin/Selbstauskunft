@@ -1,0 +1,1221 @@
+/* ============================================================================
+   V4 components — the only hand-written stylesheet.
+   Load order: tokens.primitives -> tokens.semantic -> tokens.local -> tokens.a11y
+               -> components.css
+
+   HOUSE RULE: every value below is a var() from the semantic or local layer.
+   No hex, no px, no primitive (--teal-500 etc.) may appear in this file. That is
+   what makes a change in BETA-Foundations land here by regenerating, not by editing.
+   Two things cannot be tokens and are marked `EXCEPTION:` inline; media-query
+   breakpoints are a third, since CSS does not allow var() in a media query.
+
+   Field geometry (40px tall, 8px radius, 12px inset) is the export's own
+   input.default.* — not chosen here. The density attribute swaps it for
+   input.compact.* via tokens.local.css.
+   ========================================================================== */
+
+/* Two surface levels, because the design calls for a white page with light-grey
+   cards — the inverse of how the export names its two neutrals. Rather than rename
+   globally, the swap is declared per appearance: dark keeps the conventional order
+   (page darkest, cards raised above it), so only the light theme trades places.
+   Everything meant to read as "on the base level" — inputs, nested panels, the
+   action bar — uses --page-bg, so it always contrasts with the card fill. */
+:root {
+  --page-bg: var(--color-background-surface);
+  --card-bg: var(--surface-card);
+  /* The interior of a control, split from --page-bg so the grey scheme can keep its
+     fields white on white cards and let the border.default outline carry the
+     boundary. Everywhere else it simply follows the page level. */
+  --field-bg: var(--page-bg);
+  /* derived from the tokens the action bar is actually built from, so it tracks the
+     density switch instead of being a guessed constant */
+  --actionbar-height: calc(var(--field-height) + 2 * var(--spacing-3)
+    + var(--border-width-default));
+  /* the shell's own outer width, so the sticky bar can line its buttons up with the
+     right edge of the form column instead of centring on its own */
+  --layout-shell-max: calc(var(--layout-nav-width) + var(--spacing-10)
+    + var(--layout-content-max) + 2 * var(--layout-gutter));
+}
+:root[data-appearance="dark"] {
+  --page-bg: var(--color-background-page);
+}
+/* A third scheme, "grey": the light palette with its two levels traded — the page
+   carries the grey and the cards are white. Only these two aliases move; everything
+   that has to read as *not the card* (inputs, nested panels, the meter track, the
+   action bar) already points at --page-bg, so it follows automatically. */
+:root[data-appearance="grey"] {
+  --page-bg: var(--surface-card);               /* the card grey moves to the page */
+  --card-bg: var(--color-background-surface);    /* and the cards take the white */
+  --field-bg: var(--color-background-surface);   /* fields stay white, outline only */
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  font-family: var(--font-family-sans);
+  font-size: var(--font-body-md-size);
+  line-height: var(--font-body-md-line);
+  font-weight: var(--font-weight-regular);
+  color: var(--color-text-primary);
+  background: var(--page-bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+:where(a) { color: var(--color-text-link); }
+
+/* ---------------------------------------------------------------- app shell */
+
+.skip-link {
+  position: absolute;
+  left: var(--spacing-4);
+  top: var(--spacing-2);
+  z-index: 10;
+  padding: var(--spacing-2) var(--spacing-4);
+  background: var(--page-bg);
+  color: var(--color-text-link);
+  border: var(--border-width-emphasis) solid var(--color-border-focus);
+  border-radius: var(--button-radius);
+  font-weight: var(--font-weight-medium);
+  transform: translateY(-200%);
+}
+.skip-link:focus { transform: none; }
+
+/* The shell is anchored left, not centred: the sidebar stays at the viewport edge
+   (one gutter in) at every width, and the form column takes the room that frees up.
+   Capping that column rather than the shell is what stops the form from running the
+   full width of a wide monitor — the space past --layout-content-max is left empty
+   instead of being handed to the fields. */
+.app {
+  display: grid;
+  grid-template-columns: var(--layout-nav-width) minmax(0, var(--layout-content-max));
+  gap: var(--spacing-10);
+  padding: var(--spacing-10) var(--layout-gutter) var(--spacing-16);
+}
+
+/* -------------------------------------------------------------------- nav */
+
+/* The action bar is sticky and overlays the page, so the sidebar has to stop above
+   it. Without that, its last items sit behind the bar and cannot be reached: the
+   nav thinks it has room, so there is nothing to scroll. */
+.nav {
+  position: sticky;
+  top: var(--spacing-10);
+  align-self: start;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+  max-height: calc(100vh - var(--spacing-10) - var(--actionbar-height)
+    - var(--spacing-4));
+  padding-right: var(--spacing-1);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border-default) transparent;
+}
+
+.nav a {
+  display: block;
+  padding: var(--spacing-2) var(--spacing-3);
+  border-radius: var(--button-radius);
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  font-size: var(--font-body-md-size);
+  line-height: var(--font-body-md-line);
+}
+.nav a:hover { background: var(--color-background-hover); color: var(--color-text-primary); }
+.nav a[aria-current="true"] {
+  background: var(--color-action-primary-subtle);
+  color: var(--color-action-primary);
+  font-weight: var(--font-weight-medium);
+}
+/* Indented under the step it belongs to. There are no group headings left in here:
+   every step is a link of its own, and a heading above a step's sub-entries would be
+   a second, unclickable copy of that link. */
+.nav a.sub { padding-left: var(--spacing-6); }
+
+.nav .object-nav { display: none; }
+.nav .object-nav.show { display: block; }
+
+.nav-divider {
+  margin: var(--spacing-5) var(--spacing-3);
+  border: 0;
+  border-top: var(--border-width-default) solid var(--color-border-default);
+}
+
+.nav .eyebrow {
+  margin: var(--spacing-4) var(--spacing-3) var(--spacing-2);
+  font-size: var(--font-heading-eyebrow-size);
+  line-height: var(--font-heading-eyebrow-line);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-secondary);
+}
+
+/* segmented control for the prototype's own switches (density, appearance…) */
+.seg { display: flex; gap: var(--spacing-1); padding: 0 var(--spacing-3); flex-wrap: wrap; }
+.seg button {
+  flex: 1 1 auto;
+  min-height: var(--spacing-6);
+  padding: var(--spacing-1) var(--spacing-2);
+  font: inherit;
+  font-size: var(--font-body-sm-size);
+  color: var(--color-text-secondary);
+  background: var(--page-bg);
+  border: var(--border-width-default) solid var(--color-border-default);
+  border-radius: var(--button-radius);
+  cursor: pointer;
+}
+.seg button[aria-pressed="true"] {
+  background: var(--color-action-primary-subtle);
+  border-color: var(--color-action-primary);
+  color: var(--color-action-primary);
+  font-weight: var(--font-weight-medium);
+}
+
+/* ---------------------------------------------------------------- headings */
+
+.page-title {
+  margin: 0 0 var(--spacing-2);
+  font-size: var(--font-heading-lg-size);
+  line-height: var(--font-heading-lg-line);
+  font-weight: var(--font-heading-weight);
+  color: var(--color-text-primary);
+}
+
+.lede {
+  margin: 0 0 var(--spacing-8);
+  max-width: var(--layout-measure-prose);
+  color: var(--color-text-secondary);
+}
+
+/* A section is a collapsible card. The grey fill is the only boundary — no border,
+   because --color-border-default has to be dark enough for input borders to clear
+   1.4.11 and that weight looks wrong wrapped around a card.
+
+   The fill sits on the header and the body separately, not on .card, so an open
+   section reads as two stacked blocks with a hairline gap between the title bar and
+   the fields. Collapsed, only the header block is visible and nothing changes. */
+.card {
+  margin-bottom: var(--section-gap);
+}
+
+.card-head { margin: 0; }
+
+.card-toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  width: 100%;
+  padding: var(--spacing-4) var(--card-padding);
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  background: var(--card-bg);
+  border: 0;
+  border-radius: var(--card-radius);
+  cursor: pointer;
+}
+/* background.hover is the same grey the cards use, so hovering would do nothing
+   visible; background.active is the next step and the only one that still reads. */
+.card-toggle:hover { background: var(--color-background-active); }
+
+.chev {
+  flex: none;
+  width: var(--spacing-5);
+  height: var(--spacing-5);
+  color: var(--color-text-secondary);
+  transition: transform 0.18s ease;
+}
+/* Direct-child only, here and in every other .card state rule below: a card can now
+   hold sub-sections, which are cards themselves, and a descendant selector would let
+   the outer card's state drive their chevrons, heights and meters as well. */
+.card[data-open="true"] > .card-head > .card-toggle > .chev { transform: rotate(180deg); }
+
+.card-title {
+  font-size: var(--font-heading-md-size);
+  line-height: var(--font-heading-md-line);
+  font-weight: var(--font-heading-weight);
+  color: var(--color-text-primary);
+}
+/* Pflichtfeld counter ------------------------------------------------------------ */
+
+/* `display: flex` here would otherwise beat the UA's [hidden] rule, leaving an
+   empty meter on cards that ask for nothing. */
+.card-count[hidden] { display: none; }
+
+.card-count {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  margin-left: auto;
+  font-size: var(--font-input-text-sm-size);
+  line-height: var(--font-input-text-sm-line);
+  font-weight: var(--font-weight-regular);
+  color: var(--color-text-secondary);
+}
+.count-value {
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+  font-variant-numeric: tabular-nums;
+}
+.count-track {
+  width: var(--meter-width);
+  height: var(--meter-height);
+  background: var(--page-bg);
+  border-radius: var(--pill-radius);
+  overflow: hidden;
+}
+.count-fill {
+  display: block;
+  width: 0;
+  height: 100%;
+  background: var(--color-action-primary);
+  border-radius: var(--pill-radius);
+  transition: width 0.2s ease;
+}
+/* Completion is never colour-only: the numbers become a checkmark and a word. */
+.card[data-complete="true"] > .card-head .count-value,
+.card[data-complete="true"] > .card-head .count-label { color: var(--color-action-primary); }
+.card[data-complete="true"] > .card-head .count-track { display: none; }
+
+/* body --------------------------------------------------------------------------- */
+
+.card-body {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.2s ease, margin-top 0.2s ease;
+}
+/* The gap only exists while the section is open — a closed card must keep the plain
+   --section-gap to its neighbour. It animates with the height so it does not jump in
+   at the start of the reveal. */
+.card[data-open="true"] > .card-body {
+  grid-template-rows: 1fr;
+  margin-top: var(--spacing-1);
+}
+
+/* The overflow container must carry no padding of its own: overflow clips to the
+   padding box, so padding here would leave a 32px strip of the collapsed content
+   visible. Hence the separate .card-pad, mirroring .reveal > .reveal-inner > .pad. */
+.card-body-inner {
+  min-height: 0;
+  overflow: hidden;
+  background: var(--card-bg);
+  border-radius: var(--card-radius);
+}
+/* Symmetrical now that the body is its own block — it no longer borrows the header's
+   space above the first field. */
+.card-pad { padding: var(--card-padding); }
+
+/* Clipping is only needed while the height animates. Releasing it once the card has
+   settled keeps the info tooltips from being cut off at the card edge. */
+.card[data-open="true"][data-settled="true"] > .card-body > .card-body-inner { overflow: visible; }
+
+.card-actions { margin-bottom: var(--card-gap); }
+
+@media (prefers-reduced-motion: reduce) {
+  .card-body, .chev, .count-fill { transition: none; }
+  /* Nothing animates here, so there is no reason to clip — and no transitionend to set
+     data-settled, which would otherwise leave the clip on for good. */
+  .card[data-open="true"] > .card-body > .card-body-inner { overflow: visible; }
+}
+
+/* Sub-sections -------------------------------------------------------------------- */
+
+/* The form has five steps, and only those five are cards. Everything the sidebar
+   lists underneath one of them is a sub-section: same markup, but it carries no fill
+   and no gap of its own, so an open card reads as one block with hairline-separated
+   parts rather than as a stack of cards inside a card. Its header is one heading step
+   down and its toggle exists for a single purpose — folding a part that is done back
+   out of the way. Opening is not its job: it opens with the card (see setCardOpen). */
+.subsections { padding: var(--spacing-2) 0; }
+
+.subsection { margin-bottom: 0; }
+/* Only between siblings, so the first one does not get a rule against the card edge.
+   The five object sub-sections need none at all — exactly one of them is ever open. */
+.subsections > .subsection + .subsection {
+  border-top: var(--border-width-default) solid var(--color-border-default);
+}
+
+/* The reveal's usual top padding would double the sub-section's own header inset. */
+.subsections > .object-section > .reveal-inner > .pad { padding-top: 0; }
+
+.subsection > .card-head > .card-toggle {
+  background: none;
+  border-radius: 0;
+}
+.subsection > .card-head > .card-toggle:hover { background: var(--color-background-active); }
+
+.subsection > .card-head .card-title {
+  font-size: var(--font-heading-sm-size);
+  line-height: var(--font-heading-sm-line);
+}
+
+/* No fill and no rounding: the parent card already provides both, and a second
+   rounded block inside it would show as a seam at the corners. The header sits
+   directly on top of its own fields, so the hairline gap goes too. */
+.subsection[data-open="true"] > .card-body { margin-top: 0; }
+.subsection > .card-body > .card-body-inner {
+  background: none;
+  border-radius: 0;
+}
+.subsection .card-pad,
+.subsection-static .card-pad { padding: 0 var(--card-padding) var(--card-gap); }
+
+/* Static sub-sections -------------------------------------------------------------- */
+
+/* A step whose parts are always shown at once: no toggle, no meter of its own, just a
+   heading saying which part you are in. The rule between two parts is inset by the
+   card's own padding, so it separates two parts of one block rather than reading as
+   the seam between two cards. */
+.subsections > .subsection-static + .subsection-static::before {
+  content: "";
+  display: block;
+  height: var(--border-width-default);
+  margin: 0 var(--card-padding);
+  background: var(--color-border-default);
+}
+
+/* Same inset as the fields underneath, so heading and labels share one left edge. */
+.subsection-title {
+  margin: var(--card-gap) 0 var(--spacing-4);
+  padding: 0 var(--card-padding);
+  font-size: var(--font-heading-sm-size);
+  line-height: var(--font-heading-sm-line);
+  font-weight: var(--font-heading-weight);
+  color: var(--color-text-primary);
+}
+
+/* Helper text has three modes, switched from the sidebar:
+     on   — shown inline under the label (the default)
+     icon — collapsed into an info icon next to the label, shown on hover or focus.
+            The text stays in the DOM, only visually hidden, so the aria-describedby
+            on the field still reaches it; display:none would drop it from the
+            accessibility tree entirely.
+     off  — hidden outright, for a client-facing view */
+:root[data-help="off"] .help { display: none; }
+
+.info-wrap[data-generated] { display: none; }
+:root[data-help="icon"] .info-wrap[data-generated] { display: inline-flex; }
+
+.sr-only,
+:root[data-help="icon"] .field > .help {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.subhead {
+  margin: var(--spacing-8) 0 var(--spacing-4);
+  font-size: var(--font-heading-eyebrow-size);
+  line-height: var(--font-heading-eyebrow-line);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: var(--font-weight-bold);
+  color: var(--color-action-primary);
+}
+.card-pad > .subhead:first-child { margin-top: 0; }
+
+/* -------------------------------------------------------------------- grid */
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: var(--field-gap-stack) var(--spacing-4);
+}
+/* The width is carried by the *end* edge, leaving the start auto. `grid-column:
+   span 6` would put the span on the start edge instead, where .col-start below
+   overwrites it — and a field with a start of 1 and an auto end is one column
+   wide, not six. */
+.col-3  { grid-column-end: span 3; }
+.col-4  { grid-column-end: span 4; }
+.col-6  { grid-column-end: span 6; }
+.col-8  { grid-column-end: span 8; }
+.col-12 { grid-column-end: span 12; }
+
+/* Forces a field to the first column, breaking the row so it stacks under the
+   preceding field instead of sitting beside it. Precedes the single-column
+   mobile override, which resets the start so the field still goes full width. */
+.col-start { grid-column-start: 1; }
+
+/* ------------------------------------------------------------------- field */
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--field-gap-label);
+  min-width: 0;
+}
+
+/* Choice groups are role="group" + aria-labelledby rather than fieldset/legend:
+   a legend is not a flex item in every engine, and this keeps the group label
+   visually and structurally identical to every other field label. */
+.field > label,
+.field > .group-label {
+  /* inline flow, not flex: the required asterisk and the info icon have to sit
+     after the last word of a label that wraps, not float to its far edge */
+  display: block;
+  font-size: var(--font-input-text-md-size);
+  line-height: var(--font-input-text-md-line);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+}
+
+/* The first card carries the page's opening question, so its title and labels are
+   darkened one step past --color-text-primary (neutral-800) to neutral-950. There is
+   no semantic token at that step, so the primitive is referenced directly — and only
+   under the light theme, where neutral-950 reads as ink rather than as the page
+   background it becomes in dark mode. */
+:root:not([data-appearance="dark"]) #start .card-title,
+:root:not([data-appearance="dark"]) #start .field > label,
+:root:not([data-appearance="dark"]) #start .field > .group-label {
+  color: var(--neutral-950);
+}
+
+.req {
+  color: var(--color-feedback-error);
+  font-weight: var(--font-weight-bold);
+}
+
+.help {
+  margin: 0;
+  font-size: var(--font-input-text-sm-size);
+  line-height: var(--font-input-text-sm-line);
+  color: var(--color-text-secondary);
+}
+
+/* controls ------------------------------------------------------------------ */
+
+.input,
+.select {
+  width: 100%;
+  height: var(--field-height);
+  padding: 0 var(--field-padding-x);
+  font-family: inherit;
+  font-size: var(--font-input-value-size);
+  line-height: var(--font-input-value-line);
+  font-weight: var(--font-weight-regular);
+  color: var(--color-text-primary);
+  background: var(--field-bg);
+  border: var(--border-width-default) solid var(--color-border-default);
+  border-radius: var(--field-radius);
+  transition: border-color 0.12s, box-shadow 0.12s;
+}
+
+.input::placeholder { color: var(--color-text-disabled); }
+
+/* A focused field is lifted, not outlined: it keeps its own hairline and gains a
+   soft accent halo around it. Nothing on the row moves — the glow is drawn outside
+   the box and the border keeps its width. The accent edge the field used to grow
+   would read as a second line under the keyboard ring below, which is the one thing
+   focus should not look like. */
+.input:focus,
+.select:focus {
+  outline: none;
+  box-shadow: var(--focus-glow);
+}
+
+/* Reference-only: renders the focus state without taking focus, for the
+   Feldzustände overview. Never used by a real field. */
+.input.focus-demo { box-shadow: var(--focus-glow); }
+
+/* Keyboard users additionally get an outer ring: the 2px accent border alone is
+   3.67:1 against the page, which passes 1.4.11 but is easy to lose on a long
+   form. Pointer users keep the clean screenshot look. */
+.input:focus-visible,
+.select:focus-visible,
+.choice input:focus-visible + span,
+.card-toggle:focus-visible,
+.btn:focus-visible,
+.seg button:focus-visible,
+.info-btn:focus-visible,
+.add-btn:focus-visible,
+.icon-btn:focus-visible {
+  outline: var(--border-width-emphasis) solid var(--color-border-focus);
+  outline-offset: var(--border-width-default);
+}
+
+.select {
+  appearance: none;
+  padding-right: var(--spacing-10);
+}
+
+/* The chevron is a masked shape, not a coloured SVG: a data-URI background could
+   only carry a hard-coded fill, whereas a mask takes its colour from a token and
+   so follows light/dark automatically. */
+.select-wrap { position: relative; display: block; min-width: 0; }
+.select-wrap::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: var(--spacing-3);
+  width: var(--spacing-4);
+  height: var(--spacing-4);
+  transform: translateY(-50%);
+  background: var(--color-text-secondary);
+  mask: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M4.4 7.3 10 12.9l5.6-5.6 1.4 1.4-7 7-7-7z"/></svg>') center / contain no-repeat;
+  -webkit-mask: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M4.4 7.3 10 12.9l5.6-5.6 1.4 1.4-7 7-7-7z"/></svg>') center / contain no-repeat;
+  pointer-events: none;
+}
+.select-wrap:has(.select:disabled)::after { background: var(--color-text-disabled); }
+
+.input:disabled,
+.select:disabled {
+  background: var(--color-background-disabled);
+  border-color: var(--color-border-disabled);
+  color: var(--color-text-disabled);
+  cursor: not-allowed;
+}
+
+.input.num { text-align: right; font-variant-numeric: tabular-nums; }
+
+/* value + unit suffix (€, m², kWh/m²) */
+.with-unit { display: flex; align-items: stretch; }
+.with-unit .input {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.with-unit .unit {
+  display: flex;
+  align-items: center;
+  padding: 0 var(--spacing-3);
+  font-size: var(--font-body-md-size);
+  color: var(--color-text-secondary);
+  background: var(--card-bg);
+  border: var(--border-width-default) solid var(--color-border-default);
+  border-left: 0;
+  border-radius: 0 var(--field-radius) var(--field-radius) 0;
+  white-space: nowrap;
+}
+/* The € box is a later sibling and paints over the input's halo, so the group wears
+   the glow as a whole and the input inside it wears none — otherwise the shadow would
+   stop dead at the seam. */
+.with-unit:focus-within {
+  border-radius: var(--field-radius);
+  box-shadow: var(--focus-glow);
+}
+.with-unit .input:focus { box-shadow: none; }
+
+/* validation --------------------------------------------------------------- */
+
+.field.invalid .input,
+.field.invalid .select,
+.input[aria-invalid="true"],
+.select[aria-invalid="true"] {
+  border-color: var(--color-border-error);
+}
+.field.invalid .with-unit .unit { border-color: var(--color-border-error); }
+.field.invalid .choice input:not(:checked) + span { border-color: var(--color-border-error); }
+
+.error-text {
+  display: none;
+  align-items: center;
+  gap: var(--spacing-1);
+  margin: 0;
+  font-size: var(--font-input-text-sm-size);
+  line-height: var(--font-input-text-sm-line);
+  color: var(--color-feedback-error-strong);
+}
+.field.invalid .error-text { display: flex; }
+
+/* info icon + tooltip ------------------------------------------------------- */
+
+/* Outlined, not filled: a ring in the same colour as the glyph, so the icon reads as
+   a hint next to the label rather than a badge competing with it. */
+.info-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--spacing-4);
+  height: var(--spacing-4);
+  padding: 0;
+  font: inherit;
+  font-size: var(--font-input-text-sm-size);
+  line-height: 1;
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+  background: none;
+  border: var(--border-width-default) solid var(--color-text-secondary);
+  border-radius: var(--pill-radius);
+  cursor: help;
+}
+/* The circle is 16px so it sits quietly next to a 14px label, but a pointer target
+   that small fails WCAG 2.5.8, so the hit area is expanded to 24px invisibly rather
+   than by growing the icon. */
+.info-btn::after {
+  content: "";
+  position: absolute;
+  inset: calc(-1 * var(--spacing-1));
+}
+
+/* The ring has no fill to set it apart from the label any more, so it needs the gap
+   the filled circle could do without — otherwise it collides with the required *. */
+.info-wrap { position: relative; display: inline-flex; vertical-align: middle; margin-left: var(--spacing-1); }
+.info-bubble {
+  position: absolute;
+  bottom: calc(100% + var(--spacing-2));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 5;
+  width: max-content;
+  max-width: var(--layout-measure-tooltip);
+  padding: var(--spacing-2) var(--spacing-3);
+  font-size: var(--font-body-sm-size);
+  line-height: var(--font-body-md-line);
+  font-weight: var(--font-weight-regular);
+  color: var(--color-text-primary);
+  background: var(--page-bg);
+  border: var(--border-width-default) solid var(--color-border-default);
+  border-radius: var(--field-radius);
+  box-shadow: var(--shadow-md);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.12s;
+}
+.info-wrap:hover .info-bubble,
+.info-btn:focus-visible + .info-bubble,
+.info-btn[aria-expanded="true"] + .info-bubble { opacity: 1; visibility: visible; }
+
+/* ----------------------------------------------------- segmented choices */
+
+.choices { display: flex; flex-wrap: wrap; gap: var(--spacing-2); }
+
+.choice { position: relative; display: inline-flex; }
+.choice input {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+/* Direct child throughout: the chip's own span, not anything nested inside it. A
+   label that carries a required asterisk has a <span class="req"> in it, and a
+   descendant selector would give that its own chip and its own radio ring. */
+.choice > span {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  min-height: var(--field-height);
+  padding: 0 var(--spacing-4);
+  font-size: var(--font-body-md-size);
+  color: var(--color-text-primary);
+  background: var(--field-bg);
+  border: var(--border-width-default) solid var(--color-border-default);
+  border-radius: var(--field-radius);
+  cursor: pointer;
+}
+.choice input:hover + span { border-color: var(--color-action-primary); }
+.choice input:checked + span {
+  background: var(--color-action-primary-subtle);
+  border-color: var(--color-action-primary);
+  color: var(--color-action-primary);
+  font-weight: var(--font-weight-medium);
+  box-shadow: inset 0 0 0 var(--border-width-default) var(--color-action-primary);
+}
+/* The native input is transparent, so the chip draws its own mark. It is empty while
+   unpicked and fills only once picked, and its shape says which rules apply: a circle
+   for radios (pick one), a square for checkboxes (pick any). Drawing it unpicked as
+   well as picked is the point — a chip with no mark reads as a button, and the shape
+   is what tells someone whether choosing this one gives up the last one. */
+.choice > span::before {
+  content: "";
+  flex: none;
+  width: var(--choice-mark-size);
+  height: var(--choice-mark-size);
+  border: var(--border-width-default) solid var(--color-border-default);
+}
+.choice input:hover + span::before { border-color: var(--color-action-primary); }
+.choice input:checked + span::before { border-color: var(--color-action-primary); }
+
+/* radio: a ring that gains a centre dot */
+.choice input[type="radio"] + span::before {
+  border-radius: var(--pill-radius);
+  /* A dot, not an inset ring: box-shadow spreads inward from the edge, which at this
+     size closes the hole entirely. Held at zero size until checked so only the
+     background-size has to change. */
+  background: radial-gradient(
+    circle at center,
+    currentColor 0 var(--radio-dot-radius),
+    transparent var(--radio-dot-radius)
+  ) center / 0 0 no-repeat;
+}
+.choice input[type="radio"]:checked + span::before {
+  border-width: var(--border-width-emphasis);
+  background-size: 100% 100%;
+}
+
+/* checkbox: a square that fills solid and carries a checkmark */
+.choice input[type="checkbox"] + span::before {
+  border-radius: var(--checkbox-radius);
+}
+.choice input[type="checkbox"]:checked + span::before {
+  background: var(--color-action-primary);
+}
+/* The glyph is a second layer rather than a mask on the box above, because a mask
+   clips the element it is set on — fill, border and all — leaving a bare checkmark
+   instead of a filled box carrying one. It is positioned against .choice (the span
+   is static), so the offset has to re-add what the span insets its own content by. */
+.choice input[type="checkbox"]:checked + span::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: calc(var(--border-width-default) + var(--spacing-4));
+  width: var(--choice-mark-size);
+  height: var(--choice-mark-size);
+  transform: translateY(-50%);
+  background: var(--color-on-primary);
+  /* EXCEPTION: the checkmark is an inline SVG mask because a data URI cannot take a
+     var(). Only its alpha is read, so the stroke colour inside the URI paints
+     nothing — the visible colour is the tokenised background above. */
+  -webkit-mask: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="black" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5.5 10l3 3.5L14.5 6.5"/></svg>') center / 100% 100% no-repeat;
+  mask: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="black" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5.5 10l3 3.5L14.5 6.5"/></svg>') center / 100% 100% no-repeat;
+}
+.choice input:hover + span::before { border-color: var(--color-action-primary); }
+.choice input:checked + span::before {
+  border-color: var(--color-action-primary);
+  border-width: var(--border-width-emphasis);
+  background-size: 100% 100%;
+}
+
+.choices.grid-choices {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(var(--layout-col-min-choice), 1fr));
+}
+.choices.grid-choices .choice,
+.choices.grid-choices .choice > span { width: 100%; }
+
+/* -------------------------------------------------------- amount list */
+
+/* A list of optional positions, each with the figure beside it (Vermögen, and the
+   same shape will fit Verbindlichkeiten).
+
+   Two fixed columns, left-aligned: the position is one column wide rather than
+   stretched across the card, and the amount starts immediately beside it, so a
+   short label and its figure read as one pair instead of being pulled apart by a
+   gap the width of the card. Fixed rather than max-content because every row is
+   its own grid — a content-sized column would land in a different place on each
+   row and the figures would no longer line up. Nothing is clipped, so the focus
+   glow survives; that is why this is not built on .reveal. */
+.amount-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  /* .field's own gap is the label-to-control step, too tight under the help text */
+  margin-top: var(--spacing-2);
+}
+
+.amount-row {
+  display: grid;
+  grid-template-columns: minmax(0, var(--layout-col-position)) var(--layout-col-amount);
+  justify-content: start;
+  align-items: start;
+  gap: var(--spacing-3);
+}
+/* the toggle is the row, not a chip sitting in it */
+.amount-row > .choice > span { width: 100%; }
+
+/* Not picked: the field stays where it is and stays reachable — clicking into it
+   is itself how the position gets picked (see wireAmountRows), so hiding it would
+   remove the shortcut. Only the fill recedes, and it keeps full contrast: this is
+   an empty slot, not a disabled control. The data-inactive hook is unchanged, and
+   still what keeps the amount out of the Pflichtfeld count. */
+.amount-cell { transition: background-color 0.18s ease; }
+.amount-cell[data-inactive] .input { background: var(--color-background-hover); }
+
+/* A mandatory position still appears in the list, ticked, but cannot be given up.
+   It keeps the normal fill — greying it out would read as "not applicable" rather
+   than "always applies" — so only the pointer says it is not up for negotiation. */
+.amount-row[data-locked] > .choice input { cursor: default; }
+
+@media (prefers-reduced-motion: reduce) {
+  .amount-cell { transition: none; }
+}
+
+/* ----------------------------------------------------- conditional reveal */
+
+.reveal {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition: grid-template-rows 0.18s ease, opacity 0.18s ease;
+}
+.reveal.open { grid-template-rows: 1fr; opacity: 1; }
+.reveal > .reveal-inner { overflow: hidden; min-height: 0; }
+.reveal > .reveal-inner > .pad { padding-top: var(--field-gap-stack); }
+.reveal:not(.open) { visibility: hidden; }
+
+/* Clipping is only needed while the row height animates. Releasing it once the reveal has
+   settled keeps the focus glow and the keyboard ring on the fields inside from being
+   sliced off at its edges — .pad has no horizontal inset, so a full-width field touches
+   the clip box on three sides. Same trade-off as .card-body-inner above. */
+.reveal.open.settled > .reveal-inner { overflow: visible; }
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal { transition: none; }
+  /* No animation to hide, and no transitionend to wait for. */
+  .reveal.open > .reveal-inner { overflow: visible; }
+}
+
+/* -------------------------------------------------- repeatable sub-groups */
+
+.applicants { display: grid; gap: var(--spacing-4); }
+.applicants.two { grid-template-columns: repeat(auto-fit, minmax(var(--layout-col-min-applicant), 1fr)); }
+
+/* Anrede and Titel are chip rows, which need more width than the selects they replaced,
+   so each takes a full row of its own and they stack. */
+
+.applicant {
+  min-width: 0;
+  /* Tighter on the sides than top/bottom: two of these sit side by side inside a
+     section card, so the horizontal padding stacks with the card's own gutter. */
+  padding: var(--spacing-5) var(--spacing-3);
+  background: var(--page-bg);
+  border: var(--border-width-default) solid var(--color-border-default);
+  border-radius: var(--card-radius);
+}
+.applicants:not(.two) .applicant {
+  padding: 0;
+  background: none;
+  border: 0;
+}
+
+.applicant-head {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  margin-bottom: var(--spacing-4);
+}
+.applicant-title {
+  font-size: var(--font-heading-xs-size);
+  line-height: var(--font-heading-xs-line);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+}
+.applicants:not(.two) .applicant-head { display: none; }
+
+.subcard {
+  margin-bottom: var(--spacing-4);
+  padding: var(--spacing-5);
+  background: var(--page-bg);
+  border: var(--border-width-default) solid var(--color-border-default);
+  border-radius: var(--card-radius);
+}
+.subcard-head {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  margin-bottom: var(--spacing-4);
+  font-size: var(--font-heading-xs-size);
+  font-weight: var(--font-weight-bold);
+}
+
+.child-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--spacing-3);
+  margin-bottom: var(--spacing-3);
+  padding: var(--spacing-3);
+  background: var(--page-bg);
+  border: var(--border-width-default) solid var(--color-border-default);
+  border-radius: var(--field-radius);
+}
+.child-row .c-name { flex: 2 1 var(--layout-col-min-choice); }
+.child-row .c-date { flex: 1 1 var(--layout-col-min-choice); }
+
+.icon-btn {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--spacing-6);
+  height: var(--spacing-6);
+  padding: 0;
+  font: inherit;
+  font-size: var(--font-input-value-size);
+  color: var(--color-text-secondary);
+  background: var(--page-bg);
+  border: var(--border-width-default) solid var(--color-border-default);
+  border-radius: var(--field-radius);
+  cursor: pointer;
+}
+.icon-btn:hover {
+  color: var(--color-feedback-error-strong);
+  border-color: var(--color-border-error);
+}
+
+.add-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  min-height: var(--spacing-6);
+  padding: var(--spacing-2) var(--spacing-4);
+  font: inherit;
+  font-size: var(--font-body-md-size);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-action-primary);
+  background: var(--page-bg);
+  border: var(--border-width-default) dashed var(--color-action-primary);
+  border-radius: var(--button-radius);
+  cursor: pointer;
+}
+.add-btn:hover { background: var(--color-action-primary-subtle); }
+
+/* the add button sits above the rows it adds to, so the gap goes below it */
+.add-btn + .kinder-list { margin-top: var(--spacing-3); }
+
+/* -------------------------------------------------------------- callouts */
+
+.note {
+  padding: var(--spacing-3) var(--spacing-4);
+  font-size: var(--font-body-md-size);
+  color: var(--color-text-primary);
+  background: var(--color-feedback-warning-low-subtle);
+  border: var(--border-width-default) solid var(--color-feedback-warning-low);
+  border-left-width: var(--spacing-1);
+  border-radius: var(--field-radius);
+}
+
+/* -------------------------------------------------------------- action bar */
+
+.actionbar {
+  position: sticky;
+  bottom: 0;
+  z-index: 4;
+  background: var(--page-bg);
+  border-top: var(--border-width-default) solid var(--color-border-default);
+}
+.actionbar-inner {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  max-width: var(--layout-shell-max);
+  padding: var(--spacing-3) var(--layout-gutter);
+}
+.save-state {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  /* a <p> keeps its default block margins inside a flex row, which made the action
+     bar taller than the button it contains */
+  margin: 0 auto 0 0;
+  font-size: var(--font-body-sm-size);
+  color: var(--color-text-secondary);
+}
+.save-state .dot {
+  width: var(--spacing-2);
+  height: var(--spacing-2);
+  border-radius: var(--pill-radius);
+  background: var(--color-feedback-success);
+}
+
+.btn {
+  min-height: var(--field-height);
+  padding: 0 var(--spacing-6);
+  font: inherit;
+  font-size: var(--font-body-md-size);
+  font-weight: var(--font-weight-medium);
+  border-radius: var(--button-radius);
+  cursor: pointer;
+  transition: filter 0.12s, background-color 0.12s;
+}
+.btn.primary {
+  color: var(--color-on-primary);
+  background: var(--color-action-primary);
+  border: var(--border-width-default) solid var(--color-action-primary);
+}
+/* EXCEPTION: after the contrast pass both --color-action-primary and
+   --color-action-primary-hover resolve to teal.700, so hover would be invisible.
+   The ramp does now reach teal.800/900, so the real fix is to re-point the two
+   tokens in Figma (see README); until then hover is a brightness shift, which at
+   least avoids inventing a colour here. */
+.btn.primary:hover { background: var(--color-action-primary-hover); filter: brightness(0.9); }
+.btn.ghost {
+  color: var(--color-text-primary);
+  background: var(--page-bg);
+  border: var(--border-width-default) solid var(--color-border-default);
+}
+.btn.ghost:hover { background: var(--color-background-hover); }
+
+/* Destructive confirmation. Red is carried by the button that does the deleting,
+   never by the one that backs out — the colour has to mark the consequence. */
+.btn.danger {
+  color: var(--color-on-danger);
+  background: var(--color-action-danger);
+  border: var(--border-width-default) solid var(--color-action-danger);
+}
+.btn.danger:hover {
+  background: var(--color-action-danger-hover);
+  border-color: var(--color-action-danger-hover);
+}
+.btn.danger:active {
+  background: var(--color-action-danger-active);
+  border-color: var(--color-action-danger-active);
+}
+
+/* ------------------------------------------------------------------- modal */
+
+/* A native <dialog>: Esc, the focus trap and inert-ing the page behind it are
+   the browser's job, so only the box and its backdrop are styled here. */
+.modal {
+  width: min(var(--layout-measure-modal), calc(100% - var(--spacing-8)));
+  max-width: none;
+  padding: 0;
+  color: var(--color-text-primary);
+  /* the raised level, not --page-bg: a dialog sits above the page in every scheme,
+     and in dark mode --page-bg is the near-black the backdrop is dimming towards,
+     which would leave the box with nothing to stand on but its shadow */
+  background: var(--color-background-surface);
+  border: none;
+  border-radius: var(--card-radius);
+  box-shadow: var(--shadow-lg);
+}
+.modal::backdrop { background: var(--color-background-overlay); }
+
+.modal-inner {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+  padding: var(--card-padding);
+}
+.modal-title {
+  margin: 0;
+  font-size: var(--font-heading-sm-size);
+  line-height: var(--font-heading-sm-line);
+  font-weight: var(--font-heading-weight);
+}
+.modal-text {
+  margin: 0;
+  font-size: var(--font-body-md-size);
+  color: var(--color-text-secondary);
+}
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--spacing-3);
+  margin-top: var(--spacing-3);
+}
+
+/* A dialog is display:none until it opens, so it cannot be transitioned from
+   `display` alone — @starting-style gives the open state something to come from.
+   Browsers without it just show the finished state. */
+@media (prefers-reduced-motion: no-preference) {
+  .modal[open] {
+    opacity: 1;
+    translate: 0 0;
+    transition: opacity 0.14s ease, translate 0.14s ease;
+  }
+  @starting-style {
+    .modal[open] { opacity: 0; translate: 0 var(--spacing-2); }
+  }
+}
+
+/* ------------------------------------------------------------- responsive */
+
+@media (max-width: 900px) {
+  .app {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--spacing-5);
+    padding: var(--spacing-5) var(--spacing-4) var(--spacing-12);
+  }
+  .nav {
+    position: static;
+    max-height: none;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: var(--spacing-2);
+    padding-bottom: var(--spacing-3);
+    border-bottom: var(--border-width-default) solid var(--color-border-default);
+  }
+  .nav .eyebrow, .nav-divider, .nav .seg { display: none; }
+  .nav a.sub { padding-left: var(--spacing-3); }
+  .actionbar-inner { padding: var(--spacing-3) var(--spacing-4); }
+}
+
+@media (max-width: 640px) {
+  .col-3, .col-4, .col-6, .col-8 { grid-column: auto / span 12; }
+  .count-label { display: none; }
+  .card-toggle { padding: var(--spacing-3) var(--spacing-4); }
+  .card-pad { padding: var(--spacing-4); }
+  .subsection .card-pad,
+  .subsection-static .card-pad { padding: 0 var(--spacing-4) var(--spacing-4); }
+  .subsections > .subsection-static + .subsection-static::before { margin: 0 var(--spacing-4); }
+  .subsection-title { padding: 0 var(--spacing-4); }
+  .applicants.two { grid-template-columns: minmax(0, 1fr); }
+  /* No room for two columns, so the amount stacks under its position. It stays on
+     the row rather than collapsing away: the field is what a tap picks the position
+     with, and it cannot be tapped if it is not there. Stacked, the two gaps have to
+     differ or twelve evenly spaced boxes read as twelve items instead of six pairs —
+     the position sits tight against its own amount, and the pairs stand apart. */
+  .amount-row { grid-template-columns: minmax(0, 1fr); gap: var(--spacing-1); }
+  .amount-list { gap: var(--spacing-4); }
+  .save-state { display: none; }
+  .btn { flex: 1; }
+}
+
+/* ---------------------------------------------------- mobile preview frame */
+
+/* "Ansicht: Mobil" does not narrow the form in place. Both breakpoints above, and
+   the Mobile typography the export ships, answer to the viewport — a narrowed
+   column would keep every desktop value and show a squeezed desktop, not the
+   mobile design. So the preview is this same page loaded into a phone-sized
+   iframe: the frame IS a viewport, so the breakpoints fire for real. The sidebar
+   stays outside it, which is what keeps the switches reachable — inside the frame
+   they are below 900px and therefore hidden, like they are on a real phone. */
+
+/* Only above 900px: under it the shell is already one column and the sidebar has
+   already become the top nav, so the real mobile layout is on screen and a frame
+   of it would be a second, smaller copy of the page you are looking at. */
+@media (min-width: 901px) {
+  [data-viewport="mobile"] .content,
+  [data-viewport="mobile"] .actionbar,
+  [data-viewport="mobile"] .nav a,
+  /* the finance-type entries are shown by a three-class rule, so hiding them
+     takes one of the same weight rather than the plain `.nav a` above */
+  [data-viewport="mobile"] .nav a.object-nav.show,
+  [data-viewport="mobile"] .nav-divider { display: none; }
+
+  /* Nothing scrolls out here any more — the scrolling happens inside the frame —
+     so the shell no longer needs the run-out the action bar used to sit over. */
+  [data-viewport="mobile"] .app { padding-bottom: var(--spacing-10); }
+  [data-viewport="mobile"] .nav { max-height: none; }
+}
+
+.phone {
+  position: sticky;
+  top: var(--spacing-10);
+  justify-self: center;
+  width: calc(var(--preview-width) + 2 * var(--preview-bezel));
+  /* the device height, unless the window is shorter than one — then the window wins,
+     because a frame taller than the screen cannot be scrolled to the end of */
+  height: min(var(--preview-height), calc(100vh - 2 * var(--spacing-10)));
+  padding: var(--preview-bezel);
+  background: var(--color-text-primary);
+  border-radius: var(--preview-radius);
+  box-shadow: var(--shadow-lg);
+}
+.phone iframe {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  border-radius: calc(var(--preview-radius) - var(--preview-bezel));
+  background: var(--color-background-page);
+}
+
+@media (max-width: 900px) {
+  .phone { display: none; }
+}

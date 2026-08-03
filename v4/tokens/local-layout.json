@@ -1,0 +1,116 @@
+{
+  "$comment": [
+    "The short list of names BETA-Foundations does not define, kept in one file so it",
+    "is obvious what is real and what is scaffolding. Everything here either aliases a",
+    "real primitive — so the value still comes from Figma — or is page furniture the",
+    "design system has no opinion on (content width, sidebar width, column minimums).",
+    "",
+    "A few entries are genuinely missing from the design system rather than out of scope:",
+    "border widths, the focus-ring width and the focus glow. Figma defines",
+    "color.focus-ring but neither a thickness nor a soft shadow for it, so the glow is",
+    "mixed from that colour here and follows it into dark mode. The glow IS the focus",
+    "state on a field — a halo, not a second edge — so it carries a spread ring and a",
+    "blur rather than the hairline it used to sit under.",
+    "",
+    "This file also carries the density mapping. Density is not a Figma mode: the",
+    "export ships input.default.* and input.compact.* as separate paths, so the two",
+    "sets below map them onto one set of names that components can reference.",
+    "",
+    "The preview.* names are the prototype's own furniture: the device frame the",
+    "Ansicht switch shows the form in. 390x844 is the phone the mobile mode of the",
+    "export is meant for, and it sits below the 640px breakpoint with room to spare."
+  ],
+
+  "$breakpoints": {
+    "mobile": "640px"
+  },
+
+  "sets": {
+    "base": {
+      "$comment": ["Density: the default branch of the export's input.* tokens."],
+      "selector": ":root",
+      "tokens": {
+        "field.height": "{input.default.height}",
+        "field.padding-x": "{input.default.padding-x}",
+        "field.padding-y": "{input.default.padding-y}",
+        "field.gap": "{input.default.gap}",
+        "field.radius": "{input.default.radius}",
+
+        "field.gap.label": "{spacing.1}",
+        "field.gap.stack": "{spacing.5}",
+        "card.padding": "{spacing.8}",
+        "card.gap": "{spacing.6}",
+        "card.radius": "{radius.lg}",
+        "section.gap": "{spacing.6}",
+        "button.radius": "{radius.lg}",
+        "pill.radius": "{radius.full}",
+
+        "surface.card": "{neutral.100}",
+
+        "meter.width": "{spacing.16}",
+        "meter.height": "{spacing.1}",
+
+        "choice.mark-size": "{spacing.4}",
+        "radio.dot-radius": "{spacing.1}",
+        "checkbox.radius": "{radius.sm}",
+
+        "border.width.default": "1px",
+        "border.width.emphasis": "2px",
+        "focus.ring.width": "3px",
+        "focus.glow": "0 0 0 3px color-mix(in srgb, var(--color-focus-ring) 16%, transparent), 0 2px 12px 2px color-mix(in srgb, var(--color-focus-ring) 26%, transparent)",
+
+        "layout.content-max": "1180px",
+        "layout.nav-width": "232px",
+        "layout.gutter": "{spacing.8}",
+        "layout.col-min.applicant": "420px",
+        "layout.col-min.choice": "220px",
+        "layout.col.position": "340px",
+        "layout.col.amount": "200px",
+        "layout.measure.prose": "68ch",
+        "layout.measure.tooltip": "32ch",
+        "layout.measure.modal": "46ch",
+
+        "preview.width": "390px",
+        "preview.height": "844px",
+        "preview.bezel": "{spacing.2}",
+        "preview.radius": "{radius.2xl}"
+      }
+    },
+
+    "appearance-dark": {
+      "$comment": [
+        "The export has only two surface levels — background.page and",
+        "background.surface — and the design needs a third for the section cards.",
+        "The greys that fit are held only by state tokens (background.hover /",
+        "background.active), which would be wrong to borrow, so the card surface is",
+        "declared here instead. Light is one step off the white page (neutral.100) —",
+        "the quietest grey the ramp offers that still reads as a fill; dark is two",
+        "steps up from the neutral.950 page, which is what background.raised already is."
+      ],
+      "selector": ":root[data-appearance=\"dark\"]",
+      "tokens": {
+        "surface.card": "{neutral.800}"
+      }
+    },
+
+    "compact": {
+      "$comment": [
+        "Power-user density: the export's input.compact.* branch. 32px is the",
+        "smallest field here and still clears the 24px WCAG 2.5.8 target."
+      ],
+      "selector": ":root[data-density=\"compact\"]",
+      "tokens": {
+        "field.height": "{input.compact.height}",
+        "field.padding-x": "{input.compact.padding-x}",
+        "field.padding-y": "{input.compact.padding-y}",
+        "field.gap": "{input.compact.gap}",
+        "field.radius": "{input.compact.radius}",
+
+        "field.gap.stack": "{spacing.3}",
+        "card.padding": "{spacing.5}",
+        "card.gap": "{spacing.4}",
+        "section.gap": "{spacing.4}"
+      }
+    }
+  }
+}

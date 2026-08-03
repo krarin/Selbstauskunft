@@ -11,7 +11,7 @@
     --teal-700:#0f766e; --teal-600:#0d9488; --teal-500:#14b8a6;
     --teal-50:#f0fdfa; --teal-ring:rgba(13,148,136,.28);
     --ink:#0f172a; --ink-2:#334155; --muted:#64748b; --faint:#94a3b8;
-    --line:#e2e8f0; --border:#cbd5e1; --surface:#f8fafc; --white:#fff;
+    --line:#e2e8f0; --border:#cbd5e1; --surface:#f8fafc; --card:#fcfdfe; --white:#fff;
   }
   *{box-sizing:border-box;}
   body{margin:0;font-family:'IBM Plex Sans',system-ui,sans-serif;color:var(--ink);background:#fff;-webkit-font-smoothing:antialiased;}
@@ -23,7 +23,7 @@
 
   .versions{display:flex;flex-direction:column;gap:16px;}
 
-  .card{display:block;text-decoration:none;color:inherit;background:var(--surface);
+  .card{display:block;text-decoration:none;color:inherit;background:var(--card);
         border:1px solid var(--line);border-radius:14px;padding:24px 28px;
         transition:border-color .12s, box-shadow .12s;}
   .card:hover{border-color:var(--teal-600);box-shadow:0 2px 10px rgba(15,23,42,.06);}
@@ -56,7 +56,7 @@
 
   <div class="versions">
 
-    <a class="card" href="v1/">
+    <a class="card" href="v1/index.html">
       <div class="card-head">
         <span class="vtag">V1</span>
         <h2>Power-User-Formular</h2>
@@ -68,13 +68,13 @@
 
     <!-- ==================================================================
          Neue Version hinzufügen:
-         1. Ordner duplizieren:  cp -r v1 v2
-         2. Design in v2/index.html anpassen
+         1. Ordner duplizieren:  cp -r v2 v3
+         2. Design in v3/index.html anpassen
          3. Diese Vorlage kopieren, einkommentieren und Texte anpassen:
 
-    <a class="card" href="v2/">
+    <a class="card" href="v3/index.html">
       <div class="card-head">
-        <span class="vtag">V2</span>
+        <span class="vtag">V3</span>
         <h2>Titel der Design-Idee</h2>
         <span class="date">Monat 2026</span>
       </div>
@@ -82,12 +82,50 @@
     </a>
     =================================================================== -->
 
-    <div class="card placeholder">
+    <a class="card" href="v2/index.html">
       <div class="card-head">
         <span class="vtag">V2</span>
+        <h2>Mobil &amp; Multi-Branding</h2>
+        <span class="date">Juli 2026</span>
+      </div>
+      <p>Mobile-responsive (Sidebar wird zur Top-Navigation), Dropdowns für alle Fragen außer
+         Ja/Nein, Branding-Umschalter mit drei Farbwelten: Teal, Blue und Neutral (Graustufen).</p>
+    </a>
+
+    <a class="card" href="v3/index.html">
+      <div class="card-head">
+        <span class="vtag">V3</span>
+        <h2>Kontrastreiche Eingabefelder</h2>
+        <span class="date">Juli 2026</span>
+      </div>
+      <p>Auf V2 aufbauend: dunkle, schwarze Feldumrandungen und Feld-Labels für stärkeren
+         Kontrast; beim Fokus ein weicherer, diffuser Schatten statt Ring und eine etwas
+         kräftigere Umrandung.</p>
+    </a>
+
+    <a class="card" href="v4/index.html">
+      <div class="card-head">
+        <span class="vtag">V4</span>
+        <h2>Aus Design-Tokens generiert</h2>
+        <span class="date">Juli 2026</span>
+      </div>
+      <p>Farbe, Typografie, Abstände, Radien und Feldmaße kommen vollständig aus dem
+         Variablen-Export von <strong>BETA-Foundations</strong> und werden nach CSS generiert —
+         Komponenten verwenden ausschließlich semantische Tokens. Feldgestaltung nach
+         Design-Vorlage: Label über dem Feld, Akzentrahmen im Fokus, Fehler- und
+         Info-Zustände. Abschnitte sind auf- und zuklappbare Karten mit einem Zähler,
+         der mitläuft, wie viele Pflichtfelder noch offen sind. Hilfetexte in drei
+         Varianten: inline, als Info-Icon mit Tooltip, oder aus. Neu außerdem:
+         Hell/Dunkel statt Branding-Umschalter, Desktop/Mobile-Typografie aus dem
+         Export, plus Kontrastprüfung gegen WCAG.</p>
+    </a>
+
+    <div class="card placeholder">
+      <div class="card-head">
+        <span class="vtag">V5</span>
         <h2>Nächste Design-Idee</h2>
       </div>
-      <p>Noch nicht angelegt — Ordner <code>v1</code> nach <code>v2</code> kopieren und die
+      <p>Noch nicht angelegt — Ordner <code>v4</code> nach <code>v5</code> kopieren und die
          auskommentierte Karten-Vorlage in <code>index.html</code> aktivieren.</p>
     </div>
 
