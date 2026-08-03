@@ -20,14 +20,21 @@
    Ansicht switch shows the form in. 390x844 is the phone the mobile mode of the
    export is meant for, and it sits below the 640px breakpoint with room to spare. */
 
-/* Density: the default branch of the export's input.* tokens. */
+/* Density: the default branch of the export's input.* tokens.
+   field.radius is the one deliberate departure: the export puts
+   input.default.radius at radius.lg (8px), and the default density uses
+   radius.md (4px) instead, matching the compact branch. It points at the
+   primitive rather than at input.compact.radius so the two densities stay
+   independent — a change to compact must not drag the default with it.
+   Consequence: a change to input.default.radius in BETA-Foundations will no
+   longer land here. Delete this override to put the field back on the export. */
 /* set: base */
 :root {
   --field-height: var(--input-default-height);
   --field-padding-x: var(--input-default-padding-x);
   --field-padding-y: var(--input-default-padding-y);
   --field-gap: var(--input-default-gap);
-  --field-radius: var(--input-default-radius);
+  --field-radius: var(--radius-md);
   --field-gap-label: var(--spacing-1);
   --field-gap-stack: var(--spacing-5);
   --card-padding: var(--spacing-8);

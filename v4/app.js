@@ -4,6 +4,9 @@
 
      data-controls="#id" data-show-when="Ja"   trigger opens the reveal with that id
      data-show-when="Ja"  (no data-controls)   trigger opens its own nested .reveal
+     data-show-when="A|B"                      any of these answers opens it
+     select[data-switch="#id"]                 one block per answer, in that container:
+       > .reveal[data-when="A|B"]              a case, open while an answer matches it
      .object-section[data-for]                 mutually exclusive finance-type section
      .nav a.object-nav[data-navfor]            nav entry for the above
    ========================================================================== */
@@ -15,6 +18,14 @@
 
   let uidCounter = 0;
   const uid = (prefix) => `${prefix}-${++uidCounter}`;
+
+  /* The same trash glyph the repeatable templates carry inline, for the remove buttons
+     that are built in script instead — keep the two in step. */
+  const TRASH_ICON = '<svg class="ico-trash" viewBox="0 0 20 20" fill="none" '
+    + 'stroke="currentColor" stroke-width="1.6" stroke-linecap="round" '
+    + 'stroke-linejoin="round" aria-hidden="true"><path d="M4 6h12M8 6V4.6a1 1 0 0 1 '
+    + '1-1h2a1 1 0 0 1 1 1V6M6.4 6l.6 9.4a1 1 0 0 0 1 .9h4a1 1 0 0 0 1-.9L13.6 6M8.7 '
+    + '9v4.6M11.3 9v4.6"/></svg>';
 
   /* A reveal clips its overflow while its row height animates; once it is fully open the
      clip has to go, or it slices the focus glow off the fields inside — see .reveal.settled.
@@ -79,11 +90,30 @@
       }
     });
 
+    linkHelp(root);
     buildHelpIcons(root);
     wireConditionals(root);
     wireAmountRows(root);
     wireRemovers(root);
     wireCurrency(root);
+  }
+
+  /* A field's helper text is what its aria-describedby has to point at. The static
+     markup writes that link by hand, but a repeatable template cannot: the id it would
+     reference has to be unique per copy. So the link is made here instead, once per
+     instance, and a field that already declares it is left alone. */
+  function linkHelp(root) {
+    $$('.field > .help', root).forEach((help) => {
+      const field = help.parentElement;
+      const control = field.querySelector(':scope > .input, :scope > .select, ' +
+        ':scope > .with-unit > .input, :scope > .select-wrap > .select');
+      if (!control) return;
+      if (!help.id) help.id = uid('help');
+      const described = (control.getAttribute('aria-describedby') || '')
+        .split(/\s+/).filter(Boolean);
+      if (described.includes(help.id)) return;
+      control.setAttribute('aria-describedby', [...described, help.id].join(' '));
+    });
   }
 
   /* Every helper text also gets an icon + tooltip built next to its label, for the
@@ -138,6 +168,13 @@
     return field ? field.querySelector(':scope > .reveal') : null;
   }
 
+  /* One answer opens a reveal, but so does a whole class of them: "Angestellt" and
+     "Beamtin / Beamter" both mean there is an employer to ask about, and they want the
+     same block of fields. Every "when" list is therefore "|"-separated, which a single
+     answer is just the one-item case of. Not a comma, because the answers themselves
+     contain punctuation. */
+  const matchesAny = (list, value) => list.split('|').includes(value);
+
   function wireConditionals(root) {
     // radio groups: the trigger is the .field wrapper (it carries the dataset).
     // Only the trigger's own .choices may answer for it — a group nested inside the
@@ -147,15 +184,14 @@
       if (field.dataset.wired) return;
       field.dataset.wired = '1';
       const reveal = revealFor(field, field);
-      const when = field.dataset.showWhen;
       const own = field.querySelector(':scope > .choices') || field;
       field.addEventListener('change', (event) => {
         if (event.target.type !== 'radio' || !own.contains(event.target)) return;
-        openReveal(reveal, event.target.value === when);
+        openReveal(reveal, matchesAny(field.dataset.showWhen, event.target.value));
       });
       // honour a checked-by-default radio
       const checked = own.querySelector('input[type="radio"]:checked');
-      if (checked) openReveal(reveal, checked.value === when);
+      if (checked) openReveal(reveal, matchesAny(field.dataset.showWhen, checked.value));
     });
 
     // selects
@@ -164,8 +200,34 @@
       select.dataset.wired = '1';
       const reveal = revealFor(select, select.closest('.field'));
       select.addEventListener('change', () =>
-        openReveal(reveal, select.value === select.dataset.showWhen));
-      openReveal(reveal, select.value === select.dataset.showWhen);
+        openReveal(reveal, matchesAny(select.dataset.showWhen, select.value)));
+      openReveal(reveal, matchesAny(select.dataset.showWhen, select.value));
+    });
+
+    wireSwitches(root);
+  }
+
+  /* A dropdown where the answer decides not whether a block is asked but which one:
+     the employment status brings an employer, a company, a pension or nothing at all.
+     Each block is a .reveal[data-when] inside the container data-switch points at, and
+     only the matching one is ever open — the same shape as the finance-type sections,
+     but declarative, so a further case is a further div rather than a line in here. An
+     answer with nothing left to ask ("Hausfrau / Hausmann") simply has no case.
+
+     Closing the others rather than leaving them is the point: a field inside a closed
+     reveal is not asked for, so it drops out of the counter and out of the submit
+     check the moment the answer moves on — see isAsked. */
+  function wireSwitches(root) {
+    $$('select[data-switch]', root).forEach((select) => {
+      if (select.dataset.wiredSwitch) return;
+      select.dataset.wiredSwitch = '1';
+      const container = $(select.dataset.switch);
+      if (!container) return;
+      const cases = $$(':scope > .reveal[data-when]', container);
+      const sync = () => cases.forEach((branch) =>
+        openReveal(branch, matchesAny(branch.dataset.when, select.value)));
+      select.addEventListener('change', sync);
+      sync();
     });
   }
 
@@ -202,18 +264,29 @@
       row.dataset.wired = '1';
       const toggle = row.querySelector(':scope > .choice > input');
       const cell = row.querySelector(':scope > .amount-cell');
+      const input = cell.querySelector('.input');
 
       // A mandatory position is still listed, and still ticked, but cannot be given
       // up. Cancelling the click covers the keyboard too — space fires one as well.
+      // The click still lands somewhere: the position is picked, so the caret goes
+      // where the answer is missing rather than nowhere at all.
       toggle.addEventListener('click', (event) => {
-        if ('locked' in toggle.dataset) event.preventDefault();
+        if (!('locked' in toggle.dataset)) return;
+        event.preventDefault();
+        input.focus();
       });
-      // Ticking the box is a decision in its own right, so it ends any provisional
-      // state the row was in — see below.
+
+      /* Ticking the box is a decision in its own right, so it ends any provisional
+         state the row was in — see below. It also hands the caret straight to the
+         figure: picking a position is only half an answer, and being dropped into the
+         field that holds the other half saves aiming at a 200px target next to the
+         one just hit. Nothing is skipped by going there, since the amount is the next
+         stop in the tab order anyway. */
       toggle.addEventListener('change', () => {
         delete row.dataset.provisional;
         syncAmountRow(row);
         scheduleCounters();
+        if (toggle.checked) input.focus();
       });
 
       // Going for the figure is itself a way of picking the position: someone who
@@ -224,7 +297,6 @@
       // the keyboard merely passes through on the way down the list, so a tab-through
       // would claim the lot. Both entry points that carry intent are covered — the
       // pointer landing on the field, and the first character typed into it.
-      const input = cell.querySelector('.input');
       const pick = () => {
         if (toggle.checked) return;
         toggle.checked = true;
@@ -277,21 +349,6 @@
     });
   }
 
-  /* Nothing filled in means nothing to lose, and a row added by a mis-click
-     should not need a second click to undo — so a blank one goes silently.
-     "Blank" is measured against the state a fresh row or a fresh copy of
-     applicant 1 starts in: no text, placeholder option, nothing ticked but the
-     locked checkboxes that are ticked by definition. */
-  function hasEntries(root) {
-    return $$('input, select', root).some((el) => {
-      if (el.tagName === 'SELECT') return el.selectedIndex > 0;
-      if (el.type === 'checkbox' || el.type === 'radio') {
-        return el.checked && !('locked' in el.dataset);
-      }
-      return el.value.trim() !== '';
-    });
-  }
-
   function wireRemovers(root) {
     $$('[data-remove]', root).forEach((button) => {
       if (button.dataset.wired) return;
@@ -300,17 +357,28 @@
         const row = button.closest('.child-row, .subcard');
         if (!row) return;
 
-        // data-confirm carries the noun for the prompt; without it there is no prompt
-        const noun = button.dataset.confirm;
-        if (noun && hasEntries(row) && !await confirmDelete({
+        /* Every delete asks, whether the row holds anything or not. A trash glyph sits
+           right beside the fields it would throw away and there is no undo, so the
+           question is worth one extra click even on a row that looks empty — what looks
+           empty from the outside is not the user's own reading of it.
+
+           data-confirm carries the noun for the prompt, data-confirm-article the
+           demonstrative it takes: German wants "dieser Immobilie" where it wants
+           "diesem Darlehen". */
+        const noun = button.dataset.confirm || 'Eintrag';
+        const article = button.dataset.confirmArticle || 'diesem';
+        if (!await confirmDelete({
           title: `${noun} löschen?`,
-          text: `Alle eingegebenen Informationen zu diesem ${noun} werden `
+          text: `Alle eingegebenen Informationen zu ${article} ${noun} werden `
             + 'gelöscht. Das kann nicht rückgängig gemacht werden.',
         })) return;
 
         const list = row.parentElement;
         row.remove();
         if (list && list.id === 'stellplaetze') renumberStellplaetze();
+        if (list && list.id === 'kredite-liste') renumberKredite();
+        if (list && list.id === 'immobilien-liste') renumberImmobilien();
+        if (list && list.classList.contains('darlehen-liste')) renumberDarlehen(list);
         if (list && list.classList.contains('kinder-list')) syncKinderAdd();
         touched();
         scheduleCounters();
@@ -536,6 +604,7 @@
     });
     // ids inside the copy gained `suffix`, so the selectors that point at them must too
     $$('[data-controls]', copy).forEach((el) => { el.dataset.controls += suffix; });
+    $$('[data-switch]', copy).forEach((el) => { el.dataset.switch += suffix; });
 
     // Applicant 2 starts blank — including which amount positions are picked. A
     // checkbox is cleared by unticking it, not by wiping its value; a locked one
@@ -547,7 +616,10 @@
     });
     $$('select', copy).forEach((el) => { el.selectedIndex = 0; });
     $$('.reveal', copy).forEach((el) => el.classList.remove('open', 'settled'));
-    $$('[data-wired]', copy).forEach((el) => { delete el.dataset.wired; });
+    $$('[data-wired], [data-wired-switch]', copy).forEach((el) => {
+      delete el.dataset.wired;
+      delete el.dataset.wiredSwitch;
+    });
     $$('.child-row', copy).forEach((el) => el.remove());
 
     const head = copy.querySelector('.applicant-head');
@@ -556,7 +628,7 @@
     remove.type = 'button';
     remove.className = 'icon-btn';
     remove.setAttribute('aria-label', 'Antragsteller 2 entfernen');
-    remove.textContent = '×';
+    remove.innerHTML = TRASH_ICON;
     remove.addEventListener('click', requestRemoveApplicant2);
     head.appendChild(remove);
 
@@ -570,13 +642,13 @@
       input.addEventListener('input', () => refreshTitles(Number(panel.dataset.applicant))));
   }
 
-  /* The one way out of two applicants, wherever it is asked for: the × in the
-     panel head and answering "Alleine" again both land here. Person 2 is spread
-     over one panel per card, so all of them are searched for entries before the
-     question is skipped as pointless. Resolves false if the user backs out. */
+  /* The one way out of two applicants, wherever it is asked for: the trash button
+     in the panel head and answering "Alleine" again both land here. It asks every time,
+     like every other delete — person 2 is spread over one panel per card, so what the
+     click throws away is never all on screen at once. Resolves false if the user
+     backs out. */
   async function requestRemoveApplicant2() {
-    const panels = $$('.applicant[data-applicant="2"]');
-    if (panels.some(hasEntries) && !await confirmDelete({
+    if (!await confirmDelete({
       title: 'Antragsteller 2 löschen?',
       text: 'Alle eingegebenen Informationen zu Antragsteller 2 werden '
         + 'gelöscht. Das kann nicht rückgängig gemacht werden.',
@@ -620,6 +692,42 @@
     $$('#stellplaetze .sp-title').forEach((title, index) => {
       title.textContent = `Stellplatz ${index + 1}`;
     });
+  }
+
+  /* Answering "Ja" already brings the first Kredit, so the button only ever adds a
+     further one and says so — same wording rule as the children list and the loans
+     under a property. It reads the list rather than counting clicks, so emptying it
+     puts the first-entry wording back. */
+  function renumberKredite() {
+    $$('#kredite-liste .kredit-title').forEach((title, index) => {
+      title.textContent = `Kredit ${index + 1}`;
+    });
+    $('#add-kredit').textContent = $('#kredite-liste').children.length
+      ? '+ weiteren Kredit ergänzen'
+      : '+ Kredit erfassen';
+  }
+
+  /* The add button is also the answer to "are there any?", so it says which of the two
+     it is doing: the first entry, or a further one. Same wording rule as the children
+     list, and it reads the list rather than counting clicks, so removing the last entry
+     puts the question back. */
+  function renumberImmobilien() {
+    $$('#immobilien-liste .im-title').forEach((title, index) => {
+      title.textContent = `Immobilie ${index + 1}`;
+    });
+    $('#add-immobilie').textContent = $('#immobilien-liste').children.length
+      ? '+ Weitere Immobilie erfassen'
+      : '+ Immobilie erfassen';
+  }
+
+  /* Loans belong to one property, so the numbering and the button are per list — the
+     enclosing .subcard is that property, and its own add button is the only one in it. */
+  function renumberDarlehen(list) {
+    $$('.dl-title', list).forEach((title, index) => {
+      title.textContent = `Darlehen ${index + 1}`;
+    });
+    list.closest('.subcard').querySelector('.add-darlehen').textContent =
+      list.children.length ? '+ Weiteres Darlehen ergänzen' : '+ Darlehen erfassen';
   }
 
   /* ------------------------------------------------------------ save state */
@@ -698,8 +806,10 @@
     // A nav link has to open what it points at, or it would scroll to a closed card.
     // For a sub-section entry that means the step around it as well — revealCard walks
     // the whole chain, so both kinds of link are handled by the same line.
-    links.forEach((link) => link.addEventListener('click', () =>
-      revealCard(document.getElementById(link.getAttribute('href').slice(1)))));
+    links.forEach((link) => link.addEventListener('click', () => {
+      revealCard(document.getElementById(link.getAttribute('href').slice(1)));
+      setNavOpen(false);   // a no-op unless the list is the collapsed panel
+    }));
     const byId = new Map(links.map((a) => [a.getAttribute('href').slice(1), a]));
     const sections = $$('main section[id]').filter((s) => byId.has(s.id));
 
@@ -711,6 +821,35 @@
     }, { rootMargin: '-20% 0px -70% 0px' });
 
     sections.forEach((section) => observer.observe(section));
+  }
+
+  /* ------------------------------------------------------- collapsed nav */
+
+  /* Below 900px the section list lives behind the hamburger. Whether it is
+     collapsed at all is the stylesheet's business — aria-expanded is the single
+     switch, and above the breakpoint the panel is display:contents, so the
+     attribute stays true-or-false without ever hiding anything. */
+
+  const navToggle = $('.nav-toggle');
+
+  const setNavOpen = (open) => navToggle.setAttribute('aria-expanded', String(open));
+
+  function wireNavToggle() {
+    navToggle.addEventListener('click', () =>
+      setNavOpen(navToggle.getAttribute('aria-expanded') !== 'true'));
+
+    // An open panel covers the form, so anything aimed past it means "close" —
+    // pointerdown rather than click, so the tap that closes it does not also land
+    // on whatever was underneath.
+    document.addEventListener('pointerdown', (event) => {
+      if (!event.target.closest('.nav')) setNavOpen(false);
+    });
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key !== 'Escape' || navToggle.getAttribute('aria-expanded') !== 'true') return;
+      setNavOpen(false);
+      navToggle.focus();   // Escape must not strand the focus inside a hidden panel
+    });
   }
 
   /* --------------------------------------------------------------- toggles */
@@ -789,6 +928,7 @@
   wireCards();
   wireToggles();
   wireNav();
+  wireNavToggle();
   initEmbed();
 
   zweck.addEventListener('change', updateStart);
@@ -797,12 +937,23 @@
 
   $$('.applicant[data-applicant="1"]').forEach(wireNameEcho);
   $('#add-applicant').addEventListener('click', () => setApplicants(2));
-  /* Going back to "Alleine" deletes person 2 just as the × does, so it asks the
+  /* Going back to "Alleine" deletes person 2 just as the trash button does, so it asks the
      same question — and if the answer is no the radio returns to where it was,
-     because the choice it shows has to match the form underneath it. */
+     because the choice it shows has to match the form underneath it.
+
+     "Mit einer anderen Person" adds person 2 outright, and then opens the step the new
+     panels landed in. The question is in Finanzbedarf but the panels are in
+     Antragsteller, which is still collapsed at that point, so without this the answer
+     would appear to do nothing. Only this entry point needs it — the
+     "+ Antragsteller 2" button sits inside that card, which is therefore already open
+     when it is pressed. */
   $$('#darlehensnehmer input[type="radio"]').forEach((radio) =>
     radio.addEventListener('change', async () => {
-      if (radio.value === '2') { setApplicants(2); return; }
+      if (radio.value === '2') {
+        setApplicants(2);
+        revealCard($('.applicant[data-applicant="2"]'));
+        return;
+      }
       if (!await requestRemoveApplicant2()) {
         const two = $('#darlehensnehmer input[value="2"]');
         if (two) two.checked = true;
@@ -843,6 +994,41 @@
     renumberStellplaetze();
   });
   addFromTemplate('tpl-stellplatz', stellplaetze);
+
+  /* Immobilienvermögen. The properties are added from the card itself, but the loan
+     buttons arrive with each property, so those are handled by delegation on the list
+     rather than wired one by one. */
+  const immobilienListe = $('#immobilien-liste');
+
+  $('#add-immobilie').addEventListener('click', () => {
+    addFromTemplate('tpl-immobilie-besitz', immobilienListe);
+    renumberImmobilien();
+  });
+
+  immobilienListe.addEventListener('click', (event) => {
+    const button = event.target.closest('.add-darlehen');
+    if (!button) return;
+    const list = button.closest('.subcard').querySelector('.darlehen-liste');
+    addFromTemplate('tpl-darlehen', list);
+    renumberDarlehen(list);
+  });
+
+  /* Answering "Ja" is already the statement that there is a loan, so the first card
+     comes with it rather than behind a further click on "hinzufügen". Only when the
+     list is still empty — reopening the gate must not discard what was typed. */
+  const kredite = $('#kredite-liste');
+  $('#add-kredit').addEventListener('click', () => {
+    addFromTemplate('tpl-kredit', kredite);
+    renumberKredite();
+  });
+  $$('#verbind-toggle > .choices input[type="radio"]').forEach((radio) =>
+    radio.addEventListener('change', () => {
+      if (radio.checked && radio.value === 'Ja' && !kredite.children.length) {
+        addFromTemplate('tpl-kredit', kredite);
+      }
+      renumberKredite();
+    }));
+  renumberKredite();
 
   document.addEventListener('input', () => { touched(); scheduleCounters(); });
   document.addEventListener('change', scheduleCounters);

@@ -116,14 +116,16 @@ body {
   scrollbar-color: var(--color-border-default) transparent;
 }
 
+/* Top-level entries sit one type step above their sub-entries, so the two levels
+   read as a hierarchy and not as one flat list with some items indented. */
 .nav a {
   display: block;
   padding: var(--spacing-2) var(--spacing-3);
   border-radius: var(--button-radius);
   color: var(--color-text-secondary);
   text-decoration: none;
-  font-size: var(--font-body-md-size);
-  line-height: var(--font-body-md-line);
+  font-size: var(--font-heading-sm-size);
+  line-height: var(--font-heading-sm-line);
 }
 .nav a:hover { background: var(--color-background-hover); color: var(--color-text-primary); }
 .nav a[aria-current="true"] {
@@ -134,10 +136,20 @@ body {
 /* Indented under the step it belongs to. There are no group headings left in here:
    every step is a link of its own, and a heading above a step's sub-entries would be
    a second, unclickable copy of that link. */
-.nav a.sub { padding-left: var(--spacing-6); }
+.nav a.sub {
+  padding-left: var(--spacing-6);
+  font-size: var(--font-body-md-size);
+  line-height: var(--font-body-md-line);
+}
 
 .nav .object-nav { display: none; }
 .nav .object-nav.show { display: block; }
+
+/* The wrapper only exists so the list has something to collapse into below 900px.
+   Up here it is not a box at all, so the links stay direct children of the nav's
+   flex column and inherit its gap. */
+.nav-links { display: contents; }
+.nav-toggle { display: none; }
 
 .nav-divider {
   margin: var(--spacing-5) var(--spacing-3);
@@ -149,8 +161,6 @@ body {
   margin: var(--spacing-4) var(--spacing-3) var(--spacing-2);
   font-size: var(--font-heading-eyebrow-size);
   line-height: var(--font-heading-eyebrow-line);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
   font-weight: var(--font-weight-bold);
   color: var(--color-text-secondary);
 }
@@ -415,16 +425,24 @@ body {
   border: 0;
 }
 
+/* Each subhead opens a section within a card, so it carries the rule that
+   separates it from the fields above. The first one needs no rule — the card
+   padding already sets it off. */
 .subhead {
-  margin: var(--spacing-8) 0 var(--spacing-4);
-  font-size: var(--font-heading-eyebrow-size);
-  line-height: var(--font-heading-eyebrow-line);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  margin: var(--spacing-6) 0 var(--spacing-4);
+  padding-top: var(--spacing-6);
+  border-top: var(--border-width-default) solid var(--color-border-default);
+  font-size: var(--font-heading-xs-size);
+  line-height: var(--font-heading-xs-line);
   font-weight: var(--font-weight-bold);
   color: var(--color-action-primary);
 }
-.card-pad > .subhead:first-child { margin-top: 0; }
+.card-pad > .subhead:first-child,
+.subhead:first-child {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
 
 /* -------------------------------------------------------------------- grid */
 
@@ -461,7 +479,8 @@ body {
    a legend is not a flex item in every engine, and this keeps the group label
    visually and structurally identical to every other field label. */
 .field > label,
-.field > .group-label {
+.field > .group-label,
+.gate-row > .gate-label {
   /* inline flow, not flex: the required asterisk and the info icon have to sit
      after the last word of a label that wraps, not float to its far edge */
   display: block;
@@ -840,6 +859,30 @@ body {
    than "always applies" — so only the pointer says it is not up for negotiation. */
 .amount-row[data-locked] > .choice input { cursor: default; }
 
+/* .plain — the same list with no chip around the position: just the checkbox and the
+   label it belongs to. Only the container the label sits in is dropped; the mark
+   itself is untouched, so a picked position still fills accent and carries its
+   checkmark, and that mark is now the only thing carrying the state. Purely visual —
+   the row, the toggle and the amount cell are the same elements, so wireAmountRows,
+   isAsked and the counter cannot tell the two variants apart.
+
+   The border stays at zero alpha rather than being removed: it holds its 1px in the
+   box model, so the label does not shift by a pixel between the two states. */
+.amount-list.plain .amount-row > .choice > span,
+.amount-list.plain .amount-row > .choice input + span {
+  padding: 0;
+  background: none;
+  border-color: transparent;
+  box-shadow: none;
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-regular);
+}
+/* The chip's glyph offset re-adds the padding the span insets its content by. There
+   is none here, so the checkmark lines up with the box it belongs in. */
+.amount-list.plain .choice input[type="checkbox"]:checked + span::after {
+  left: var(--border-width-default);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .amount-cell { transition: none; }
 }
@@ -922,20 +965,32 @@ body {
   font-weight: var(--font-weight-bold);
 }
 
+/* A child sits directly on the card — no panel of its own. One child therefore looks
+   like any other row of fields; from the second on, a thin rule is what separates
+   them, so the boundary only appears once there is something to divide. */
 .child-row {
   display: flex;
   flex-wrap: wrap;
   align-items: flex-end;
   gap: var(--spacing-3);
-  margin-bottom: var(--spacing-3);
-  padding: var(--spacing-3);
-  background: var(--page-bg);
-  border: var(--border-width-default) solid var(--color-border-default);
-  border-radius: var(--field-radius);
+}
+.child-row + .child-row {
+  margin-top: var(--spacing-4);
+  padding-top: var(--spacing-4);
+  border-top: var(--border-width-default) solid var(--color-border-default);
 }
 .child-row .c-name { flex: 2 1 var(--layout-col-min-choice); }
 .child-row .c-date { flex: 1 1 var(--layout-col-min-choice); }
+/* The row is bottom-aligned, so giving the button the input's own height puts its
+   centre on the input's centre — the trash lines up with the field line, not with
+   the row's bottom edge. Follows the density switch, since --field-height does. */
+.child-row > .icon-btn {
+  flex: none;
+  height: var(--field-height);
+}
 
+/* Bare glyph, no box: next to a row of fields a bordered square reads as another
+   control to fill in. The hit area stays a full 24px square, it just isn't drawn. */
 .icon-btn {
   margin-left: auto;
   display: inline-flex;
@@ -947,14 +1002,18 @@ body {
   font: inherit;
   font-size: var(--font-input-value-size);
   color: var(--color-text-secondary);
-  background: var(--page-bg);
-  border: var(--border-width-default) solid var(--color-border-default);
+  background: none;
+  border: 0;
   border-radius: var(--field-radius);
   cursor: pointer;
 }
-.icon-btn:hover {
-  color: var(--color-feedback-error-strong);
-  border-color: var(--color-border-error);
+.icon-btn:hover { color: var(--color-feedback-error-strong); }
+/* the trash glyph, sized off the button rather than the text so it stays centred
+   when the density switch changes the surrounding type */
+.icon-btn > .ico-trash {
+  flex: none;
+  width: var(--spacing-4);
+  height: var(--spacing-4);
 }
 
 .add-btn {
@@ -976,6 +1035,26 @@ body {
 
 /* the add button sits above the rows it adds to, so the gap goes below it */
 .add-btn + .kinder-list { margin-top: var(--spacing-3); }
+
+/* A question answered by the button beside it — "Sind Immobilien vorhanden?" needs no
+   Ja/Nein, because adding the first entry says Ja and removing the last one says Nein.
+   The label therefore describes the button rather than a control of its own, which is
+   why it is plain text at label weight instead of a .group-label. */
+.gate-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-3);
+  margin-bottom: var(--spacing-4);
+}
+/* The button belongs to the question, so it sits next to it rather than being pushed
+   to the far edge of the card — and wraps under it when the line runs out. */
+.gate-row > .gate-label { flex: 0 1 auto; }
+.grid + .gate-row { margin-top: var(--spacing-6); }
+
+/* The panels inside carry the gap between them; the last one's would push the list
+   past the padding of whatever holds it. */
+.repeat-list > .subcard:last-child { margin-bottom: 0; }
 
 /* -------------------------------------------------------------- callouts */
 
@@ -1129,19 +1208,78 @@ body {
   .app {
     grid-template-columns: minmax(0, 1fr);
     gap: var(--spacing-5);
-    padding: var(--spacing-5) var(--spacing-4) var(--spacing-12);
+    /* no top padding: the nav bar below is full-bleed and brings its own */
+    padding: 0 var(--spacing-4) var(--spacing-12);
   }
+
+  /* The sidebar becomes a bar across the top. Sixteen links across a phone is most
+     of a screen, so they go behind the button and the bar keeps only the button —
+     and it sticks, so the way to another section is always one tap away rather than
+     a scroll back to the top. Full-bleed via the negative margin, because the bar
+     spans the screen while the form it sits over is inset by the gutter. */
   .nav {
-    position: static;
+    position: sticky;
+    top: 0;
+    z-index: 5;
     max-height: none;
+    /* the sidebar scrolls itself; the bar must not, or it would clip the panel */
+    overflow: visible;
     flex-direction: row;
-    flex-wrap: wrap;
     gap: var(--spacing-2);
-    padding-bottom: var(--spacing-3);
+    margin: 0 calc(-1 * var(--spacing-4));
+    padding: var(--spacing-3) var(--spacing-4);
+    background: var(--page-bg);
     border-bottom: var(--border-width-default) solid var(--color-border-default);
   }
   .nav .eyebrow, .nav-divider, .nav .seg { display: none; }
-  .nav a.sub { padding-left: var(--spacing-3); }
+
+  .nav-toggle {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-2);
+    min-height: var(--field-height);
+    padding: var(--spacing-2) var(--spacing-3);
+    font: inherit;
+    font-size: var(--font-body-md-size);
+    font-weight: var(--font-weight-medium);
+    color: var(--color-text-primary);
+    background: var(--page-bg);
+    border: var(--border-width-default) solid var(--color-border-default);
+    border-radius: var(--button-radius);
+    cursor: pointer;
+  }
+  .nav-toggle:hover { background: var(--color-background-hover); }
+  .nav-toggle:focus-visible {
+    outline: var(--focus-ring-width) solid var(--color-border-focus);
+    outline-offset: 2px;
+  }
+  .nav-toggle[aria-expanded="true"] {
+    background: var(--color-action-primary-subtle);
+    border-color: var(--color-action-primary);
+    color: var(--color-action-primary);
+  }
+  .burger { width: var(--spacing-5); height: var(--spacing-5); flex: none; }
+
+  /* A panel over the form rather than a block above it: opening the menu must not
+     move the page underneath, or the section you were reading jumps away as you
+     go looking for another one. */
+  .nav-links {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: var(--spacing-4);
+    right: var(--spacing-4);
+    max-height: 70vh;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: var(--spacing-2);
+    background: var(--color-background-raised);
+    border: var(--border-width-default) solid var(--color-border-default);
+    border-radius: var(--card-radius);
+    box-shadow: var(--shadow-lg);
+  }
+  .nav-toggle[aria-expanded="true"] + .nav-links { display: block; }
+
   .actionbar-inner { padding: var(--spacing-3) var(--spacing-4); }
 }
 

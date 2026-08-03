@@ -241,7 +241,10 @@ These were open findings against V1–V3 and are fixed here, not deferred:
   `section-antragsteller2 …` so the browser does not offer person 1's details
 - the save state is a `role="status" aria-live="polite"` region
 - a skip link, and `aria-invalid` plus a wired-up message on validation failure
-- helper text is referenced with `aria-describedby`, not just placed near the field
+- helper text is referenced with `aria-describedby`, not just placed near the field —
+  inside a repeatable template that link cannot be written by hand (the id it points at
+  has to be unique per copy), so `linkHelp` makes it per instance during hydration and
+  leaves a field that already declares it alone
 - compact density bottoms out at the export's 32px, clearing WCAG 2.5.8's 24px
 - destructive actions confirm in a native `<dialog>` (see below), so Esc, the focus
   trap and the inert page behind it are the browser's, and the safe answer holds
@@ -281,7 +284,7 @@ The form has **six steps**, and only those six are cards:
 | 1 | Finanzbedarf | — (the opening cascade: purpose, object type, use, applicant count, loan amount) |
 | 2 | Antragsteller | Persönliche Details · Berufliche Situation · Einkommen · Ausgaben |
 | 3 | Kinder | — |
-| 4 | Finanzen | Vermögen · Immobilien · Verbindlichkeiten |
+| 4 | Finanzen | Vermögen · Immobilienvermögen · Verbindlichkeiten |
 | 5 | Finanzierungsobjekt | whichever one of Immobilie / Neubau / Anschlussfinanzierung / Modernisierung / Kapitalbeschaffung applies |
 | 6 | Finanzierungsdetails | — |
 
@@ -290,11 +293,18 @@ fields it still wants. Only **Finanzbedarf** is expanded on load, so the page op
 as an overview of what the form is going to ask for — seven rows, six of them the form
 and one the `Feldzustände` reference at the bottom.
 
-Everything the sidebar lists *underneath* one of those six is a **sub-section**
-(`.card.subsection`), not a step. It is the same markup and the same counter, but it
-carries no fill and no gap of its own — a hairline rule separates it from the one
-above, and its header sits one heading level down — so an open card reads as one
-block with parts rather than as a stack of cards inside a card.
+Everything the sidebar lists *underneath* one of those six is a **sub-section**, not a
+step. It carries no fill and no gap of its own — a hairline rule separates it from the
+one above, and its heading sits one level down — so an open card reads as one block
+with parts rather than as a stack of cards inside a card. Two kinds:
+
+* `.subsection-static` — a heading and its fields, shown outright with the step. This is
+  what **Antragsteller**'s four parts and **Finanzen**'s three are: one list, not seven
+  doors, so the headings only say which part you are in. No toggle and no meter of its
+  own; the mandatory fields count towards the step's counter.
+* `.card.subsection` — same, plus a chevron and a counter of its own. Only the five
+  **Finanzierungsobjekt** parts use it: exactly one of them applies at a time, so it is
+  alone in its step and folding it away is the only thing its toggle has to do.
 
 **Finanzen** is a step of its own rather than the tail of Antragsteller, because its
 three parts are household figures, not personal ones: a Selbstauskunft asks for the
@@ -307,12 +317,13 @@ One heading level per nesting level, which the sidebar test asserts: `<h1>` page
 the sidebar either — every step is a link, so a heading above its sub-entries would
 only duplicate it.
 
-A sub-section is not something anyone has to open. `setCardOpen` propagates
-downwards, so expanding a step expands all of its sub-sections with it and collapsing
-it takes them back down; reopening therefore never leaves a row of shut sub-headers
-to click through. Their own toggle exists for exactly one thing — folding a part that
-is finished back out of the way, without that folding the step around it. The
-propagation is one-way: a sub-section never closes its parent.
+A sub-section is not something anyone has to open. A static one has nothing to open at
+all, and for the collapsible kind `setCardOpen` propagates downwards, so expanding a
+step expands its sub-sections with it and collapsing it takes them back down; reopening
+therefore never leaves a row of shut sub-headers to click through. Their own toggle
+exists for exactly one thing — folding a part that is finished back out of the way,
+without that folding the step around it. The propagation is one-way: a sub-section
+never closes its parent.
 
 Two consequences worth knowing:
 
@@ -365,8 +376,41 @@ and keeps its own section, while Zusätzliches Einkommen, Mieteinnahmen, Kinderg
 Renteneinkommen and Sonstige Einkünfte are positions — most applicants have none of
 them, and five permanently empty fields ask five questions where a list asks one.
 It is per applicant there, so the list is cloned for Antragsteller 2 like the rest of
-the panel. **Immobilien** and **Verbindlichkeiten** are scaffolds; the same shape
-should fit the latter.
+the panel.
+
+## Finanzen — Immobilienvermögen
+
+Property already owned is a **list of properties, each with a list of loans on it**.
+Both levels are the repeatable-panel pattern (`tpl-immobilie-besitz`, `tpl-darlehen`),
+nested, because a charge in Abteilung III of the Grundbuch belongs to the object it is
+registered on and not to the household — two properties with one loan each cannot be
+expressed by a single flat list of loans.
+
+Neither level has a Ja/Nein in front of it. **Adding the first entry is the answer**:
+`.gate-row` puts the question and the button that answers it on one line, and the
+button says which of the two it is doing — *+ Immobilie erfassen* while the list is
+empty, *+ Weitere Immobilie erfassen* once it is not. It reads the list rather than
+counting clicks, so removing the last entry puts the question back. A gate that has
+nothing yet therefore contributes nothing to the counter, which is the point: most
+applicants own no other property, and a Ja/Nein pair would ask them to say so twice.
+
+The loan buttons arrive with the property they belong to, so they are **delegated**
+from `#immobilien-liste` rather than wired one by one; the enclosing `.subcard` is the
+property, which is how `renumberDarlehen` finds the right list and the right button.
+
+Two field decisions come from the source spec rather than from the layout:
+
+- **Nutzung reveals the rent.** *Vermietet* and *Beides* both mean there is a monthly
+  income to declare, so `data-show-when="Vermietet|Beides"` asks for it; *Eigengenutzt*
+  closes it again and it drops out of the counter with everything else in a shut reveal.
+- **Darlehensgeber is an excerpt.** The real register runs to several hundred
+  institutions with near-identical names, which belongs behind a type-to-filter control
+  — the same one Anschlussfinanzierung's `#an-geber` is standing in for. Until that
+  exists the `<select>` carries about two dozen lenders plus *Sonstiger Darlehensgeber*,
+  which is enough to prototype the field but is not the list to ship.
+
+**Verbindlichkeiten** stays the household's own debts: loans on a property live with
+that property, so the two lists do not overlap.
 
 The positions are **checkboxes**, not radios. Several of them apply at once and each
 is independently given up again, which is exactly what a radio group cannot express —
@@ -403,6 +447,13 @@ checkbox semantics.
   field has already decided the item applies, so the toggle follows rather than making
   them tick it first and aim twice. Pointerdown and the first character typed — not
   `focus`, which would claim every row a tab-through merely passes on the way down.
+- **And the reverse: ticking a position hands the caret to its figure.** Picking is only
+  half an answer, so the row drops the user into the field holding the other half
+  instead of asking them to aim at a second target next to the one they just hit. It
+  covers the keyboard too, since Space fires the same `change`. Nothing is skipped: the
+  amount is the next stop in the tab order anyway. Giving a position up moves no focus —
+  the user is somewhere else by then — and the click on a locked position, which has
+  nothing to toggle, lands in its field rather than nowhere at all.
 - **A pick made that way is provisional until the field holds a figure.** Clicking into
   an amount and moving on without typing anything is how someone reads the list, not how
   they claim a position, so the pick is taken back on blur — otherwise browsing the list
@@ -487,20 +538,21 @@ reads as `if (!await confirmDelete({…})) return;`.
 
 Two details worth keeping:
 
-- **Nothing filled in means nothing to ask about.** A row added by a mis-click and
-  removed a second later would otherwise need two clicks to undo. "Blank" is
-  measured against the state a fresh row or a fresh copy of applicant 1 starts in:
-  no text, placeholder option selected, nothing ticked except the `data-locked`
-  checkboxes that are ticked by definition.
+- **Every delete asks, blank rows included.** An earlier version skipped the question
+  for a row with nothing in it, on the grounds that a mis-click should not need two
+  clicks to undo. It now asks in every case: the trash glyph sits right beside the
+  fields it would throw away, "empty" from the outside is not the same as empty to the
+  person who typed there, and a nested panel takes its children with it — the loans on a
+  property go when the property does, and only one of the two is under the pointer.
 - **The Darlehensnehmer radio is the second way to delete person 2**, so answering
   *Alleine* again asks the same question — and on Abbrechen the radio goes back to
   *Mit einer anderen Person*, because the choice it shows has to match the form
   underneath it.
 
-The prompt is opt-in per remove button: `data-confirm="Kind"` on a `[data-remove]`
-button supplies the noun and turns the question on. Stellplatz rows deliberately
-do not carry it — they hold a lot less than a person or a child does. Adding it is
-one attribute.
+Every `[data-remove]` button asks. `data-confirm="Kind"` names the thing in the prompt
+and `data-confirm-article="dieser"` gives the case its noun takes — German wants *dieser
+Immobilie* where it wants *diesem Darlehen*, and the default is `diesem`. A button with
+no noun at all still asks, about an *Eintrag*.
 
 Red belongs to the button that does the deleting (`.btn.danger`, on
 `--color-action-danger`, which the contrast pass pins to `red.700` in both

@@ -23,6 +23,18 @@
 
 <div class="app">
   <nav class="nav" aria-label="Abschnitte">
+    <!-- Below 900px the list collapses behind this button; above it, .nav-links is
+         display:contents and the links are direct flex children of .nav again, so
+         the sidebar is laid out exactly as it would be without the wrapper. -->
+    <button type="button" class="nav-toggle" aria-expanded="false" aria-controls="nav-links">
+      <svg class="burger" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"
+           stroke-linecap="round" aria-hidden="true">
+        <path d="M3 5.5h14M3 10h14M3 14.5h14"/>
+      </svg>
+      Abschnitte
+    </button>
+
+    <div class="nav-links" id="nav-links">
     <!-- The nav mirrors the card structure exactly: a top-level entry per collapsible
          card, and one .sub entry per sub-section inside it. A .sub link therefore only
          ever scrolls — the card it lives in is opened by the click, which opens every
@@ -39,7 +51,7 @@
 
     <a href="#finanzen">Finanzen</a>
     <a href="#vermoegen"         class="sub">Vermögen</a>
-    <a href="#immobilienbesitz"  class="sub">Immobilien</a>
+    <a href="#immobilienbesitz"  class="sub">Immobilienvermögen</a>
     <a href="#verbindlichkeiten" class="sub">Verbindlichkeiten</a>
 
     <!-- Both the card and its sub-entries come and go with the finance type, so the
@@ -54,6 +66,7 @@
 
     <a href="#details">Finanzierungsdetails</a>
     <a href="#states">Feldzustände</a>
+    </div>
 
     <hr class="nav-divider">
 
@@ -188,7 +201,10 @@
             <label class="choice"><input type="radio" name="darlehensnehmer" value="2"><span>Mit einer anderen Person</span></label>
           </div>
         </div>
-        <div class="field col-3">
+        <!-- col-start breaks the row, so these two drop below the question above them
+             instead of sitting beside it. Three columns each, so the pair lines up
+             under the six the question occupies. -->
+        <div class="field col-3 col-start">
           <label for="darlehensbetrag">Gewünschter Darlehensbetrag <span class="req" aria-hidden="true">*</span></label>
           <div class="with-unit">
             <input class="input" id="darlehensbetrag" inputmode="decimal" value="0,00" required>
@@ -288,7 +304,40 @@
                 </div>
                 <div class="field col-6">
                   <label for="a1-staat">Staatsangehörigkeit <span class="req" aria-hidden="true">*</span></label>
-                  <input class="input" id="a1-staat" type="text" placeholder="tippen zum Filtern…" required>
+                  <!-- Mock data, deliberately short: the DACH region first because that is
+                       who the form is for, then the most common remaining nationalities
+                       alphabetically, then an escape hatch. A real list is ~200 entries and
+                       wants a type-ahead rather than a select — which is what the placeholder
+                       here used to promise without anything implementing it. -->
+                  <span class="select-wrap">
+                    <select class="select" id="a1-staat" required>
+                      <option value="">Bitte wählen</option>
+                      <option>deutsch</option>
+                      <option>österreichisch</option>
+                      <option>schweizerisch</option>
+                      <option>französisch</option>
+                      <option>griechisch</option>
+                      <option>italienisch</option>
+                      <option>kroatisch</option>
+                      <option>niederländisch</option>
+                      <option>polnisch</option>
+                      <option>portugiesisch</option>
+                      <option>rumänisch</option>
+                      <option>spanisch</option>
+                      <option>türkisch</option>
+                      <option>Sonstige</option>
+                    </select>
+                  </span>
+                </div>
+                <div class="field col-6 col-start">
+                  <label for="a1-steuerid">Steuer-ID</label>
+                  <!-- The Steuer-ID is exactly 11 digits and never grouped or punctuated,
+                       so it takes the numeric keypad and a length cap rather than a mask.
+                       No autocomplete attribute: there is no autofill token for a tax id,
+                       and `off` would be wrong here — cloneApplicant prefixes every
+                       autocomplete it finds, and `section-… off` is not a valid pair. -->
+                  <input class="input" id="a1-steuerid" type="text" inputmode="numeric"
+                    maxlength="11" placeholder="11-stellig">
                 </div>
                 <div class="field col-6 col-start">
                   <label for="a1-familienstand">Familienstand <span class="req" aria-hidden="true">*</span></label>
@@ -325,40 +374,69 @@
           <div class="applicants" data-applicants="beruf">
             <div class="applicant" data-applicant="1">
               <div class="applicant-head"><span class="applicant-title">Antragsteller 1</span></div>
+              <!-- The employment status is the one question everybody answers, and it
+                   decides which block follows: an employer, a company, a pension, or
+                   nothing at all for someone who is not earning. One case per answer in
+                   #b1-status-cases, only ever one of them open. -->
               <div class="grid">
                 <div class="field col-6">
                   <label for="b1-verhaeltnis">Beschäftigungsverhältnis <span class="req" aria-hidden="true">*</span></label>
                   <span class="select-wrap">
-                    <select class="select" id="b1-verhaeltnis" required>
+                    <select class="select" id="b1-verhaeltnis" required data-switch="#b1-status-cases">
                       <option value="">Bitte wählen</option>
-                      <option>Angestellt</option><option>Beamtin / Beamter</option><option>Selbstständig</option>
-                      <option>Freiberuflich</option><option>Arbeiterin / Arbeiter</option><option>Rentnerin / Rentner</option>
-                      <option>In Ausbildung</option><option>Nicht erwerbstätig</option>
+                      <option>Angestellt</option><option>Selbstständig</option><option>Beamtin / Beamter</option>
+                      <option>Rentnerin / Rentner</option><option>Arbeitslos</option>
+                      <option>Studentin / Student</option><option>Hausfrau / Hausmann</option>
                     </select>
                   </span>
                 </div>
+              </div>
+              <div id="b1-status-cases">
+              <!-- Angestellt and Beamtin / Beamter ask the same thing: both have an
+                   employer, the Dienstherr being one. -->
+              <div class="reveal" id="c-b1-arbeitgeber" data-when="Angestellt|Beamtin / Beamter"><div class="reveal-inner"><div class="pad">
+              <div class="grid">
                 <div class="field col-6">
                   <label for="b1-beruf">Ausgeübter Beruf <span class="req" aria-hidden="true">*</span></label>
                   <input class="input" id="b1-beruf" type="text" autocomplete="organization-title" required>
                 </div>
                 <div class="field col-6">
-                  <label for="b1-branche">Branche</label>
+                  <label for="b1-branche">Branche <span class="req" aria-hidden="true">*</span></label>
                   <span class="select-wrap">
-                    <select class="select" id="b1-branche">
+                    <select class="select" id="b1-branche" required>
                       <option value="">Bitte wählen</option>
-                      <option>Bau &amp; Handwerk</option><option>Handel</option><option>IT &amp; Telekommunikation</option>
-                      <option>Gesundheit &amp; Soziales</option><option>Öffentlicher Dienst</option>
-                      <option>Industrie &amp; Produktion</option><option>Finanzen &amp; Versicherung</option><option>Sonstige</option>
+                      <option>Industrie</option><option>Dienstleistung</option><option>Handel</option>
+                      <option>Handwerk</option><option>Öffentlicher Dienst</option>
+                      <option>Gesundheitswesen</option><option>IT</option><option>Sonstiges</option>
                     </select>
                   </span>
                 </div>
-                <div class="field col-6">
-                  <label for="b1-arbeitgeber">Arbeitgeber <span class="req" aria-hidden="true">*</span></label>
+                <div class="field col-8">
+                  <label for="b1-arbeitgeber">Name des Arbeitgebers <span class="req" aria-hidden="true">*</span></label>
                   <input class="input" id="b1-arbeitgeber" type="text" autocomplete="organization" required>
                 </div>
-                <div class="field col-6">
+                <div class="field col-4">
                   <label for="b1-seit">Beschäftigt seit <span class="req" aria-hidden="true">*</span></label>
                   <input class="input" id="b1-seit" type="text" placeholder="mm.jjjj" inputmode="numeric" required>
+                </div>
+                <!-- The employer's address, deliberately without autocomplete tokens: the
+                     browser's address entry is the applicant's own, and offering it here
+                     would fill the company with where the applicant lives. -->
+                <div class="field col-8 col-start">
+                  <label for="b1-ag-strasse">Straße des Arbeitgebers <span class="req" aria-hidden="true">*</span></label>
+                  <input class="input" id="b1-ag-strasse" type="text" required>
+                </div>
+                <div class="field col-4">
+                  <label for="b1-ag-hausnr">Hausnr. <span class="req" aria-hidden="true">*</span></label>
+                  <input class="input" id="b1-ag-hausnr" type="text" required>
+                </div>
+                <div class="field col-4">
+                  <label for="b1-ag-plz">PLZ <span class="req" aria-hidden="true">*</span></label>
+                  <input class="input" id="b1-ag-plz" type="text" inputmode="numeric" required>
+                </div>
+                <div class="field col-8">
+                  <label for="b1-ag-ort">Ort <span class="req" aria-hidden="true">*</span></label>
+                  <input class="input" id="b1-ag-ort" type="text" required>
                 </div>
                 <div class="field col-12" role="group" aria-labelledby="lbl-b1-befristet" data-show-when="Ja">
                   <span class="group-label" id="lbl-b1-befristet">Ist das Arbeitsverhältnis befristet?</span>
@@ -382,6 +460,97 @@
                     <label class="choice"><input type="radio" name="b1-probezeit" value="Nein"><span>Nein</span></label>
                   </div>
                 </div>
+              </div>
+              </div></div></div>
+
+              <!-- Selbstständig: the company takes the employer's place. The figures it
+                   earns are asked once, under Einkommen, so they are not repeated here. -->
+              <div class="reveal" id="c-b1-selbststaendig" data-when="Selbstständig"><div class="reveal-inner"><div class="pad">
+              <div class="grid">
+                <div class="field col-8">
+                  <label for="b1-firma">Name des Unternehmens <span class="req" aria-hidden="true">*</span></label>
+                  <input class="input" id="b1-firma" type="text" required>
+                </div>
+                <div class="field col-4">
+                  <label for="b1-rechtsform">Rechtsform <span class="req" aria-hidden="true">*</span></label>
+                  <span class="select-wrap">
+                    <select class="select" id="b1-rechtsform" required>
+                      <option value="">Bitte wählen</option>
+                      <option>Einzelunternehmen</option><option>Freiberuflich</option><option>GbR</option>
+                      <option>GmbH</option><option>UG (haftungsbeschränkt)</option><option>GmbH &amp; Co. KG</option>
+                      <option>KG</option><option>OHG</option><option>AG</option><option>Sonstige</option>
+                    </select>
+                  </span>
+                </div>
+                <div class="field col-6">
+                  <label for="b1-sb-branche">Branche <span class="req" aria-hidden="true">*</span></label>
+                  <span class="select-wrap">
+                    <select class="select" id="b1-sb-branche" required>
+                      <option value="">Bitte wählen</option>
+                      <option>Industrie</option><option>Dienstleistung</option><option>Handel</option>
+                      <option>Handwerk</option><option>Öffentlicher Dienst</option>
+                      <option>Gesundheitswesen</option><option>IT</option><option>Sonstiges</option>
+                    </select>
+                  </span>
+                </div>
+                <div class="field col-6">
+                  <label for="b1-sb-seit">Selbstständig seit <span class="req" aria-hidden="true">*</span></label>
+                  <input class="input" id="b1-sb-seit" type="text" placeholder="mm.jjjj" inputmode="numeric" required>
+                </div>
+              </div>
+              </div></div></div>
+
+              <!-- Rentnerin / Rentner: which pension, and since when. -->
+              <div class="reveal" id="c-b1-rente" data-when="Rentnerin / Rentner"><div class="reveal-inner"><div class="pad">
+              <div class="grid">
+                <div class="field col-6">
+                  <label for="b1-rentenart">Art der Rente <span class="req" aria-hidden="true">*</span></label>
+                  <span class="select-wrap">
+                    <select class="select" id="b1-rentenart" required>
+                      <option value="">Bitte wählen</option>
+                      <option>Altersrente</option><option>Pension</option>
+                      <option>Erwerbsminderungsrente</option><option>Witwen- / Witwerrente</option>
+                      <option>Sonstige</option>
+                    </select>
+                  </span>
+                </div>
+                <div class="field col-6">
+                  <label for="b1-rente-seit">Rente bezogen seit <span class="req" aria-hidden="true">*</span></label>
+                  <input class="input" id="b1-rente-seit" type="text" placeholder="mm.jjjj" inputmode="numeric" required>
+                </div>
+              </div>
+              </div></div></div>
+
+              <!-- Arbeitslos: only the date is needed. The previous occupation says
+                   something about the prospect of the next one, so it is asked, but
+                   nobody is held up by it. -->
+              <div class="reveal" id="c-b1-arbeitslos" data-when="Arbeitslos"><div class="reveal-inner"><div class="pad">
+              <div class="grid">
+                <div class="field col-4">
+                  <label for="b1-al-seit">Arbeitslos seit <span class="req" aria-hidden="true">*</span></label>
+                  <input class="input" id="b1-al-seit" type="text" placeholder="mm.jjjj" inputmode="numeric" required>
+                </div>
+                <div class="field col-8">
+                  <label for="b1-al-beruf">Zuletzt ausgeübter Beruf</label>
+                  <input class="input" id="b1-al-beruf" type="text">
+                </div>
+              </div>
+              </div></div></div>
+
+              <!-- Studentin / Student -->
+              <div class="reveal" id="c-b1-studium" data-when="Studentin / Student"><div class="reveal-inner"><div class="pad">
+              <div class="grid">
+                <div class="field col-8">
+                  <label for="b1-hochschule">Hochschule / Ausbildungsstätte <span class="req" aria-hidden="true">*</span></label>
+                  <input class="input" id="b1-hochschule" type="text" required>
+                </div>
+                <div class="field col-4">
+                  <label for="b1-studium-ende">Voraussichtliches Ende <span class="req" aria-hidden="true">*</span></label>
+                  <input class="input" id="b1-studium-ende" type="text" placeholder="mm.jjjj" inputmode="numeric" required>
+                </div>
+              </div>
+              </div></div></div>
+              <!-- Hausfrau / Hausmann has no case: there is nothing further to ask. -->
               </div>
             </div>
           </div>
@@ -481,6 +650,86 @@
                   </div>
                 </div>
               </div>
+
+              <!-- ===== Design-Vergleich: dieselbe Liste ohne Rahmen um die Position =====
+                   Identisches Markup bis auf .plain und die ids — dieselbe .amount-row,
+                   dieselbe .choice, also greift wireAmountRows unverändert: anklicken,
+                   ins Betragsfeld tippen, wieder abwählen verhalten sich genau gleich.
+                   Steht nur zum Vergleich hier und wird zusammen mit Variante A
+                   entfernt, sobald eine der beiden gewinnt. -->
+              <h4 class="subhead" id="sub-e1-weitere-b">Weitere Einkommensarten · Variante B</h4>
+              <p class="note">Nur zum Design-Vergleich — dieselbe Liste, nur mit Checkbox und
+                Bezeichnung statt einer umrahmten Position. Das Verhalten ist identisch.</p>
+              <div class="field" role="group" aria-labelledby="sub-e1-weitere-b" aria-describedby="h-e1-weitere-b">
+                <p class="help" id="h-e1-weitere-b">Mehrfachauswahl möglich — wählen Sie jede zutreffende Art
+                  aus und geben Sie den monatlichen Betrag an.</p>
+                <div class="amount-list plain">
+                  <div class="amount-row">
+                    <label class="choice">
+                      <input type="checkbox" id="e1b-zusatz">
+                      <span>Zusätzliches Einkommen</span>
+                    </label>
+                    <div class="field amount-cell">
+                      <div class="with-unit">
+                        <input class="input" id="e1b-zusatz-betrag" inputmode="decimal" aria-label="Zusätzliches Einkommen – Betrag (Variante B)" required>
+                        <span class="unit">€</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="amount-row">
+                    <label class="choice">
+                      <input type="checkbox" id="e1b-miete">
+                      <span>Mieteinnahmen</span>
+                    </label>
+                    <div class="field amount-cell">
+                      <div class="with-unit">
+                        <input class="input" id="e1b-miete-betrag" inputmode="decimal" aria-label="Mieteinnahmen – Betrag (Variante B)" required>
+                        <span class="unit">€</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="amount-row">
+                    <label class="choice">
+                      <input type="checkbox" id="e1b-kindergeld">
+                      <span>Kindergeld</span>
+                    </label>
+                    <div class="field amount-cell">
+                      <div class="with-unit">
+                        <input class="input" id="e1b-kindergeld-betrag" inputmode="decimal" aria-label="Kindergeld – Betrag (Variante B)" required>
+                        <span class="unit">€</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="amount-row">
+                    <label class="choice">
+                      <input type="checkbox" id="e1b-rente">
+                      <span>Renteneinkommen</span>
+                    </label>
+                    <div class="field amount-cell">
+                      <div class="with-unit">
+                        <input class="input" id="e1b-rente-betrag" inputmode="decimal" aria-label="Renteneinkommen – Betrag (Variante B)" required>
+                        <span class="unit">€</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="amount-row">
+                    <label class="choice">
+                      <input type="checkbox" id="e1b-sonstige">
+                      <span>Sonstige Einkünfte</span>
+                    </label>
+                    <div class="field amount-cell">
+                      <div class="with-unit">
+                        <input class="input" id="e1b-sonstige-betrag" inputmode="decimal" aria-label="Sonstige Einkünfte – Betrag (Variante B)" required>
+                        <span class="unit">€</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
           </div>
@@ -521,17 +770,85 @@
                     </div>
                   </div></div></div>
                 </div>
-                <div class="field col-6">
-                  <label for="x1-kredite">Summe monatlicher Kreditraten</label>
-                  <div class="with-unit"><input class="input" id="x1-kredite" inputmode="decimal"><span class="unit">€</span></div>
-                </div>
-                <div class="field col-6">
-                  <label for="x1-unterhalt">Unterhaltsverpflichtungen</label>
-                  <div class="with-unit"><input class="input" id="x1-unterhalt" inputmode="decimal"><span class="unit">€</span></div>
-                </div>
-                <div class="field col-6">
-                  <label for="x1-sonstige">Sonstige monatliche Ausgaben</label>
-                  <div class="with-unit"><input class="input" id="x1-sonstige" inputmode="decimal"><span class="unit">€</span></div>
+
+                <!-- Everything else the household spends is an amount list, same shape as
+                     Vermögen: the position is picked first and only then asks for a figure.
+                     Lebenshaltungskosten is the one item nobody is without, so it is listed
+                     ticked and locked rather than as a question — see Sparguthaben.
+                     Kreditraten are deliberately absent: they are collected per loan under
+                     Verbindlichkeiten, and asking for a lump sum here as well would invite
+                     two numbers that disagree. -->
+                <div class="field col-12" role="group" aria-labelledby="lbl-x1-ausgaben"
+                     aria-describedby="h-x1-ausgaben">
+                  <span class="group-label" id="lbl-x1-ausgaben">Welche monatlichen Ausgaben haben Sie? <span class="req" aria-hidden="true">*</span></span>
+                  <p class="help" id="h-x1-ausgaben">Wählen Sie alle zutreffenden Positionen aus und geben Sie
+                    jeweils den monatlichen Betrag an. Lebenshaltungskosten sind eine Pflichtangabe.</p>
+                  <div class="amount-list">
+                    <div class="amount-row" data-locked>
+                      <label class="choice">
+                        <input type="checkbox" id="x1-lebenshaltung" checked data-locked aria-disabled="true">
+                        <span>Lebenshaltungskosten <span class="req" aria-hidden="true">*</span></span>
+                      </label>
+                      <div class="field amount-cell">
+                        <div class="with-unit">
+                          <input class="input" id="x1-lebenshaltung-betrag" inputmode="decimal" aria-label="Monatliche Lebenshaltungskosten – Betrag" required>
+                          <span class="unit">€</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="amount-row">
+                      <label class="choice">
+                        <input type="checkbox" id="x1-pkv">
+                        <span>Private Krankenversicherung</span>
+                      </label>
+                      <div class="field amount-cell">
+                        <div class="with-unit">
+                          <input class="input" id="x1-pkv-betrag" inputmode="decimal" aria-label="Private Krankenversicherung – Betrag" required>
+                          <span class="unit">€</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="amount-row">
+                      <label class="choice">
+                        <input type="checkbox" id="x1-versicherung">
+                        <span>Sonstige Versicherungsausgaben</span>
+                      </label>
+                      <div class="field amount-cell">
+                        <div class="with-unit">
+                          <input class="input" id="x1-versicherung-betrag" inputmode="decimal" aria-label="Sonstige Versicherungsausgaben – Betrag" required>
+                          <span class="unit">€</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="amount-row">
+                      <label class="choice">
+                        <input type="checkbox" id="x1-unterhalt">
+                        <span>Unterhaltszahlungen</span>
+                      </label>
+                      <div class="field amount-cell">
+                        <div class="with-unit">
+                          <input class="input" id="x1-unterhalt-betrag" inputmode="decimal" aria-label="Unterhaltszahlungen – Betrag" required>
+                          <span class="unit">€</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="amount-row">
+                      <label class="choice">
+                        <input type="checkbox" id="x1-sonstige">
+                        <span>Sonstige Ausgaben</span>
+                      </label>
+                      <div class="field amount-cell">
+                        <div class="with-unit">
+                          <input class="input" id="x1-sonstige-betrag" inputmode="decimal" aria-label="Sonstige Ausgaben – Betrag" required>
+                          <span class="unit">€</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -580,7 +897,9 @@
     <!-- Household-level, not per applicant: a Selbstauskunft asks for the assets
          brought into the financing as one pot, and the same goes for property already
          owned and for debts. That is why these three are a step of their own rather
-         than sub-sections of Antragsteller. -->
+         than sub-sections of Antragsteller. Like Antragsteller's four parts they are
+         one list, not three doors: they open with the card and stay open, so the
+         headings only say which part you are in. -->
     <section class="card" id="finanzen" aria-labelledby="h-finanzen" data-open="false">
       <h2 class="card-head">
         <button type="button" class="card-toggle" aria-expanded="false" aria-controls="body-finanzen">
@@ -598,22 +917,9 @@
         <div class="card-body-inner">
           <div class="subsections">
         <!-- ===================== FINANZEN · VERMÖGEN ===================== -->
-        <section class="card subsection" id="vermoegen" aria-labelledby="h-verm" data-open="false">
-          <h3 class="card-head">
-            <button type="button" class="card-toggle" aria-expanded="false" aria-controls="body-vermoegen">
-              <svg class="chev" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M5 8l5 5 5-5"/></svg>
-              <span class="card-title" id="h-verm">Vermögen</span>
-              <span class="card-count" data-count hidden>
-                <span class="count-value" aria-hidden="true"></span>
-                <span class="count-label" aria-hidden="true"></span>
-                <span class="sr-only" data-count-sr></span>
-                <span class="count-track" aria-hidden="true"><span class="count-fill"></span></span>
-              </span>
-            </button>
-          </h3>
-          <div class="card-body" id="body-vermoegen">
-            <div class="card-body-inner">
-              <div class="card-pad">
+        <section class="subsection-static" id="vermoegen" aria-labelledby="h-verm">
+          <h3 class="subsection-title" id="h-verm">Vermögen</h3>
+          <div class="card-pad">
           <div class="field" role="group" aria-labelledby="lbl-vermoegen">
             <span class="group-label" id="lbl-vermoegen">Welche Vermögenswerte bringen Sie mit? <span class="req" aria-hidden="true">*</span></span>
             <p class="help" id="h-vermoegen">Wählen Sie alle zutreffenden Positionen aus und geben Sie
@@ -698,54 +1004,47 @@
               </div>
             </div>
           </div>
-              </div>
-            </div>
           </div>
         </section>
         <!-- ===================== FINANZEN · IMMOBILIEN ===================== -->
-        <section class="card subsection" id="immobilienbesitz" aria-labelledby="h-immobesitz" data-open="false">
-          <h3 class="card-head">
-            <button type="button" class="card-toggle" aria-expanded="false" aria-controls="body-immobilienbesitz">
-              <svg class="chev" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M5 8l5 5 5-5"/></svg>
-              <span class="card-title" id="h-immobesitz">Immobilien</span>
-              <span class="card-count" data-count hidden>
-                <span class="count-value" aria-hidden="true"></span>
-                <span class="count-label" aria-hidden="true"></span>
-                <span class="sr-only" data-count-sr></span>
-                <span class="count-track" aria-hidden="true"><span class="count-fill"></span></span>
-              </span>
-            </button>
-          </h3>
-          <div class="card-body" id="body-immobilienbesitz">
-            <div class="card-body-inner">
-              <div class="card-pad">
-          <p class="note">Gerüst — vorhandener Immobilienbesitz (Objekt, Verkehrswert, Mieteinnahmen,
-            bestehende Belastungen) noch zu definieren.</p>
-              </div>
-            </div>
+        <section class="subsection-static" id="immobilienbesitz" aria-labelledby="h-immobesitz">
+          <h3 class="subsection-title" id="h-immobesitz">Immobilienvermögen</h3>
+          <div class="card-pad">
+          <!-- No Ja/Nein in front of the list: adding the first property IS the answer,
+               so the question and the button that answers it share one line. Each
+               property carries its own loans, because a charge in Abteilung III belongs
+               to the object it is registered on, not to the household. -->
+          <div class="gate-row">
+            <span class="gate-label">Sind Immobilien vorhanden?</span>
+            <button type="button" class="add-btn" id="add-immobilie">+ Immobilie erfassen</button>
+          </div>
+          <div class="repeat-list" id="immobilien-liste"></div>
           </div>
         </section>
         <!-- ================= FINANZEN · VERBINDLICHKEITEN ================= -->
-        <section class="card subsection" id="verbindlichkeiten" aria-labelledby="h-verbind" data-open="false">
-          <h3 class="card-head">
-            <button type="button" class="card-toggle" aria-expanded="false" aria-controls="body-verbindlichkeiten">
-              <svg class="chev" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M5 8l5 5 5-5"/></svg>
-              <span class="card-title" id="h-verbind">Verbindlichkeiten</span>
-              <span class="card-count" data-count hidden>
-                <span class="count-value" aria-hidden="true"></span>
-                <span class="count-label" aria-hidden="true"></span>
-                <span class="sr-only" data-count-sr></span>
-                <span class="count-track" aria-hidden="true"><span class="count-fill"></span></span>
-              </span>
-            </button>
-          </h3>
-          <div class="card-body" id="body-verbindlichkeiten">
-            <div class="card-body-inner">
-              <div class="card-pad">
-          <p class="note">Gerüst — bestehende Verbindlichkeiten (Art, Restschuld, monatliche Rate,
-            Laufzeit) noch zu definieren. Die Positionsliste aus „Vermögen“ passt hier ebenfalls.</p>
-              </div>
+        <section class="subsection-static" id="verbindlichkeiten" aria-labelledby="h-verbind">
+          <h3 class="subsection-title" id="h-verbind">Verbindlichkeiten</h3>
+          <div class="card-pad">
+          <!-- Most applicants have no loans at all, so the seven detail fields hang off a
+               gate rather than standing there empty. Each loan is its own repeatable card
+               instead of a fixed block per credit type: two car loans are ordinary, and a
+               type baked into a heading cannot express them. -->
+          <div class="field" role="group" aria-labelledby="lbl-verbind" id="verbind-toggle"
+               aria-describedby="h-verbind-toggle" data-show-when="Ja" data-required>
+            <span class="group-label" id="lbl-verbind">Haben Sie derzeit bestehende Kreditverträge? <span class="req" aria-hidden="true">*</span></span>
+            <p class="help" id="h-verbind-toggle">Für eine verlässliche Prüfung der Machbarkeit Ihrer
+              Finanzierung, ist es wichtig Transparenz über bestehende Kredite zu haben. Bitte tragen
+              Sie hier nicht den zu refinanzierenden Kredit ein, wenn es sich um eine Umschuldung
+              handelt.</p>
+            <div class="choices">
+              <label class="choice"><input type="radio" name="verbind" value="Ja"><span>Ja</span></label>
+              <label class="choice"><input type="radio" name="verbind" value="Nein"><span>Nein</span></label>
             </div>
+            <div class="reveal"><div class="reveal-inner"><div class="pad">
+              <div id="kredite-liste"></div>
+              <button type="button" class="add-btn" id="add-kredit">+ Kredit erfassen</button>
+            </div></div></div>
+          </div>
           </div>
         </section>
           </div>
@@ -793,10 +1092,10 @@
               <div class="card-pad">
           <h3 class="subhead">Objektadresse</h3>
           <div class="grid">
-            <div class="field col-8"><label for="i-strasse">Straße <span class="req" aria-hidden="true">*</span></label><input class="input" id="i-strasse" type="text" required></div>
-            <div class="field col-4"><label for="i-hausnr">Hausnr. <span class="req" aria-hidden="true">*</span></label><input class="input" id="i-hausnr" type="text" required></div>
-            <div class="field col-4"><label for="i-plz">PLZ <span class="req" aria-hidden="true">*</span></label><input class="input" id="i-plz" type="text" inputmode="numeric" required></div>
-            <div class="field col-8"><label for="i-ort">Ort <span class="req" aria-hidden="true">*</span></label><input class="input" id="i-ort" type="text" required></div>
+            <div class="field col-3"><label for="i-strasse">Straße <span class="req" aria-hidden="true">*</span></label><input class="input" id="i-strasse" type="text" required></div>
+            <div class="field col-3"><label for="i-hausnr">Nr. <span class="req" aria-hidden="true">*</span></label><input class="input" id="i-hausnr" type="text" required></div>
+            <div class="field col-3"><label for="i-plz">PLZ <span class="req" aria-hidden="true">*</span></label><input class="input" id="i-plz" type="text" inputmode="numeric" required></div>
+            <div class="field col-3"><label for="i-ort">Ort <span class="req" aria-hidden="true">*</span></label><input class="input" id="i-ort" type="text" required></div>
           </div>
 
           <h3 class="subhead">Objektdaten</h3>
@@ -968,10 +1267,10 @@
               <div class="card-pad">
           <h3 class="subhead">Objektadresse</h3>
           <div class="grid">
-            <div class="field col-8"><label for="n-strasse">Straße <span class="req" aria-hidden="true">*</span></label><input class="input" id="n-strasse" type="text" required></div>
-            <div class="field col-4"><label for="n-hausnr">Hausnr.</label><input class="input" id="n-hausnr" type="text"></div>
-            <div class="field col-4"><label for="n-plz">PLZ <span class="req" aria-hidden="true">*</span></label><input class="input" id="n-plz" type="text" inputmode="numeric" required></div>
-            <div class="field col-8"><label for="n-ort">Ort <span class="req" aria-hidden="true">*</span></label><input class="input" id="n-ort" type="text" required></div>
+            <div class="field col-3"><label for="n-strasse">Straße <span class="req" aria-hidden="true">*</span></label><input class="input" id="n-strasse" type="text" required></div>
+            <div class="field col-3"><label for="n-hausnr">Nr.</label><input class="input" id="n-hausnr" type="text"></div>
+            <div class="field col-3"><label for="n-plz">PLZ <span class="req" aria-hidden="true">*</span></label><input class="input" id="n-plz" type="text" inputmode="numeric" required></div>
+            <div class="field col-3"><label for="n-ort">Ort <span class="req" aria-hidden="true">*</span></label><input class="input" id="n-ort" type="text" required></div>
           </div>
           <h3 class="subhead">Bauvorhaben</h3>
           <div class="grid">
@@ -1251,7 +1550,12 @@
         <label class="choice"><input type="radio" value="Nein"><span>Nein</span></label>
       </div>
     </div>
-    <button type="button" class="icon-btn" data-remove data-confirm="Kind" aria-label="Kind entfernen">×</button>
+    <button type="button" class="icon-btn" data-remove data-confirm="Kind" aria-label="Kind entfernen">
+      <svg class="ico-trash" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"
+           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M4 6h12M8 6V4.6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1V6M6.4 6l.6 9.4a1 1 0 0 0 1 .9h4a1 1 0 0 0 1-.9L13.6 6M8.7 9v4.6M11.3 9v4.6"/>
+      </svg>
+    </button>
   </div>
 </template>
 
@@ -1260,7 +1564,13 @@
   <div class="subcard">
     <div class="subcard-head">
       <span class="sp-title">Stellplatz 1</span>
-      <button type="button" class="icon-btn" data-remove aria-label="Stellplatz entfernen">×</button>
+      <button type="button" class="icon-btn" data-remove data-confirm="Stellplatz"
+              aria-label="Stellplatz entfernen">
+        <svg class="ico-trash" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M4 6h12M8 6V4.6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1V6M6.4 6l.6 9.4a1 1 0 0 0 1 .9h4a1 1 0 0 0 1-.9L13.6 6M8.7 9v4.6M11.3 9v4.6"/>
+        </svg>
+      </button>
     </div>
     <div class="grid">
       <div class="field col-6">
@@ -1288,6 +1598,241 @@
             </div>
           </div>
         </div></div></div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<!-- template: Immobilie im Bestand (Immobilienvermögen) -->
+<template id="tpl-immobilie-besitz">
+  <div class="subcard">
+    <div class="subcard-head">
+      <span class="im-title">Immobilie 1</span>
+      <button type="button" class="icon-btn" data-remove data-confirm="Immobilie"
+              data-confirm-article="dieser" aria-label="Immobilie entfernen">
+        <svg class="ico-trash" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M4 6h12M8 6V4.6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1V6M6.4 6l.6 9.4a1 1 0 0 0 1 .9h4a1 1 0 0 0 1-.9L13.6 6M8.7 9v4.6M11.3 9v4.6"/>
+        </svg>
+      </button>
+    </div>
+    <div class="grid">
+      <div class="field col-4">
+        <label>Art der Immobilie <span class="req" aria-hidden="true">*</span></label>
+        <span class="select-wrap">
+          <!-- the same nine types the Finanzbedarf cascade offers for the object being
+               financed: one list for "which kind of property", asked twice -->
+          <select class="select" required>
+            <option value="">Bitte wählen</option>
+            <option>Eigentumswohnung</option>
+            <option>Einfamilienhaus</option>
+            <option>Zweifamilienhaus</option>
+            <option>Mehrfamilienhaus</option>
+            <option>Doppelhaushälfte</option>
+            <option>Reihenendhaus</option>
+            <option>Reihenmittelhaus</option>
+            <option>Wohn- und Geschäftshaus</option>
+            <option>Grundstück</option>
+          </select>
+        </span>
+      </div>
+      <div class="field col-4">
+        <label>Marktwert <span class="req" aria-hidden="true">*</span></label>
+        <p class="help">Aktueller Verkehrswert der Immobilie.</p>
+        <div class="with-unit"><input class="input" inputmode="decimal" required><span class="unit">€</span></div>
+      </div>
+      <div class="field col-4">
+        <label>Gesamte Wohnfläche</label>
+        <div class="with-unit"><input class="input" inputmode="decimal"><span class="unit">m²</span></div>
+      </div>
+
+      <!-- Letting is what makes the property earn, so the rent is asked the moment the
+           answer says there is one — "Beides" counts, a partly let house still has an
+           income to declare. -->
+      <div class="field col-12" role="group" data-show-when="Vermietet|Beides" data-required>
+        <span class="group-label">Wie wird die Immobilie genutzt? <span class="req" aria-hidden="true">*</span></span>
+        <div class="choices">
+          <label class="choice"><input type="radio" value="Eigengenutzt"><span>Eigengenutzt</span></label>
+          <label class="choice"><input type="radio" value="Vermietet"><span>Vermietet</span></label>
+          <label class="choice"><input type="radio" value="Beides"><span>Beides</span></label>
+        </div>
+        <div class="reveal"><div class="reveal-inner"><div class="pad">
+          <div class="grid">
+            <div class="field col-4">
+              <label>Monatliche Mieteinnahmen <span class="req" aria-hidden="true">*</span></label>
+              <div class="with-unit"><input class="input" inputmode="decimal" required><span class="unit">€</span></div>
+            </div>
+          </div>
+        </div></div></div>
+      </div>
+
+      <div class="field col-3 col-start"><label>Straße</label><input class="input" type="text"></div>
+      <div class="field col-3"><label>Nr.</label><input class="input" type="text"></div>
+      <div class="field col-3"><label>PLZ</label><input class="input" type="text" inputmode="numeric"></div>
+      <div class="field col-3"><label>Ort</label><input class="input" type="text"></div>
+    </div>
+
+    <div class="gate-row">
+      <span class="gate-label">Darlehen: Sind Rechte in Abteilung III im Grundbuch oder
+        weitere Darlehen vorhanden?</span>
+      <button type="button" class="add-btn add-darlehen">+ Darlehen erfassen</button>
+    </div>
+    <div class="repeat-list darlehen-liste"></div>
+  </div>
+</template>
+
+<!-- template: Darlehen auf eine Immobilie im Bestand -->
+<template id="tpl-darlehen">
+  <div class="subcard">
+    <div class="subcard-head">
+      <span class="dl-title">Darlehen 1</span>
+      <button type="button" class="icon-btn" data-remove data-confirm="Darlehen"
+              aria-label="Darlehen entfernen">
+        <svg class="ico-trash" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M4 6h12M8 6V4.6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1V6M6.4 6l.6 9.4a1 1 0 0 0 1 .9h4a1 1 0 0 0 1-.9L13.6 6M8.7 9v4.6M11.3 9v4.6"/>
+        </svg>
+      </button>
+    </div>
+    <div class="grid">
+      <div class="field col-6">
+        <label>Darlehensart <span class="req" aria-hidden="true">*</span></label>
+        <span class="select-wrap">
+          <select class="select" required>
+            <option value="">Bitte wählen</option>
+            <option>Immobiliendarlehen</option>
+            <option>Bauspardarlehen</option>
+            <option>Förderdarlehen</option>
+            <option>Privatdarlehen</option>
+            <option>Sonstiges Darlehen</option>
+          </select>
+        </span>
+      </div>
+      <div class="field col-6">
+        <label>Darlehensgeber <span class="req" aria-hidden="true">*</span></label>
+        <span class="select-wrap">
+          <!-- An excerpt of the lender list, alphabetical, with "Sonstiger
+               Darlehensgeber" at the top for everything not in it. The full register runs
+               to several hundred institutions and belongs behind a type-to-filter
+               control, not in a hard-coded <select> — see the note in the README. -->
+          <select class="select" required>
+            <option value="">Bitte wählen</option>
+            <option>Sonstiger Darlehensgeber</option>
+            <option>Aachener Bank eG</option>
+            <option>Aachener Bausparkasse AG</option>
+            <option>Allianz Lebensversicherung AG</option>
+            <option>ALTE LEIPZIGER Bauspar AG</option>
+            <option>Augsburger Aktienbank AG</option>
+            <option>auxmoney GmbH</option>
+            <option>BHW Bausparkasse AG</option>
+            <option>Commerzbank AG</option>
+            <option>Debeka Bausparkasse AG</option>
+            <option>Deutsche Apotheker- und Ärztebank eG</option>
+            <option>Deutsche Bank AG</option>
+            <option>DSL Bank</option>
+            <option>ING-DiBa AG</option>
+            <option>KfW</option>
+            <option>Landesbank Baden-Württemberg</option>
+            <option>LBS Bausparkasse</option>
+            <option>Münchener Hypothekenbank eG</option>
+            <option>Postbank</option>
+            <option>Santander Consumer Bank AG</option>
+            <option>Sparda-Bank</option>
+            <option>Sparkasse</option>
+            <option>Volksbank / Raiffeisenbank</option>
+            <option>Wüstenrot Bausparkasse AG</option>
+          </select>
+        </span>
+      </div>
+      <div class="field col-3">
+        <label>Grundschuld</label>
+        <p class="help">Der in Abteilung III des Grundbuchs eingetragene Betrag.</p>
+        <div class="with-unit"><input class="input" inputmode="decimal"><span class="unit">€</span></div>
+      </div>
+      <div class="field col-3">
+        <label>Darlehensbetrag</label>
+        <p class="help">Ursprünglich aufgenommener Betrag.</p>
+        <div class="with-unit"><input class="input" inputmode="decimal"><span class="unit">€</span></div>
+      </div>
+      <div class="field col-3">
+        <label>Rate <span class="req" aria-hidden="true">*</span></label>
+        <div class="with-unit"><input class="input" inputmode="decimal" required><span class="unit">€</span></div>
+      </div>
+      <div class="field col-3">
+        <label>Sollzins</label>
+        <div class="with-unit"><input class="input" inputmode="decimal"><span class="unit">%</span></div>
+      </div>
+      <div class="field col-3">
+        <label>Zinsbindung bis</label>
+        <input class="input" type="text" placeholder="tt.mm.jjjj" inputmode="numeric">
+      </div>
+      <div class="field col-3">
+        <label>Laufzeitende</label>
+        <input class="input" type="text" placeholder="tt.mm.jjjj" inputmode="numeric">
+      </div>
+      <div class="field col-3">
+        <label>Aktuelle Restschuld <span class="req" aria-hidden="true">*</span></label>
+        <div class="with-unit"><input class="input" inputmode="decimal" required><span class="unit">€</span></div>
+      </div>
+      <div class="field col-3">
+        <label>Restschuld zum Ablösetermin</label>
+        <p class="help">Ausstehender Betrag zum Ende der Sollzinsbindung bzw. zum Ablösetermin.</p>
+        <div class="with-unit"><input class="input" inputmode="decimal"><span class="unit">€</span></div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<!-- template: Kredit -->
+<template id="tpl-kredit">
+  <div class="subcard">
+    <div class="subcard-head">
+      <span class="kredit-title">Kredit 1</span>
+      <button type="button" class="icon-btn" data-remove data-confirm="Kredit"
+              aria-label="Kredit entfernen">
+        <svg class="ico-trash" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M4 6h12M8 6V4.6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1V6M6.4 6l.6 9.4a1 1 0 0 0 1 .9h4a1 1 0 0 0 1-.9L13.6 6M8.7 9v4.6M11.3 9v4.6"/>
+        </svg>
+      </button>
+    </div>
+    <div class="grid">
+      <!-- Six options, so a dropdown rather than a laid-out group: spread across the full
+           card width the choices run to four columns and read as a row of unrelated
+           buttons, and the type is one answer among six fields here, not the question the
+           card is about. -->
+      <div class="field col-6">
+        <label>Um welche Kreditart handelt es sich? <span class="req" aria-hidden="true">*</span></label>
+        <p class="help">Bitte listen Sie keine Baufinanzierungen auf, die Sie bereits bei den
+          Immobilien erfasst haben.</p>
+        <span class="select-wrap">
+          <select class="select" required>
+            <option value="">Bitte wählen</option>
+            <option>Privatkredit</option><option>Bildungskredit</option>
+            <option>Autofinanzierung</option><option>Bürgschaftsverpflichtung</option>
+            <option>Betriebliche Verbindlichkeiten</option><option>Sonstige</option>
+          </select>
+        </span>
+      </div>
+      <div class="field col-6">
+        <label>Gläubiger</label>
+        <input class="input" type="text" placeholder="z. B. Sparkasse Köln">
+      </div>
+      <div class="field col-6">
+        <label>Ursprünglicher Betrag</label>
+        <div class="with-unit"><input class="input" inputmode="decimal"><span class="unit">€</span></div>
+      </div>
+      <div class="field col-6">
+        <label>Aktuelle Restschuld <span class="req" aria-hidden="true">*</span></label>
+        <div class="with-unit"><input class="input" inputmode="decimal" required><span class="unit">€</span></div>
+      </div>
+      <div class="field col-6">
+        <label>Monatliche Rate <span class="req" aria-hidden="true">*</span></label>
+        <div class="with-unit"><input class="input" inputmode="decimal" required><span class="unit">€</span></div>
+      </div>
+      <div class="field col-6">
+        <label>Laufzeitende</label>
+        <input class="input" type="text" placeholder="tt.mm.jjjj" inputmode="numeric">
       </div>
     </div>
   </div>

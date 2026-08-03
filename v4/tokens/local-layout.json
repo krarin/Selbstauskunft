@@ -27,14 +27,23 @@
 
   "sets": {
     "base": {
-      "$comment": ["Density: the default branch of the export's input.* tokens."],
+      "$comment": [
+        "Density: the default branch of the export's input.* tokens.",
+        "field.radius is the one deliberate departure: the export puts",
+        "input.default.radius at radius.lg (8px), and the default density uses",
+        "radius.md (4px) instead, matching the compact branch. It points at the",
+        "primitive rather than at input.compact.radius so the two densities stay",
+        "independent — a change to compact must not drag the default with it.",
+        "Consequence: a change to input.default.radius in BETA-Foundations will no",
+        "longer land here. Delete this override to put the field back on the export."
+      ],
       "selector": ":root",
       "tokens": {
         "field.height": "{input.default.height}",
         "field.padding-x": "{input.default.padding-x}",
         "field.padding-y": "{input.default.padding-y}",
         "field.gap": "{input.default.gap}",
-        "field.radius": "{input.default.radius}",
+        "field.radius": "{radius.md}",
 
         "field.gap.label": "{spacing.1}",
         "field.gap.stack": "{spacing.5}",
