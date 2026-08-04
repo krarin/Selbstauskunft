@@ -1141,15 +1141,18 @@ check('save state announces politely', await evaluate(`
     return { role: el.getAttribute('role'), live: el.getAttribute('aria-live') };
   })()`), { role: 'status', live: 'polite' });
 
+/* Scoped to #main throughout: the summary step has required fields of its own —
+   the two e-mail addresses — and they are not what the form's counter is about. */
 check('submit counts every field the form is asking for, including collapsed cards', await evaluate(`
   (() => {
-    document.querySelectorAll('.input[required], .select[required]').forEach(c => { c.value = ''; });
-    document.querySelectorAll('input[type=radio]').forEach(r => { r.checked = false; });
+    document.querySelectorAll('#main .input[required], #main .select[required]')
+      .forEach(c => { c.value = ''; });
+    document.querySelectorAll('#main input[type=radio]').forEach(r => { r.checked = false; });
     document.querySelector('#submit').click();
 
     const asked = el => !el.closest('.reveal:not(.open), [data-inactive]');
-    const controls = [...document.querySelectorAll('.input[required], .select[required]')];
-    const groups = [...document.querySelectorAll('.field[data-required]')]
+    const controls = [...document.querySelectorAll('#main .input[required], #main .select[required]')];
+    const groups = [...document.querySelectorAll('#main .field[data-required]')]
       .filter(g => g.querySelector('input[type=radio]'));
     const expected = controls.filter(asked).length + groups.filter(asked).length;
     const inDom = controls.length + groups.length;
@@ -1171,7 +1174,7 @@ check('submit counts every field the form is asking for, including collapsed car
 // --- collapsible cards + Pflichtfeld counter --------------------------------
 check('on load only Start is expanded, and collapsed bodies have no height', await evaluate(`
   (() => {
-    const cards = [...document.querySelectorAll('.card')];
+    const cards = [...document.querySelectorAll('#main .card')];
     const open = cards.filter(c => c.dataset.open === 'true').map(c => c.id);
     const ariaMismatch = cards.filter(c =>
       c.querySelector('.card-toggle').getAttribute('aria-expanded') !== c.dataset.open);
@@ -1418,11 +1421,12 @@ check('a nav link opens the card it points at', await evaluate(`
 
 check('submit opens the collapsed card holding the first missing field', await evaluate(`
   (() => {
-    document.querySelectorAll('.card').forEach(c => {
+    document.querySelectorAll('#main .card').forEach(c => {
       c.dataset.open = 'false';
       c.querySelector('.card-toggle').setAttribute('aria-expanded', 'false');
     });
-    document.querySelectorAll('.input[required], .select[required]').forEach(c => { c.value = ''; });
+    document.querySelectorAll('#main .input[required], #main .select[required]')
+      .forEach(c => { c.value = ''; });
     document.querySelector('#submit').click();
     const card = document.activeElement.closest('.card');
     return {

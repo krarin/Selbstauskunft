@@ -21,7 +21,9 @@ v4/
     components.css          hand-written
   index.html
   app.js
+  prefill.js                Prototyp-Hilfe: Beispieldaten für die Strecke
   test/drive.mjs            browser-driven behaviour checks (see the file header)
+  test/drive-senden.mjs     the same, for the send step (summary -> consent -> sent)
 ```
 
 Regenerate the CSS after editing anything in `tokens/`:
@@ -532,9 +534,11 @@ Three implementation notes worth keeping:
 Both throw away everything typed into them and there is no undo, so both confirm
 first. The dialog is a native `<dialog>` opened with `showModal()`: Esc, the focus
 trap, the inert page behind it and the dimming `::backdrop` all come from the
-browser rather than being rebuilt. One element serves every case — `confirmDelete()`
+browser rather than being rebuilt. One element serves every case — `confirmAction()`
 in `app.js` retitles it and resolves a promise with the answer, so the call site
-reads as `if (!await confirmDelete({…})) return;`.
+reads as `if (!await confirmAction({…})) return;`. Sending uses the same dialog with
+`tone: 'primary'`, because red has to mark destruction and sending produces something
+rather than losing it.
 
 Two details worth keeping:
 
@@ -558,3 +562,137 @@ Red belongs to the button that does the deleting (`.btn.danger`, on
 `--color-action-danger`, which the contrast pass pins to `red.700` in both
 appearances) and never to the one that backs out. Abbrechen holds the initial
 focus, so Enter cannot delete.
+
+## Sending: Zusammenfassung, Einwilligung, Referenz-ID
+
+The form is step one of three. The action bar's primary button says **"Weiter zu
+Zusammenfassung"**, so it names where it goes; it still runs the completeness check
+first, and an incomplete form does not move on — it reports how many mandatory fields
+are open and puts the caret in the first of them.
+
+All three steps live in **one document**, as three `<main>` elements with one action
+bar each (`#main` / `#summary-view` / `#sent-view`, `#bar-form` / `#bar-summary` /
+`#bar-sent`). Exactly one pair is visible; `showView()` sets `hidden` on the others and
+writes `data-view` on `<html>` for the stylesheet. Separate pages would have thrown away
+everything typed, because the summary is read out of the form itself. `data-view` is what
+takes the sidebar's section list off screen for the last two steps — those links point at
+cards that are not there — while the prototype's own switches stay.
+
+### The summary reads the form, it is not maintained
+
+`buildReview()` walks the six cards and builds one group per step: label from the
+field, answer from the control. A field added to the form therefore appears here with
+no further work. What it leaves out is as much of the point as what it shows:
+
+- **Anything not asked for.** A closed conditional, a position whose checkbox is not
+  ticked, a step switched off by the finance type (`#objekt` when no object is known),
+  and the `Feldzustände` reference section — the same `isAsked()` the counters use.
+- **Anything empty.** The list is what was answered; a blank row saying nothing is
+  worse than no row.
+- **The label's decoration.** The required asterisk, and the info icon whose bubble
+  carries the whole help text and would otherwise land in the middle of the read-back.
+
+The answer is shown the way it was *displayed*, not the way it is stored: the selected
+option's text rather than its value (*Kauf einer bestehenden Immobilie*, not `kauf`),
+the chip's label for a radio group (*Alleine*, not `1`), and the unit box beside an
+amount as part of the figure (*320.000,00 €*). Repetitions get a crumb above them —
+*Antragsteller 2*, *Immobilie 1 · Darlehen 2* — because two fields called *Aktuelle
+Restschuld* under one heading cannot be told apart otherwise. One applicant gets no
+crumb; there is nothing to distinguish.
+
+Each group has a **Bearbeiten** button that returns to the form, opens that step and
+focuses its first field — correcting something is one click from where it was noticed.
+The summary is rebuilt on every entry, so no answer can go stale between the two views.
+
+### The consent, and what the customer has to do
+
+Two things are asked for before sending, both required:
+
+- **The broker's confirmation** that the customer's consent to transmit the data to
+  the advisor exists — a checkbox with no chip around it (`.choice.plain`), because a
+  consent is a sentence and the label has to be allowed to wrap. The mark stays on the
+  first line rather than centring itself over the paragraph (`--choice-mark-offset`).
+- **Two e-mail addresses**: the customer's, which is where the request for their own
+  confirmation goes, and the broker's, which is where the reference ID goes. Neither is
+  collected anywhere in the form, so both are asked for here.
+
+Next to the checkbox, an info note says plainly that the customer receives an e-mail
+with a confirmation link and that the consent is only complete once they click it, and
+that nobody has to chase it. Directly above the send button — not at the top of the
+page, where it would be forgotten by the time it matters — a warning note says that
+after sending the form cannot be opened or corrected any more.
+
+The send button is **never disabled**. It validates on click and shows what is missing,
+the same way the form's own submit does: a disabled button announces nothing and
+explains nothing. All three checks run at once, so someone who has to fix something
+sees everything that is missing rather than one item at a time.
+
+### Sent means gone
+
+Sending asks first, in the shared dialog, restating the irreversibility and naming
+both addresses. Abbrechen holds the initial focus, so Enter cannot send.
+
+On confirmation the form is **locked, not merely hidden**: every control in `#main`
+and `#summary-view` is disabled and both action bars go. Hiding alone would leave the
+form a Tab-jump or a `#`-link away from being edited, and "you cannot change it any
+more" has to be true of the page and not just of the way out of it. There is no way
+back — the sent screen offers none, and says so in words.
+
+What the sent screen carries:
+
+- **The reference ID**, format `SA-JAHR-XXXXXX`. The alphabet leaves out I, O, 0 and
+  1: the ID is read aloud and copied by hand, and those four are what gets confused
+  doing it. A **Kopieren** button puts it on the clipboard and reports it in a live
+  region; a page opened straight off disk often has no clipboard permission, so the
+  fallback selects the ID and says that Ctrl/Cmd+C is one keystroke away rather than
+  claiming a copy that did not happen.
+- A note that the ID went to the address entered.
+- **Was jetzt passiert** — the three next steps, numbered: the customer confirms, the
+  advisor takes over, and any question about the case needs only the ID.
+- A closing note that the form is shut for the broker, with what to do if something
+  turns out to be wrong: ask the advisor, with the ID.
+
+**Simulated, and only that.** No mail leaves the browser, the reference ID is generated
+in the page, and the lock lives for as long as the tab does. `Prototyp neu starten` in
+the last action bar reloads the page; it exists for demoing and has no counterpart in
+the product. The mobile preview frame always starts on the form — it is a second copy
+of this page with nothing typed into it, so its own summary would be empty.
+
+### Beispieldaten einfügen
+
+Der Weg zur Zusammenfassung führt durch rund 60 Pflichtangaben, was jede Vorführung
+und jeden Test zu Tipparbeit macht. **Prototyp → Beispieldaten einfügen** in der
+Sidebar füllt statt dessen einen Fall in einem Klick: Erika Mustermann kauft allein
+eine Eigentumswohnung in Köln, 320.000 € Darlehen, 80.000 € Eigenkapital. Danach ist
+das Formular vollständig und *Weiter zu Zusammenfassung* führt weiter.
+
+[prefill.js](prefill.js) ist eine eigene Datei und kein Teil des Formulars: sie tippt
+den Antrag von außen aus, wie eine Hand es täte — Wert setzen, `input` / `change` /
+`blur` auslösen —, und kennt keine Interna von `app.js`. Die Kaskaden, die
+Währungsformatierung, die Zähler und die Pflichtfeldprüfung reagieren deshalb genau
+wie bei Handeingabe. Die Datei kann ersatzlos entfernt werden.
+
+Vier Regeln machen den Unterschied zwischen einer Befüllung und einem Datenmüllhaufen:
+
+- **Nur, wonach gefragt wird.** Ein Feld in einem geschlossenen Zweig, eine Position,
+  die nicht angehakt ist, die Objektkarte, die es zum gewählten Zweck nicht gibt, und
+  der `Feldzustände`-Abschnitt bleiben leer — dieselbe Regel wie `isAsked()`.
+- **Nur, was leer ist.** Eigene Eingaben werden nicht überschrieben. Einzige Ausnahme
+  ist der Darlehensbetrag, der mit `0,00` startet und damit nichts sagt.
+- **Freiwillige Felder nur mit Eintrag im Katalog.** Ein Pflichtfeld ohne bekannte
+  Beschriftung bekommt eine Angabe aus Einheit und Platzhalter; ein freiwilliges
+  bleibt leer, statt im Antrag zu stehen, ohne dort etwas zu sagen. Genauso bei
+  Auswahllisten: eine Pflichtliste nimmt notfalls ihren ersten echten Eintrag, eine
+  freiwillige bleibt zu, damit sie keinen Folgezweig aufmacht.
+- **Antworten aus Text, nicht aus Position.** Werte werden über die Beschriftung
+  gefunden und Listeneinträge über ihren Text, nicht über ihren Index — eine
+  umsortierte oder ergänzte Liste macht die Befüllung nicht falsch. Zwei Stellen
+  fragen mit denselben Worten nach anderem und haben ihren eigenen Katalog: die
+  Kinderzeile (*Name*, *Geburtsdatum*) und das Finanzierungsobjekt, dessen Adresse
+  nicht die Wohnadresse der Antragstellerin ist.
+
+Die beiden E-Mail-Adressen des Versandschritts kommen mit, damit die Strecke bis zur
+Referenz-ID in drei Klicks durchläuft. Das Einwilligungshäkchen bleibt leer: es ist
+die Entscheidung, um die es auf der Seite geht, und eine Beispielbefüllung trifft sie
+nicht. Auf den letzten zwei Schritten ist der Knopf weg — er würde einen Antrag
+ändern, dessen Zusammenfassung schon gelesen wird.

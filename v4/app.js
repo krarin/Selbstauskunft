@@ -19,6 +19,12 @@
   let uidCounter = 0;
   const uid = (prefix) => `${prefix}-${++uidCounter}`;
 
+  /* The control a .field wraps, in every shape one can take. Named once because
+     four places need exactly the same answer: the label link, the help link, the
+     review read-back and the value formatting. */
+  const CONTROL_SEL = ':scope > .input, :scope > .select, '
+    + ':scope > .with-unit > .input, :scope > .select-wrap > .select';
+
   /* The same trash glyph the repeatable templates carry inline, for the remove buttons
      that are built in script instead — keep the two in step. */
   const TRASH_ICON = '<svg class="ico-trash" viewBox="0 0 20 20" fill="none" '
@@ -74,8 +80,7 @@
     $$('.field', root).forEach((field) => {
       const label = field.querySelector(':scope > label');
       if (label && !label.htmlFor) {
-        const control = field.querySelector(':scope > .input, :scope > .select, ' +
-          ':scope > .with-unit > .input, :scope > .select-wrap > .select');
+        const control = field.querySelector(CONTROL_SEL);
         if (control) {
           if (!control.id) control.id = uid('ctl');
           label.htmlFor = control.id;
@@ -105,8 +110,7 @@
   function linkHelp(root) {
     $$('.field > .help', root).forEach((help) => {
       const field = help.parentElement;
-      const control = field.querySelector(':scope > .input, :scope > .select, ' +
-        ':scope > .with-unit > .input, :scope > .select-wrap > .select');
+      const control = field.querySelector(CONTROL_SEL);
       if (!control) return;
       if (!help.id) help.id = uid('help');
       const described = (control.getAttribute('aria-describedby') || '')
@@ -332,18 +336,24 @@
 
   const confirmDialog = $('#confirm-dialog');
 
-  /* Removing a person or a child throws away everything typed into them and
-     there is no undo, so it asks first. One dialog element, retitled per case —
-     the browser owns Esc, the focus trap and the backdrop. */
-  function confirmDelete({ title, text, action = 'Löschen' }) {
+  /* Anything that cannot be taken back asks first: removing a person or a child
+     throws away everything typed into them, and sending closes the form for good.
+     One dialog element, retitled per case — the browser owns Esc, the focus trap
+     and the backdrop.
+
+     `tone` is the class on the confirming button, and it is a real decision rather
+     than decoration: red has to mark destruction, so sending — which produces
+     something rather than losing it — takes the primary button instead. */
+  function confirmAction({ title, text, action = 'Löschen', tone = 'danger' }) {
     return new Promise((resolve) => {
       $('#confirm-title').textContent = title;
       $('#confirm-text').textContent = text;
       $('#confirm-ok').textContent = action;
+      $('#confirm-ok').className = `btn ${tone}`;
       confirmDialog.returnValue = '';   // Esc closes without touching it
       confirmDialog.addEventListener('close', function done() {
         confirmDialog.removeEventListener('close', done);
-        resolve(confirmDialog.returnValue === 'delete');
+        resolve(confirmDialog.returnValue === 'ok');
       });
       confirmDialog.showModal();
     });
@@ -367,7 +377,7 @@
            "diesem Darlehen". */
         const noun = button.dataset.confirm || 'Eintrag';
         const article = button.dataset.confirmArticle || 'diesem';
-        if (!await confirmDelete({
+        if (!await confirmAction({
           title: `${noun} löschen?`,
           text: `Alle eingegebenen Informationen zu ${article} ${noun} werden `
             + 'gelöscht. Das kann nicht rückgängig gemacht werden.',
@@ -435,9 +445,14 @@
      done back out of the way — which is why the state propagates downwards but never
      up. Sub-sections do not nest further, so the recursion is one level deep. */
   function setCardOpen(card, open) {
+    const toggle = card.querySelector(':scope > .card-head > .card-toggle');
+    // The summary and the confirmation are built from the same card, minus the
+    // toggle: they are always open, so there is no state to write and nothing to
+    // announce. Guarded here rather than at every call site, since revealCard
+    // walks whatever chain of cards it is handed.
+    if (!toggle) return;
     card.dataset.open = String(open);
-    card.querySelector(':scope > .card-head > .card-toggle')
-      .setAttribute('aria-expanded', String(open));
+    toggle.setAttribute('aria-expanded', String(open));
     if (!open) delete card.dataset.settled;
     $$('.subsection', card).forEach((sub) => setCardOpen(sub, open));
   }
@@ -446,6 +461,7 @@
     $$('.card').forEach((card) => {
       const toggle = card.querySelector(':scope > .card-head > .card-toggle');
       const body = card.querySelector(':scope > .card-body');
+      if (!toggle || !body) return;   // .card-static — see setCardOpen
 
       toggle.addEventListener('click', () =>
         setCardOpen(card, card.dataset.open !== 'true'));
@@ -648,7 +664,7 @@
      click throws away is never all on screen at once. Resolves false if the user
      backs out. */
   async function requestRemoveApplicant2() {
-    if (!await confirmDelete({
+    if (!await confirmAction({
       title: 'Antragsteller 2 löschen?',
       text: 'Alle eingegebenen Informationen zu Antragsteller 2 werden '
         + 'gelöscht. Das kann nicht rückgängig gemacht werden.',
@@ -922,6 +938,372 @@
     });
   }
 
+  /* ------------------------------------------------------- Absenden-Strecke */
+
+  /* Three screens in one document — form, summary, sent — because the summary is
+     read out of the form itself: a real page change would throw away everything
+     typed. Exactly one view and its action bar are visible at a time. data-view on
+     <html> is what the stylesheet reads, so the surroundings can react to the step
+     (the sidebar's section list has nothing to point at once the form is off
+     screen). */
+  const VIEWS = {
+    form:    { view: $('#main'),         bar: $('#bar-form') },
+    summary: { view: $('#summary-view'), bar: $('#bar-summary') },
+    sent:    { view: $('#sent-view'),    bar: $('#bar-sent') },
+  };
+
+  /* Show, then move the focus, then hide — in that order, and the order is the
+     whole point. The button that got us here lives in the bar that is about to be
+     hidden, and a browser that loses the focused element moves the focus back to
+     the document *after* the current task, which would wipe a focus set before the
+     hiding. Focus first and there is nothing left in the hidden view to lose.
+
+     The heading takes it, so the step that just arrived is what gets read out and
+     what the next Tab starts from. tabindex="-1" makes it focusable without putting
+     it in the tab order; it is a heading and not a control, so it carries no ring
+     (see .page-title:focus). */
+  function showView(name) {
+    const target = VIEWS[name];
+    target.view.hidden = false;
+    target.bar.hidden = false;
+
+    const heading = target.view.querySelector('.page-title');
+    heading.tabIndex = -1;
+    heading.focus();
+
+    Object.entries(VIEWS).forEach(([key, { view, bar }]) => {
+      if (key === name) return;
+      view.hidden = true;
+      bar.hidden = true;
+    });
+    document.documentElement.setAttribute('data-view', name);
+    window.scrollTo(0, 0);
+  }
+
+  /* Every required field the form is still waiting for, in the order they appear on
+     the page — "the first one missing" has to mean first on the page, not first by
+     kind. Scoped to the form view: the summary has required fields of its own, and
+     they are not part of this count. */
+  function formGaps() {
+    const form = VIEWS.form.view;
+    const controls = $$('.input[required], .select[required]', form).filter(isAsked);
+    const groups = $$('.field[data-required]', form)
+      .filter((g) => isAsked(g) && g.querySelector('input[type="radio"]'));
+
+    return [
+      ...controls.filter((c) => !validate(c)).map((c) => ({ node: c, focus: c })),
+      ...groups.filter((g) => !validateGroup(g))
+        .map((g) => ({ node: g, focus: g.querySelector('input[type="radio"]') })),
+    ].sort((a, b) => (a.node.compareDocumentPosition(b.node)
+      & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1));
+  }
+
+  /* Prüfliste ----------------------------------------------------------------- */
+
+  /* A label without the parts that are there for the eye only: the required
+     asterisk and the info icon, whose bubble carries the entire help text and would
+     otherwise land in the middle of the read-back. */
+  function labelText(node) {
+    if (!node) return '';
+    const copy = node.cloneNode(true);
+    $$('.info-wrap, .req, .sr-only', copy).forEach((el) => el.remove());
+    return copy.textContent.replace(/\s+/g, ' ').trim();
+  }
+
+  /* What one field says, as a question-and-answer pair — or null if it says
+     nothing: not asked for (a closed conditional, an unticked position) or simply
+     left empty. An empty field is left out rather than listed as blank; the point
+     of the list is what was answered.
+
+     The answer is read the way it is displayed, not the way it is stored: the text
+     of the selected option rather than its value, and the unit box next to an
+     amount is part of the figure. */
+  function reviewEntry(field) {
+    if (!isAsked(field)) return null;
+
+    const control = field.querySelector(CONTROL_SEL);
+    let value = '';
+
+    if (control && control.matches('select')) {
+      value = control.value ? labelText(control.selectedOptions[0]) : '';
+    } else if (control) {
+      value = control.value.trim();
+      const unit = field.querySelector(':scope > .with-unit > .unit');
+      if (value && unit) value += ` ${unit.textContent.trim()}`;
+    } else {
+      // a choice group: only its own chips answer for it, not a group nested in a
+      // reveal underneath, which is a field of its own with its own entry
+      value = $$(':scope > .choices input:checked', field)
+        .map((input) => labelText(input.nextElementSibling)).join(', ');
+    }
+    if (!value) return null;
+
+    // An amount cell has no label of its own — the position beside it is the label,
+    // and the cell carries it as aria-label so a screen reader gets it too.
+    const label = labelText(field.querySelector(':scope > label, :scope > .group-label'))
+      || ((control && control.getAttribute('aria-label')) || '').trim();
+    return label ? { label, value } : null;
+  }
+
+  /* Which repetition a field belongs to. Two fields called "Aktuelle Restschuld"
+     under one heading are unreadable without it, and with two applicants the same
+     goes for every single field. One applicant needs no crumb — there is nothing to
+     tell apart. */
+  function crumbFor(node) {
+    if (node.matches('.applicant')) {
+      const panels = node.closest('[data-applicants]');
+      if (panels && !panels.classList.contains('two')) return '';
+      return labelText(node.querySelector('.applicant-title'));
+    }
+    if (node.matches('.subcard')) {
+      return labelText(node.querySelector(':scope > .subcard-head > span'));
+    }
+    return labelText(node.querySelector(':scope > .subsection-title')
+      || node.querySelector(':scope > .card-head .card-title'));
+  }
+
+  /* The crumbs between a field and its step, outermost first: "Immobilie 1 ·
+     Darlehen 2". Stops at the step, because that is the group's own heading. */
+  function contextFor(field) {
+    const crumbs = [];
+    for (let node = field.parentElement; node; node = node.parentElement) {
+      if (node.matches('.card') && !node.matches('.subsection')) break;
+      if (node.matches('.applicant, .subcard, .subsection, .subsection-static')) {
+        const crumb = crumbFor(node);
+        if (crumb) crumbs.unshift(crumb);
+      }
+    }
+    return crumbs.join(' · ');
+  }
+
+  function reviewGroup(card, rowsByContext) {
+    const group = document.createElement('section');
+    group.className = 'review-group';
+
+    const title = labelText(card.querySelector(':scope > .card-head .card-title'));
+    const head = document.createElement('div');
+    head.className = 'review-head';
+
+    const heading = document.createElement('h3');
+    heading.className = 'review-title';
+    heading.textContent = title;
+
+    /* Correcting something is one click from where the mistake is seen, not a
+       scroll back through the form: the button returns to the step it belongs to
+       and opens it. A button and not a link — it changes the view, it does not go
+       to an address. */
+    const edit = document.createElement('button');
+    edit.type = 'button';
+    edit.className = 'link-btn';
+    edit.textContent = 'Bearbeiten';
+    edit.setAttribute('aria-label', `${title} bearbeiten`);
+    edit.addEventListener('click', () => editStep(card));
+
+    head.append(heading, edit);
+    group.append(head);
+
+    rowsByContext.forEach((rows, context) => {
+      if (context) {
+        const crumb = document.createElement('p');
+        crumb.className = 'review-context';
+        crumb.textContent = context;
+        group.append(crumb);
+      }
+      const list = document.createElement('dl');
+      list.className = 'review-list';
+      rows.forEach(({ label, value }) => {
+        const term = document.createElement('dt');
+        term.textContent = label;
+        const answer = document.createElement('dd');
+        answer.textContent = value;
+        list.append(term, answer);
+      });
+      group.append(list);
+    });
+
+    return group;
+  }
+
+  /* The read-back is generated, never maintained: it walks the form the user just
+     filled in, so a field added to the form appears here without a line of work.
+     One group per step, and within a step the entries keep document order and are
+     bundled by the repetition they sit in. The Feldzustände reference section is
+     not part of the form, and a step switched off by the finance type is hidden —
+     neither belongs in a summary of the answers. */
+  function buildReview() {
+    const host = $('#review');
+    host.textContent = '';
+
+    $$(':scope > .card', VIEWS.form.view).forEach((card) => {
+      if (card.id === 'states' || card.hidden) return;
+
+      const rowsByContext = new Map();
+      $$('.field', card).forEach((field) => {
+        const entry = reviewEntry(field);
+        if (!entry) return;
+        const key = contextFor(field);
+        if (!rowsByContext.has(key)) rowsByContext.set(key, []);
+        rowsByContext.get(key).push(entry);
+      });
+
+      if (rowsByContext.size) host.append(reviewGroup(card, rowsByContext));
+    });
+
+    if (!host.children.length) {
+      const empty = document.createElement('p');
+      empty.className = 'review-empty';
+      empty.textContent = 'Es sind noch keine Angaben erfasst.';
+      host.append(empty);
+    }
+  }
+
+  function editStep(card) {
+    showView('form');
+    setCardOpen(card, true);
+    card.scrollIntoView({ block: 'start' });
+    const first = card.querySelector('.input, .select, .choice input');
+    if (first) first.focus({ preventScroll: true });
+  }
+
+  /* Einwilligung und Versand -------------------------------------------------- */
+
+  const consent = $('#consent-broker');
+  const consentField = $('#consent-field');
+  const mailKunde = $('#mail-kunde');
+  const mailMakler = $('#mail-makler');
+  const sendText = $('#send-text');
+
+  /* Deliberately loose: an @ with a dot behind it. The prototype sends nothing, so
+     anything stricter here is a promise it cannot keep — and real addresses are
+     stranger at the edges than a tighter pattern believes. */
+  const MAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
+  function validateMail(input) {
+    const field = input.closest('.field');
+    const value = input.value.trim();
+    const invalid = !MAIL_PATTERN.test(value);
+
+    field.classList.toggle('invalid', invalid);
+    input.setAttribute('aria-invalid', String(invalid));
+    if (invalid) {
+      messageFor(field, input).textContent = value
+        ? 'Diese E-Mail-Adresse sieht nicht vollständig aus'
+        : 'Für den Versand brauchen wir diese E-Mail-Adresse';
+    }
+    return !invalid;
+  }
+
+  /* The consent is a checkbox with no chip, so the error cannot be carried by a
+     border the way it is on a choice group — it is a message under the sentence,
+     wired to the box with aria-describedby like every other field error. */
+  function validateConsent() {
+    const ok = consent.checked;
+    consentField.classList.toggle('invalid', !ok);
+    if (!ok) {
+      messageFor(consentField, consent).textContent =
+        'Ohne diese Bestätigung dürfen wir die Angaben nicht an den Berater übermitteln';
+    }
+    return ok;
+  }
+
+  /* Who the confirmation email goes to, in words: the applicant's name if it is
+     known, otherwise the neutral noun. Used in the sentence on the summary, so it
+     has to read as part of it either way. */
+  function customerName() {
+    const first = ($('#a1-vorname').value || '').trim();
+    const last = ($('#a1-nachname').value || '').trim();
+    return `${first} ${last}`.trim();
+  }
+
+  function openSummary() {
+    buildReview();
+    $('#consent-customer').textContent = customerName() || 'der Kunde';
+    sendText.textContent = 'Noch nicht gesendet — Sie können weiterhin ändern';
+    showView('summary');
+  }
+
+  /* Format SA-JAHR-XXXXXX. The alphabet leaves out I, O, 0 and 1: the ID is read
+     aloud and copied by hand, and those four are what gets confused doing it. In
+     the real product the server issues it — here it stands for the fact that there
+     is one, and shows what it looks like to write down. */
+  const REF_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+
+  function referenceId() {
+    const bytes = crypto.getRandomValues(new Uint8Array(6));
+    const tail = Array.from(bytes, (n) => REF_ALPHABET[n % REF_ALPHABET.length]).join('');
+    return `SA-${new Date().getFullYear()}-${tail}`;
+  }
+
+  /* Sent means gone: the form is not merely hidden, every control in it is switched
+     off. Hiding alone would leave it a Tab-jump or a #-link away from being edited,
+     and "you cannot change it any more" has to be true of the page, not just of the
+     way out of it. */
+  function lockForm() {
+    [VIEWS.form.view, VIEWS.summary.view].forEach((view) =>
+      $$('input, select, textarea, button', view)
+        .forEach((el) => { el.disabled = true; }));
+    VIEWS.form.bar.hidden = true;
+    VIEWS.summary.bar.hidden = true;
+  }
+
+  async function send() {
+    /* All three checks run, not just up to the first failure: someone who has to
+       fix something should see everything that is missing at once. */
+    const missing = [
+      { ok: validateConsent(), focus: consent },
+      { ok: validateMail(mailKunde), focus: mailKunde },
+      { ok: validateMail(mailMakler), focus: mailMakler },
+    ].filter((check) => !check.ok);
+
+    if (missing.length) {
+      sendText.textContent = 'Noch nicht gesendet — bitte ergänzen Sie das Markierte';
+      missing[0].focus.focus();
+      return;
+    }
+
+    const customer = customerName() || 'Der Kunde';
+    if (!await confirmAction({
+      title: 'Jetzt an den Berater senden?',
+      text: `Danach können Sie die Selbstauskunft nicht mehr öffnen und nichts mehr `
+        + `ändern. ${customer} erhält eine E-Mail zur eigenen Bestätigung, und Ihre `
+        + `Referenz-ID senden wir an ${mailMakler.value.trim()}.`,
+      action: 'Verbindlich senden',
+      tone: 'primary',
+    })) {
+      sendText.textContent = 'Nicht gesendet — Sie können weiterhin ändern';
+      return;
+    }
+
+    const reference = referenceId();
+    $('#ref-id').textContent = reference;
+    $('#sent-name').textContent = customerName() || 'Ihrem Kunden';
+    $('#sent-mail-makler').textContent = mailMakler.value.trim();
+    $('#sent-mail-kunde').textContent = mailKunde.value.trim();
+    $('#copy-status').textContent = '';
+
+    lockForm();
+    showView('sent');
+  }
+
+  async function copyReference() {
+    const reference = $('#ref-id').textContent.trim();
+    const status = $('#copy-status');
+    try {
+      await navigator.clipboard.writeText(reference);
+      status.textContent = `Referenz-ID ${reference} in die Zwischenablage kopiert`;
+    } catch {
+      /* The clipboard needs a permission that a page opened straight off disk often
+         does not have. Then the ID is selected instead: Ctrl/Cmd+C is one keystroke
+         away, and nothing is reported as done that did not happen. */
+      const range = document.createRange();
+      range.selectNodeContents($('#ref-id'));
+      const selection = getSelection();
+      selection.removeAllRanges();
+      selection.addRange(range);
+      status.textContent = 'Bitte mit Strg+C bzw. Cmd+C kopieren — markiert ist sie schon';
+    }
+  }
+
   /* ------------------------------------------------------------------ init */
 
   hydrate(document);
@@ -1036,21 +1418,14 @@
     if (event.target.matches('.input, .select')) validate(event.target);
   }, true);
 
+  /* The way on is also the completeness check: an incomplete form does not move to
+     the summary, it says how much is left and puts the caret in the first gap. */
   $('#submit').addEventListener('click', () => {
-    const controls = $$('.input[required], .select[required]').filter(isAsked);
-    const groups = $$('.field[data-required]')
-      .filter((g) => isAsked(g) && g.querySelector('input[type="radio"]'));
-
-    const invalid = [
-      ...controls.filter((c) => !validate(c)).map((c) => ({ node: c, focus: c })),
-      ...groups.filter((g) => !validateGroup(g))
-        .map((g) => ({ node: g, focus: g.querySelector('input[type="radio"]') })),
-    // "the first missing field" has to mean first on the page, not first by kind
-    ].sort((a, b) => (a.node.compareDocumentPosition(b.node)
-      & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1));
+    const invalid = formGaps();
 
     if (!invalid.length) {
       saveText.textContent = 'Alle Pflichtfelder vollständig';
+      openSummary();
       return;
     }
     saveText.textContent = invalid.length === 1
@@ -1059,4 +1434,24 @@
     revealCard(invalid[0].node);
     invalid[0].focus.focus();
   });
+
+  /* Back into the form is always allowed and never asks: nothing has been sent
+     yet, and the summary is rebuilt from the form every time it is opened, so no
+     answer can go stale between the two. */
+  $('#back-to-form').addEventListener('click', () => showView('form'));
+
+  $('#send').addEventListener('click', send);
+  $('#copy-ref').addEventListener('click', copyReference);
+
+  // Prototype only: in the real product the case ends on the sent screen.
+  $('#restart').addEventListener('click', () => location.reload());
+
+  // Ticking the box is the answer, so the complaint about it missing goes at once.
+  consent.addEventListener('change', () => { if (consent.checked) validateConsent(); });
+  [mailKunde, mailMakler].forEach((input) =>
+    input.addEventListener('blur', () => validateMail(input)));
+
+  // The form is the first view; showView is not used for it, because it would take
+  // the focus off the top of the page before anyone has done anything.
+  document.documentElement.setAttribute('data-view', 'form');
 })();

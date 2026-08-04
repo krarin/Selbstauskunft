@@ -69,6 +69,16 @@
     </div>
 
     <hr class="nav-divider">
+    <!-- Nur für den Prototyp: füllt den Antrag mit einem Beispielfall, damit der
+         Weg zur Zusammenfassung nicht durch 60 Felder Tippen führt. Bewusst kein
+         .seg-Knopf — der ist ein Umschalter, dies ist eine Handlung. Siehe
+         prefill.js. -->
+    <div class="eyebrow" id="lbl-demo">Prototyp</div>
+    <div class="nav-tools">
+      <button type="button" class="add-btn" id="prefill">Beispieldaten einfügen</button>
+      <p class="nav-note" id="prefill-status" role="status" aria-live="polite"></p>
+    </div>
+
 
     <!-- Mobil loads this same page into a phone-sized iframe next to the sidebar —
          a real viewport, so the breakpoints and the Mobile typography from the
@@ -1501,21 +1511,190 @@
       </div>
     </section>
   </main>
+
+  <!-- ===================== ZUSAMMENFASSUNG (Schritt 2) =====================
+       Ein zweiter <main> im gleichen Dokument statt einer eigenen Seite: der
+       Zustand des Formulars ist die Quelle der Zusammenfassung, und ein
+       Seitenwechsel würde ihn verlieren. Genau einer der drei Views ist
+       sichtbar — siehe showView() in app.js. -->
+  <main class="content" id="summary-view" aria-labelledby="h-summary" hidden>
+    <h1 class="page-title" id="h-summary">Zusammenfassung</h1>
+    <p class="lede">Bitte prüfen Sie die Angaben ein letztes Mal. Danach senden Sie die
+      Selbstauskunft an den Berater — das ist der letzte Schritt.</p>
+
+    <!-- Die drei Schritte stehen vor der Prüfliste, nicht darunter: was nach dem
+         Senden passiert, ist die Information, die man vor dem Klicken braucht. -->
+    <ol class="steps">
+      <li><span class="step-title">Angaben prüfen</span>
+        Sie können jederzeit zurück in den Antrag und etwas ändern.</li>
+      <li><span class="step-title">Einwilligung bestätigen und senden</span>
+        Sie bestätigen die Einwilligung des Kunden, wir senden ihm eine E-Mail zur
+        eigenen Bestätigung.</li>
+      <li><span class="step-title">Referenz-ID erhalten</span>
+        Sie bekommen eine Referenz-ID — damit können Sie beim Berater oder beim Kunden
+        jederzeit nachfragen.</li>
+    </ol>
+
+    <section class="card card-static" id="pruefen" aria-labelledby="h-pruefen">
+      <h2 class="card-head" id="h-pruefen">Ihre Angaben</h2>
+      <div class="card-body">
+        <div class="card-body-inner">
+          <div class="card-pad">
+            <!-- Inhalt wird aus dem Formular gelesen, siehe buildReview() -->
+            <div id="review"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card card-static" id="freigabe" aria-labelledby="h-freigabe">
+      <h2 class="card-head" id="h-freigabe">Einwilligung und Versand</h2>
+      <div class="card-body">
+        <div class="card-body-inner">
+          <div class="card-pad flow">
+
+            <div class="field" id="consent-field">
+              <label class="choice plain" for="consent-broker">
+                <input type="checkbox" id="consent-broker">
+                <span>Mir liegt die Einwilligung des Kunden vor, diese Angaben an den
+                  Berater zu übermitteln. <span class="req" aria-hidden="true">*</span></span>
+              </label>
+            </div>
+
+            <div class="note info" id="consent-mail-note">
+              <p class="note-title">Der Kunde bestätigt selbst per E-Mail</p>
+              <p>Sobald Sie senden, erhält <span id="consent-customer">der Kunde</span> eine
+                E-Mail mit einem Bestätigungslink. Erst wenn er darauf klickt, liegt dem
+                Berater die Einwilligung vor. Wir erinnern automatisch, falls die
+                Bestätigung ausbleibt — Sie müssen nichts weiter tun.</p>
+            </div>
+
+            <div class="grid mail-grid">
+              <div class="field col-6">
+                <label for="mail-kunde">E-Mail-Adresse des Kunden <span class="req" aria-hidden="true">*</span></label>
+                <p class="help">An diese Adresse geht die Bitte um Bestätigung.</p>
+                <input class="input" id="mail-kunde" type="email" inputmode="email"
+                       autocomplete="off" placeholder="name@beispiel.de" required>
+              </div>
+              <div class="field col-6">
+                <label for="mail-makler">Ihre E-Mail-Adresse für die Referenz-ID <span class="req" aria-hidden="true">*</span></label>
+                <p class="help">Wir senden Ihnen die Referenz-ID zusätzlich per E-Mail zu.</p>
+                <input class="input" id="mail-makler" type="email" inputmode="email"
+                       autocomplete="email" placeholder="name@beispiel.de" required>
+              </div>
+            </div>
+
+            <!-- Die Warnung steht direkt über dem Button, der sie auslöst — nicht am
+                 Anfang der Seite, wo sie bis zum Klick wieder vergessen ist. -->
+            <div class="note warn" id="final-note">
+              <p class="note-title">Nach dem Senden ist keine Änderung mehr möglich</p>
+              <p>Die Selbstauskunft geht an den Berater und wird für Sie geschlossen: Sie
+                können sie danach nicht mehr öffnen und nichts mehr korrigieren. Bitte
+                prüfen Sie die Angaben oben, solange Sie noch zurück können.</p>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ===================== GESENDET (Schritt 3) ===================== -->
+  <main class="content" id="sent-view" aria-labelledby="h-sent" hidden>
+    <h1 class="page-title" id="h-sent">Gesendet — vielen Dank</h1>
+    <p class="lede">Die Selbstauskunft von <span id="sent-name">Ihrem Kunden</span> liegt
+      jetzt beim Berater.</p>
+
+    <section class="card card-static" id="referenz" aria-labelledby="h-referenz">
+      <h2 class="card-head" id="h-referenz">Ihre Referenz-ID</h2>
+      <div class="card-body">
+        <div class="card-body-inner">
+          <div class="card-pad flow">
+            <p class="help">Bitte speichern Sie diese ID. Mit ihr können Sie beim Berater
+              oder beim Kunden jederzeit zu diesem Vorgang nachfragen.</p>
+            <div class="refbox">
+              <span class="ref-id" id="ref-id">—</span>
+              <button type="button" class="btn ghost" id="copy-ref">Kopieren</button>
+            </div>
+            <p class="ref-status" id="copy-status" role="status" aria-live="polite"></p>
+            <div class="note success">
+              <p class="note-title">Auch per E-Mail unterwegs</p>
+              <p>Wir haben die Referenz-ID an <span id="sent-mail-makler">Ihre
+                E-Mail-Adresse</span> gesendet.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card card-static" id="wie-weiter" aria-labelledby="h-wie-weiter">
+      <h2 class="card-head" id="h-wie-weiter">Was jetzt passiert</h2>
+      <div class="card-body">
+        <div class="card-body-inner">
+          <div class="card-pad flow">
+            <ol class="steps">
+              <li><span class="step-title">Der Kunde bestätigt</span>
+                <span id="sent-mail-kunde">Der Kunde</span> hat eine E-Mail mit
+                Bestätigungslink erhalten. Ein Klick genügt.</li>
+              <li><span class="step-title">Der Berater übernimmt</span>
+                Nach der Bestätigung sieht der Berater die vollständigen Angaben und
+                meldet sich bei Ihnen.</li>
+              <li><span class="step-title">Sie fragen mit der ID nach</span>
+                Für jede Rückfrage zu diesem Vorgang genügt die Referenz-ID oben.</li>
+            </ol>
+            <div class="note">
+              <p class="note-title">Der Antrag ist geschlossen</p>
+              <p>Sie haben keinen Zugriff mehr auf die gesendeten Angaben und können sie
+                nicht mehr bearbeiten. Falls etwas korrigiert werden muss, wenden Sie
+                sich mit der Referenz-ID an den Berater.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
 </div>
 
-<div class="actionbar">
+<!-- Eine Leiste pro View. Getrennte Elemente statt eines umgeschriebenen Balkens:
+     jeder View hat eigene Buttons, eigene Beschriftungen und einen eigenen
+     Statusbereich, und ein Balken, der sich selbst umbaut, hätte drei Zustände
+     in einer Markup-Stelle. -->
+<div class="actionbar" id="bar-form">
   <div class="actionbar-inner">
     <p class="save-state" id="save-state" role="status" aria-live="polite">
       <span class="dot" aria-hidden="true"></span> <span id="save-text">Als Entwurf gespeichert</span>
     </p>
     <button type="button" class="btn ghost">Abbrechen</button>
-    <button type="button" class="btn primary" id="submit">Weiter</button>
+    <button type="button" class="btn primary" id="submit">Weiter zu Zusammenfassung</button>
   </div>
 </div>
 
-<!-- Bestätigung vor dem Löschen. Ein <dialog> statt eines eigenen Overlays:
-     Esc, Fokusfalle und die Abdunklung des Hintergrunds kommen vom Browser.
-     Titel, Text und die Beschriftung des roten Buttons setzt app.js je Fall. -->
+<div class="actionbar" id="bar-summary" hidden>
+  <div class="actionbar-inner">
+    <p class="save-state" id="send-state" role="status" aria-live="polite">
+      <span id="send-text">Noch nicht gesendet — Sie können weiterhin ändern</span>
+    </p>
+    <button type="button" class="btn ghost" id="back-to-form">Zurück zum Antrag</button>
+    <button type="button" class="btn primary" id="send">Verbindlich senden</button>
+  </div>
+</div>
+
+<div class="actionbar" id="bar-sent" hidden>
+  <div class="actionbar-inner">
+    <p class="save-state locked">
+      <span class="dot" aria-hidden="true"></span>
+      <span>Gesendet — Bearbeiten nicht mehr möglich</span>
+    </p>
+    <!-- Nur für den Prototyp: im echten Produkt endet der Vorgang hier. -->
+    <button type="button" class="btn ghost" id="restart">Prototyp neu starten</button>
+  </div>
+</div>
+
+<!-- Rückfrage vor einer nicht umkehrbaren Aktion — Löschen und Senden benutzen
+     dasselbe <dialog> statt eines eigenen Overlays: Esc, Fokusfalle und die
+     Abdunklung des Hintergrunds kommen vom Browser. Titel, Text und die
+     Beschriftung des bestätigenden Buttons setzt app.js je Fall; seine Farbe
+     ebenso, denn Rot gehört zum Löschen, nicht zum Senden. -->
 <dialog class="modal" id="confirm-dialog" aria-labelledby="confirm-title">
   <form method="dialog" class="modal-inner">
     <h2 class="modal-title" id="confirm-title">Antragsteller 2 löschen?</h2>
@@ -1525,9 +1704,9 @@
     </p>
     <div class="modal-actions">
       <!-- Abbrechen bekommt den Startfokus: bei einer nicht umkehrbaren Aktion
-           darf Enter nicht die löschende Antwort auslösen. -->
+           darf Enter nicht die bestätigende Antwort auslösen. -->
       <button type="submit" class="btn ghost" value="cancel" autofocus>Abbrechen</button>
-      <button type="submit" class="btn danger" value="delete" id="confirm-ok">Löschen</button>
+      <button type="submit" class="btn danger" value="ok" id="confirm-ok">Löschen</button>
     </div>
   </form>
 </dialog>
@@ -1839,5 +2018,8 @@
 </template>
 
 <script src="app.js"></script>
+<!-- Prototyp-Hilfe, kein Teil des Formulars: tippt den Antrag von außen aus.
+     Lädt nach app.js, weil sie dieselben Ereignisse auslöst wie eine Hand. -->
+<script src="prefill.js"></script>
 </body>
 </html>

@@ -186,6 +186,19 @@ body {
   font-weight: var(--font-weight-medium);
 }
 
+/* Der Beispieldaten-Knopf. Derselbe Button wie ein "+ hinzufügen" im Formular —
+   gestrichelter Akzentrahmen, weil er etwas einsetzt —, hier über die Spaltenbreite.
+   Der Innenabstand sitzt am Container, wie bei .seg, damit er auf derselben
+   senkrechten Kante steht wie die Umschalter darüber. */
+.nav-tools { padding: 0 var(--spacing-3); }
+.nav-tools > .add-btn { width: 100%; justify-content: center; text-align: center; }
+.nav-note {
+  margin: var(--spacing-2) 0 0;
+  font-size: var(--font-body-sm-size);
+  line-height: var(--font-body-md-line);
+  color: var(--color-text-secondary);
+}
+
 /* ---------------------------------------------------------------- headings */
 
 .page-title {
@@ -195,6 +208,10 @@ body {
   font-weight: var(--font-heading-weight);
   color: var(--color-text-primary);
 }
+/* Beim Schrittwechsel bekommt die Überschrift den Fokus, damit ein Screenreader
+   den neuen Schritt vorliest — markiert wird sie dabei nicht: sie ist kein
+   Bedienelement, und ein Rahmen um sie würde nach etwas zum Anklicken aussehen. */
+.page-title:focus { outline: none; }
 
 .lede {
   margin: 0 0 var(--spacing-8);
@@ -559,7 +576,8 @@ body {
 .seg button:focus-visible,
 .info-btn:focus-visible,
 .add-btn:focus-visible,
-.icon-btn:focus-visible {
+.icon-btn:focus-visible,
+.link-btn:focus-visible {
   outline: var(--border-width-emphasis) solid var(--color-border-focus);
   outline-offset: var(--border-width-default);
 }
@@ -1068,6 +1086,31 @@ body {
   border-radius: var(--field-radius);
 }
 
+/* A note may carry a headline and more than one paragraph: a callout that stops
+   someone before an irreversible step has to say what it is about before it
+   explains itself. The paragraphs own their spacing here, so the plain one-line
+   note above stays exactly as it was. */
+.note > p { margin: 0; }
+.note > p + p { margin-top: var(--spacing-2); }
+.note-title { font-weight: var(--font-weight-bold); }
+
+/* Tone modifiers. The fill is always the *-subtle step and the text stays
+   --color-text-primary: every subtle token flips to its own 950 in the dark
+   scheme, so one text colour holds in all three appearances. The tone is never
+   the only signal — each note carries a headline that says the same thing. */
+.note.info {
+  background: var(--color-feedback-info-subtle);
+  border-color: var(--color-feedback-info);
+}
+.note.success {
+  background: var(--color-feedback-success-subtle);
+  border-color: var(--color-feedback-success);
+}
+.note.warn {
+  background: var(--color-feedback-warning-subtle);
+  border-color: var(--color-feedback-warning);
+}
+
 /* -------------------------------------------------------------- action bar */
 
 .actionbar {
@@ -1202,6 +1245,260 @@ body {
   }
 }
 
+/* ------------------------------------------------- Absenden-Strecke */
+
+/* Drei Views in einem Dokument: Formular -> Zusammenfassung -> Gesendet. Welcher
+   sichtbar ist, entscheidet das hidden-Attribut in app.js; data-view auf <html>
+   ist nur dafür da, dass die Umgebung darauf reagieren kann — hier die Sidebar.
+   Ihre Abschnittsliste zeigt auf Karten, die auf den letzten zwei Schritten nicht
+   auf dem Bildschirm sind, also geht sie mit ihnen weg. Die Schalter des
+   Prototyps (Dichte, Erscheinungsbild …) bleiben. */
+:root[data-view="summary"] .nav-links,
+:root[data-view="sent"] .nav-links,
+:root[data-view="summary"] .nav-toggle,
+:root[data-view="sent"] .nav-toggle { display: none; }
+
+/* Der Beispieldaten-Knopf gehört zum Formular und geht mit ihm: er würde sonst
+   den Antrag hinter einer Zusammenfassung ändern, die schon gelesen wird — und
+   nach dem Senden ist dort ohnehin nichts mehr zu füllen. Seine Überschrift
+   ebenso, sonst bliebe ein "Prototyp" ohne alles darunter stehen. */
+:root[data-view="summary"] .nav-tools,
+:root[data-view="sent"] .nav-tools,
+:root[data-view="summary"] #lbl-demo,
+:root[data-view="sent"] #lbl-demo { display: none; }
+
+/* Eine Karte, die sich nicht auf- und zuklappen lässt: ihr Kopf ist eine
+   Überschrift und kein Button, also braucht er die Füllung und den Innenabstand,
+   die sonst der Toggle mitbringt. Der Körper ist dauerhaft offen und animiert
+   nicht — es gibt keinen Klick, der ihn schließen könnte. */
+.card-static > .card-head {
+  padding: var(--spacing-4) var(--card-padding);
+  font-size: var(--font-heading-md-size);
+  line-height: var(--font-heading-md-line);
+  font-weight: var(--font-heading-weight);
+  color: var(--color-text-primary);
+  background: var(--card-bg);
+  border-radius: var(--card-radius);
+}
+.card-static > .card-body {
+  grid-template-rows: 1fr;
+  margin-top: var(--spacing-1);
+  transition: none;
+}
+.card-static > .card-body > .card-body-inner { overflow: visible; }
+
+/* Eine Karte, die eine Folge von Blöcken ist statt eines Feldrasters: Häkchen,
+   Hinweis, zwei Felder, Warnung. Das Raster bringt seine Abstände selbst mit,
+   ein Stapel unterschiedlicher Blöcke nicht. */
+.flow > * + * { margin-top: var(--field-gap-stack); }
+
+/* Die Schritte, einmal vor dem Senden ("so geht es weiter") und einmal danach
+   ("was jetzt passiert"). Nummerierte Kreise statt Aufzählungspunkten, weil die
+   Reihenfolge die Aussage ist. Die Nummer kommt aus einem Counter, damit ein
+   weiterer Schritt eine Zeile Markup ist und keine Nummer zum Nachziehen. */
+.steps {
+  display: grid;
+  gap: var(--spacing-4);
+  counter-reset: step;
+  max-width: var(--layout-measure-prose);
+  margin: 0 0 var(--spacing-8);
+  padding: 0;
+  list-style: none;
+}
+.card-pad > .steps { margin-bottom: 0; }
+
+/* Die Nummer wird absolut gesetzt und der Text um sie herum eingerückt — nicht als
+   Rasterspalte: der Inhalt eines Schrittes ist Titel plus Fließtext, und ein Raster
+   würde den Text als eigenes, anonymes Element in die schmale Nummernspalte
+   schieben. So ist der Einzug unabhängig davon, aus wie vielen Teilen ein Schritt
+   besteht. */
+.steps > li {
+  position: relative;
+  padding-left: calc(var(--spacing-6) + var(--spacing-3));
+  counter-increment: step;
+  color: var(--color-text-secondary);
+}
+.steps > li::before {
+  content: counter(step);
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--spacing-6);
+  height: var(--spacing-6);
+  font-size: var(--font-body-sm-size);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-action-primary);
+  background: var(--color-action-primary-subtle);
+  border-radius: var(--pill-radius);
+}
+.step-title {
+  display: block;
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+}
+
+/* Die Prüfliste. Sie wird aus dem Formular gelesen (buildReview), also steht hier
+   nur, wie ein Paar aus Frage und Antwort aussieht: die Frage schmal und leise,
+   die Antwort daneben und in Medium — gelesen wird die Antwort, die Frage kennt
+   man schon vom Ausfüllen. */
+.review-group + .review-group {
+  margin-top: var(--spacing-6);
+  padding-top: var(--spacing-6);
+  border-top: var(--border-width-default) solid var(--color-border-default);
+}
+.review-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--spacing-3);
+  margin-bottom: var(--spacing-4);
+}
+.review-title {
+  flex: 1 1 auto;
+  margin: 0;
+  font-size: var(--font-heading-sm-size);
+  line-height: var(--font-heading-sm-line);
+  font-weight: var(--font-heading-weight);
+  color: var(--color-text-primary);
+}
+/* Ein Zwischentitel innerhalb einer Gruppe — "Antragsteller 2", "Immobilie 1" —,
+   damit zwei gleich benannte Felder nicht ohne Zuordnung untereinander stehen. */
+.review-context {
+  margin: var(--spacing-4) 0 var(--spacing-2);
+  font-size: var(--font-heading-eyebrow-size);
+  line-height: var(--font-heading-eyebrow-line);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-secondary);
+}
+.review-head + .review-context { margin-top: 0; }
+
+.review-list {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+  gap: var(--spacing-2) var(--spacing-4);
+  margin: 0;
+}
+.review-list > dt {
+  font-size: var(--font-input-text-sm-size);
+  line-height: var(--font-input-text-sm-line);
+  color: var(--color-text-secondary);
+}
+.review-list > dd {
+  margin: 0;
+  font-size: var(--font-body-md-size);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+}
+
+.review-empty { margin: 0; color: var(--color-text-secondary); }
+
+/* "Bearbeiten" ist ein Button, kein Link: er springt nicht zu einer Adresse,
+   sondern wechselt den View und öffnet die Karte. Aussehen wie ein Link, weil das
+   die Handlung ist, die man erwartet. */
+.link-btn {
+  flex: none;
+  padding: 0;
+  font: inherit;
+  font-size: var(--font-body-sm-size);
+  color: var(--color-text-link);
+  background: none;
+  border: 0;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.link-btn:hover { color: var(--color-text-link-hover); }
+
+/* ------------------------------------------------- Einwilligungs-Häkchen */
+
+/* Dasselbe Häkchen wie in den Betragslisten, aber ohne Chip drumherum und mit
+   einer Beschriftung, die über mehrere Zeilen laufen darf — eine Einwilligung ist
+   ein Satz, kein Ein-Wort-Label.
+
+   Deshalb ist die Beschriftung hier kein Flex-Container, sondern normaler
+   Textfluss mit Einzug: als Flex-Zeile wären der Satz und das Pflicht-Sternchen
+   zwei Elemente nebeneinander, und beim Umbrechen bliebe das Sternchen am rechten
+   Rand der ersten Zeile allein zurück. Das Kästchen wird stattdessen absolut in
+   den Einzug gesetzt und bleibt dabei auf der ersten Zeile stehen — um die halbe
+   Zeilenhöhe nach unten, aus den Tokens gerechnet, damit der Versatz der Dichte
+   und der Viewport-Typografie folgt.
+
+   `> input + span` statt `> span`: die gesetzte Variante des Chips
+   (.choice input:checked + span) hat dieselbe Spezifität, und die Marke soll
+   gewinnen, nicht die Reihenfolge zweier gleich starker Regeln. */
+:root {
+  --choice-mark-offset: calc((var(--font-body-md-line) - var(--choice-mark-size)) / 2);
+}
+
+.choice.plain { display: block; }
+.choice.plain > input + span {
+  display: block;
+  min-height: 0;
+  padding: 0 0 0 calc(var(--choice-mark-size) + var(--spacing-2));
+  font-weight: var(--font-weight-regular);
+  color: var(--color-text-primary);
+  background: none;
+  border-color: transparent;
+  box-shadow: none;
+}
+.choice.plain > input + span::before {
+  position: absolute;
+  left: 0;
+  top: var(--choice-mark-offset);
+}
+/* Der Chip positioniert seinen Haken gegen das Label und zentriert ihn; hier
+   sitzt er im Kästchen auf der ersten Zeile, also derselbe Versatz wie oben. */
+.choice.plain > input[type="checkbox"]:checked + span::after {
+  top: var(--choice-mark-offset);
+  left: var(--border-width-default);
+  transform: none;
+}
+/* Fehlt die Einwilligung, trägt das leere Kästchen den Fehlerrand — der Chip, der
+   das sonst tut, ist hier nicht gezeichnet. */
+.field.invalid .choice.plain > input:not(:checked) + span::before {
+  border-color: var(--color-border-error);
+}
+
+/* ------------------------------------------------------------- Referenz-ID */
+
+/* Gestrichelter Rahmen und Grundfläche: der Kasten ist nichts zum Ausfüllen und
+   nichts zum Anklicken, sondern etwas zum Herausnehmen — dieselbe Sprache wie
+   der "+ hinzufügen"-Button, nur ohne Akzentfarbe. */
+.refbox {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-3);
+  padding: var(--spacing-4);
+  background: var(--page-bg);
+  border: var(--border-width-default) dashed var(--color-border-default);
+  border-radius: var(--field-radius);
+}
+.ref-id {
+  flex: 1 1 auto;
+  font-size: var(--font-heading-md-size);
+  line-height: var(--font-heading-md-line);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  font-variant-numeric: tabular-nums;
+  word-break: break-word;
+}
+/* Die Rückmeldung zum Kopieren hält ihre Zeile frei, auch wenn sie leer ist:
+   sonst rutscht der Kasten darüber beim ersten Klick nach oben. */
+.ref-status {
+  min-height: var(--font-body-md-line);
+  margin: 0;
+  font-size: var(--font-body-sm-size);
+  color: var(--color-action-primary);
+}
+
+/* Gesendet: die Leiste sagt nur noch, dass nichts mehr zu tun ist. */
+.save-state.locked {
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-medium);
+}
+
 /* ------------------------------------------------------------- responsive */
 
 @media (max-width: 900px) {
@@ -1231,7 +1528,9 @@ body {
     background: var(--page-bg);
     border-bottom: var(--border-width-default) solid var(--color-border-default);
   }
-  .nav .eyebrow, .nav-divider, .nav .seg { display: none; }
+  /* Die Schalter des Prototyps gehören nicht in eine Leiste, die nur den Weg zu
+     einem Abschnitt zeigt — und der Beispieldaten-Knopf ist einer von ihnen. */
+  .nav .eyebrow, .nav-divider, .nav .seg, .nav-tools { display: none; }
 
   .nav-toggle {
     display: flex;
@@ -1280,6 +1579,12 @@ body {
   }
   .nav-toggle[aria-expanded="true"] + .nav-links { display: block; }
 
+  /* Auf den letzten zwei Schritten hat die Leiste nichts mehr zu zeigen — die
+     Abschnittsliste ist weg und die Schalter sind hier ohnehin ausgeblendet —,
+     also bleibt kein leerer Streifen über der Seite stehen. */
+  :root[data-view="summary"] .nav,
+  :root[data-view="sent"] .nav { display: none; }
+
   .actionbar-inner { padding: var(--spacing-3) var(--spacing-4); }
 }
 
@@ -1301,7 +1606,19 @@ body {
   .amount-row { grid-template-columns: minmax(0, 1fr); gap: var(--spacing-1); }
   .amount-list { gap: var(--spacing-4); }
   .save-state { display: none; }
+  /* Ausnahme von der Zeile darüber: nach dem Senden ist diese Meldung der ganze
+     Inhalt der Leiste, und dass nichts mehr geändert werden kann, gehört auf jede
+     Bildschirmgröße. */
+  /* Nebeneinander bleibt bei 390px weder für die Meldung noch für den Button genug
+     Breite, also nimmt die Meldung eine eigene Zeile und der Button steht darunter. */
+  .actionbar-inner { flex-wrap: wrap; }
+  .save-state.locked { display: flex; flex: 1 1 100%; }
   .btn { flex: 1; }
+  .card-static > .card-head { padding: var(--spacing-3) var(--spacing-4); }
+  /* Frage über Antwort statt daneben: zwei Spalten lassen für die Antwort keine
+     Zeile übrig, und sie ist das, was gelesen wird. */
+  .review-list { grid-template-columns: minmax(0, 1fr); gap: var(--spacing-1); }
+  .review-list > dd { margin-bottom: var(--spacing-3); }
 }
 
 /* ---------------------------------------------------- mobile preview frame */
