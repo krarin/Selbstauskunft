@@ -36,9 +36,8 @@ The last column is empty for you to fill in.
 | **Mobile nav panel** | — | Closed, open | **Colour** `--color-background-raised`, `--color-border-default` · **Space** `--spacing-2`, `--spacing-4` · **Other** `--card-radius`‡, `--border-width-default`†, `--shadow-lg` | |
 | **Page title** | — | — | **Colour** `--color-text-primary` · **Type** `--font-heading-lg-size/-line`, `--font-heading-weight` · **Space** `--spacing-2` | |
 | **Lede / intro text** | — | — | **Colour** `--color-text-secondary` · **Space** `--spacing-8` · **Other** `--layout-measure-prose`† | |
-| **Section card** | Collapsible · static · sub-section collapsible · sub-section static | Collapsed, expanded, settled, complete, hidden | **Colour** `--surface-card`† (card fill), `--color-background-active` (header hover), `--color-text-primary` · **Type** `--font-heading-md-size/-line`, `--font-heading-weight` · **Space** `--spacing-1`, `--spacing-3`, `--spacing-4`, `--card-padding`‡ · **Other** `--card-radius`‡, `--section-gap`‡, `--card-gap`‡ | |
+| **Section card** | Collapsible · static · sub-section collapsible · sub-section static | Collapsed, expanded, settled, hidden | **Colour** `--surface-card`† (card fill), `--color-background-active` (header hover), `--color-text-primary` · **Type** `--font-heading-md-size/-line`, `--font-heading-weight` · **Space** `--spacing-1`, `--spacing-3`, `--spacing-4`, `--card-padding`‡ · **Other** `--card-radius`‡, `--section-gap`‡, `--card-gap`‡ | |
 | **Chevron** | — | Closed, open (180°) | **Colour** `--color-text-secondary` · **Space** `--spacing-5` (size) | |
-| **Required-field counter** | — | Hidden, partial, complete | **Colour** `--color-text-secondary`, `--color-text-primary`, `--color-action-primary`, page bg (track) · **Type** `--font-input-text-sm-size/-line`, `--font-weight-regular`, `--font-weight-medium` · **Space** `--spacing-2` · **Other** `--meter-width`‡, `--meter-height`‡, `--pill-radius`‡ | |
 | **Sub-section divider** | Hairline · inset rule | — | **Colour** `--color-border-default` · **Space** `--card-padding`‡, `--spacing-2` · **Other** `--border-width-default`† | |
 | **Sub-section title** | — | — | **Colour** `--color-text-primary` · **Type** `--font-heading-sm-size/-line`, `--font-heading-weight` · **Space** `--card-gap`‡, `--card-padding`‡, `--spacing-4` | |
 | **Subhead (accent)** | With rule · first (no rule) | — | **Colour** `--color-action-primary`, `--color-border-default` · **Type** `--font-heading-xs-size/-line`, `--font-weight-bold` · **Space** `--spacing-4`, `--spacing-6` · **Other** `--border-width-default`† | |
@@ -139,7 +138,7 @@ inside a media query, so these are inlined at build time).
 `field.height/padding-x/padding-y/gap/radius` (→ `input.*`) ·
 `field.gap-label` / `field.gap-stack` · `card.padding` / `card.gap` / `card.radius` ·
 `section.gap` · `button.radius` · `pill.radius` · `checkbox.radius` ·
-`choice.mark-size` / `radio.dot-radius` · `meter.width` / `meter.height`
+`choice.mark-size` / `radio.dot-radius`
 
 One deliberate departure: `field.radius` points at `radius.md` (4px) rather than the
 export's `input.default.radius` (`radius.lg`, 8px). A change to

@@ -63,6 +63,38 @@ await evaluate(`
     return asked;
   };`);
 
+/* The header used to carry a Pflichtfeld counter, and a good many checks below used it
+   as their probe: how many fields is this step asking for, and how many are answered.
+   The widget is gone, so they count it here instead — by the same rule the form itself
+   applies, that a control in a closed branch or in an unticked amount row is not being
+   asked for (isAsked in app.js). The state read is the state the form produced; only
+   the readout moved out of the page. Returns "filled/total", so the deltas the checks
+   were written around read unchanged. */
+await evaluate(`
+  window.counts = (scope) => {
+    const root = document.querySelector(scope);
+    const asked = el => !el.closest('.reveal:not(.open), [data-inactive]');
+    const controls = [...root.querySelectorAll('.input[required], .select[required]')]
+      .filter(asked);
+    const groups = [...root.querySelectorAll('.field[data-required]')]
+      .filter(g => asked(g) && g.querySelector('input[type="radio"]'));
+    const filled = controls.filter(c => c.value.trim() !== '').length
+      + groups.filter(g => g.querySelector('input[type="radio"]:checked')).length;
+    return filled + '/' + (controls.length + groups.length);
+  };
+
+  /* The other half of what the counter used to show: which fields a submit is still
+     asking for. The form marks exactly those aria-invalid="true", so the page says it
+     itself — but the attribute survives the branch it sits in closing again (a field
+     nobody asks for is never re-validated), so the slate is wiped before each submit.
+     Otherwise a mark left over from three checks ago would count as a question. */
+  window.flagged = (scope) => {
+    document.querySelectorAll('[aria-invalid]')
+      .forEach(el => el.setAttribute('aria-invalid', 'false'));
+    document.querySelector('#submit').click();
+    return document.querySelectorAll(scope + ' [required][aria-invalid="true"]').length;
+  };`)
+
 // --- start cascade -----------------------------------------------------------
 check('default: Immobilie section open',
   await evaluate(`document.querySelector('.object-section[data-for="immobilie"]').classList.contains('open')`), true);
@@ -170,14 +202,13 @@ check('data-switch: one case per employment status', await evaluate(`
   unanswered: [],
 });
 
-/* Switching away from an answer has to take its fields out of the count, or the two
+/* Switching away from an answer has to stop the form asking for its fields, or the two
    branches would pile up and the form would ask for an employer and a company at once. */
 check('data-switch: leaving a case stops the form asking for it', await evaluate(`
   (() => {
     const frame = () => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
     const s = document.querySelector('#b1-verhaeltnis');
-    const total = () => Number(document.querySelector('#antragsteller .count-value')
-      .textContent.split('/')[1]);
+    const total = () => Number(window.counts('#antragsteller').split('/')[1]);
     const pick = async (v) => { s.value = v; s.dispatchEvent(new Event('change')); await frame(); return total(); };
     return (async () => {
       const blank = await pick('');
@@ -634,13 +665,13 @@ check('Vermögen: the mandatory position cannot be given up', await evaluate(`
 check('Vermögen: picking a position makes its amount mandatory', await evaluate(`
   (() => {
     const frame = () => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
-    // Vermögen is a static sub-section, so the counter it moves is the card's, and the
-    // card counts Verbindlichkeiten too — hence the deltas rather than absolute totals.
+    // Vermögen is a static sub-section, so what moves is the step's total, and the step
+    // holds Verbindlichkeiten too — hence the deltas rather than absolute totals.
     const card = document.querySelector('#vermoegen').closest('.card');
     const input = document.querySelector('#v-wert-betrag');
     const cell = input.closest('.amount-cell');
     const fill = (el) => getComputedStyle(el).backgroundColor;
-    const value = () => card.querySelector('.count-value').textContent;
+    const value = () => window.counts('#' + card.id);
     const step = (a, b) => b.split('/').map((n, i) => Number(n) - Number(a.split('/')[i]));
     return (async () => {
       await frame();
@@ -672,7 +703,7 @@ check('Vermögen: giving a position up clears its amount and stops counting it',
     const card = document.querySelector('#vermoegen').closest('.card');
     const input = document.querySelector('#v-wert-betrag');
     const fill = (el) => getComputedStyle(el).backgroundColor;
-    const counted = () => card.querySelector('.count-value').textContent;
+    const counted = () => window.counts('#' + card.id);
     const step = (a, b) => b.split('/').map((n, i) => Number(n) - Number(a.split('/')[i]));
     return (async () => {
       const before = counted();
@@ -699,7 +730,7 @@ check('Vermögen: reaching into the amount picks the position — pointer or typ
   (() => {
     const frame = () => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
     const card = document.querySelector('#vermoegen').closest('.card');
-    const counted = () => card.querySelector('.count-value').textContent;
+    const counted = () => window.counts('#' + card.id);
     const step = (a, b) => b.split('/').map((n, i) => Number(n) - Number(a.split('/')[i]));
     const pointer = document.querySelector('#v-bsv-betrag');
     const typed = document.querySelector('#v-ek-betrag');
@@ -741,7 +772,7 @@ check('an amount picked by clicking its field is provisional until it holds a fi
   (() => {
     const frame = () => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
     const card = document.querySelector('#vermoegen').closest('.card');
-    const counted = () => card.querySelector('.count-value').textContent;
+    const counted = () => window.counts('#' + card.id);
     const step = (a, b) => b.split('/').map((n, i) => Number(n) - Number(a.split('/')[i]));
     const state = (id) => {
       const input = document.querySelector(id);
@@ -952,9 +983,9 @@ check('Einkommen: picking an income type asks for its figure, and only then',
   await evaluate(`
   (() => {
     const frame = () => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
-    // Einkommen is a static subsection, so the counter it moves is the card's
+    // Einkommen is a static subsection, so what moves is the step's total
     const card = document.querySelector('#einkommen').closest('.card');
-    const counted = () => card.querySelector('.count-value').textContent;
+    const counted = () => window.counts('#' + card.id);
     const input = document.querySelector('#e1-rente-betrag');
     return (async () => {
       await frame();
@@ -981,13 +1012,13 @@ check('Einkommen: picking an income type asks for its figure, and only then',
 
 /* The .plain list is a design comparison sitting under the boxed one: the chip around
    the position is gone, nothing else is. So the check is that behaviour is *identical* —
-   every entry point into a row works the same, and the counter treats the two the same.
+   every entry point into a row works the same, and the form asks for both the same way.
    The visual difference is asserted separately below. */
 check('the .plain variant behaves exactly like the boxed list', await evaluate(`
   (() => {
     const frame = () => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
     const card = document.querySelector('#einkommen').closest('.card');
-    const counted = () => card.querySelector('.count-value').textContent;
+    const counted = () => window.counts('#' + card.id);
     const total = () => Number(counted().split('/')[1]);
     return (async () => {
       await frame();
@@ -1054,7 +1085,7 @@ check('Einkommen: applicant 2 gets its own list, picked from scratch', await eva
   (() => {
     const frame = () => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
     const card = document.querySelector('#einkommen').closest('.card');
-    const counted = () => card.querySelector('.count-value').textContent;
+    const counted = () => window.counts('#' + card.id);
     return (async () => {
       const before = counted();
       document.querySelector('#e1-miete').click();
@@ -1171,7 +1202,7 @@ check('submit counts every field the form is asking for, including collapsed car
   })()`), { matchesExpected: true, excludesClosedConditionals: true, groupFlagged: true,
             focusedVisible: true, focusedCardOpen: 'true' });
 
-// --- collapsible cards + Pflichtfeld counter --------------------------------
+// --- collapsible cards ------------------------------------------------------
 check('on load only Start is expanded, and collapsed bodies have no height', await evaluate(`
   (() => {
     const cards = [...document.querySelectorAll('#main .card')];
@@ -1292,120 +1323,74 @@ check('a nav sub-entry opens the step around it', await evaluate(`
     })();
   })()`), { before: { step: 'false' }, after: { step: 'true', visible: true } });
 
-const fillStart = `
+/* What the counter used to show is now only visible through the submit check, which
+   is the better subject anyway: it is what actually gates the way to the summary.
+   After a submit, every field the form is still asking for carries
+   aria-invalid="true" — so "is this field being asked for?" can be read off the page
+   without a widget in the header. The three rules below are the ones the counter used
+   to demonstrate. */
+
+check('a scaffold card is only asked for while its finance type is the active one',
+  await evaluate(`
   (() => {
     const set = (id, v) => { const el = document.querySelector(id); el.value = v;
       el.dispatchEvent(new Event('change', {bubbles:true})); };
+    const flagged = () => window.flagged('#anschluss');
     set('#zweck', 'kauf');
     const ja = document.querySelector('#gefunden input[value="Ja"]');
     ja.checked = true; ja.dispatchEvent(new Event('change', {bubbles:true}));
-    set('#immobilienart', ''); set('#nutzung', '');
-    const allein = document.querySelector('#darlehensnehmer input[value="1"]');
-    allein.checked = true; allein.dispatchEvent(new Event('change', {bubbles:true}));
-    set('#darlehensbetrag', '0,00');
-  })()`;
+    const whileInactive = flagged();
 
-// the counter is recomputed on the next animation frame, so this has to wait one out
-// like the check below it — reading synchronously returns whatever the previous state
-// left behind, which passes or fails depending on what ran before it
-check('Start counts its 4 required controls plus its 2 required choice groups', await evaluate(`
+    set('#zweck', 'anschluss');
+    const whileActive = flagged();
+
+    set('#zweck', 'kauf');
+    ja.checked = true; ja.dispatchEvent(new Event('change', {bubbles:true}));
+    return { whileInactive, whileActive };
+  })()`), { whileInactive: 0, whileActive: 3 });
+
+check('fields inside a closed conditional are not asked for yet', await evaluate(`
   (() => {
-    ${fillStart};
-    const card = document.querySelector('#start');
-    return new Promise(done => requestAnimationFrame(() => requestAnimationFrame(() => done({
-      text: card.querySelector('.count-value').textContent,
-      label: card.querySelector('.count-label').textContent,
-      sr: card.querySelector('[data-count-sr]').textContent,
-    }))));
-  })()`), { text: '4/6', label: 'Pflichtfelder',
-            sr: '4 von 6 Pflichtfeldern ausgefüllt' });
-
-check('filling a required field advances the counter and the meter', await evaluate(`
-  (() => {
-    ${fillStart};
-    const card = document.querySelector('#start');
-    const before = card.querySelector('.count-value').textContent;
-    const sel = document.querySelector('#immobilienart');
-    sel.value = 'Einfamilienhaus'; sel.dispatchEvent(new Event('change', {bubbles:true}));
-    return new Promise(done => requestAnimationFrame(() => requestAnimationFrame(() => done({
-      before,
-      after: card.querySelector('.count-value').textContent,
-      fill: card.querySelector('.count-fill').style.width,
-    }))));
-  })()`), { before: '4/6', after: '5/6', fill: '83.3333%' });
-
-check('completing a card shows the checkmark state, not colour alone', await evaluate(`
-  (() => {
-    const card = document.querySelector('#start');
-    const sel = document.querySelector('#nutzung');
-    document.querySelector('#immobilienart').value = 'Einfamilienhaus';
-    sel.value = 'Selbst nutzen'; sel.dispatchEvent(new Event('change', {bubbles:true}));
-    return new Promise(done => requestAnimationFrame(() => requestAnimationFrame(() => done({
-      complete: card.dataset.complete,
-      value: card.querySelector('.count-value').textContent,
-      label: card.querySelector('.count-label').textContent,
-      sr: card.querySelector('[data-count-sr]').textContent,
-    }))));
-  })()`), { complete: 'true', value: '\u2713', label: 'Vollständig',
-            sr: 'Alle 6 Pflichtfelder ausgefüllt' });
-
-check('the static reference card carries no counter', await evaluate(`
-  document.querySelector('#states .card-count').hidden`), true);
-
-check('a scaffold card counts only while its finance type is the active one', await evaluate(`
-  (() => {
-    const card = document.querySelector('#anschluss');
-    const hiddenWhileInactive = card.querySelector('.card-count').hidden;
-    const z = document.querySelector('#zweck');
-    z.value = 'anschluss'; z.dispatchEvent(new Event('change'));
-    return new Promise(done => requestAnimationFrame(() => requestAnimationFrame(() => {
-      const active = card.querySelector('.count-value').textContent;
-      z.value = 'kauf'; z.dispatchEvent(new Event('change'));
-      const ja = document.querySelector('#gefunden input[value="Ja"]');
-      ja.checked = true; ja.dispatchEvent(new Event('change', {bubbles:true}));
-      requestAnimationFrame(() => done({ hiddenWhileInactive, active }));
-    })));
-  })()`), { hiddenWhileInactive: true, active: '0/3' });
-
-check('fields inside a closed conditional are not counted yet', await evaluate(`
-  (() => {
-    const card = document.querySelector('#immobilie');
-    const reveal = document.querySelector('#c-erbbau');
     const sel = document.querySelector('#i-erbbau');
+    const flagged = () => window.flagged('#c-erbbau');
     sel.value = 'Nein'; sel.dispatchEvent(new Event('change', {bubbles:true}));
-    return new Promise(done => requestAnimationFrame(() => requestAnimationFrame(() => {
-      const closed = card.querySelector('.count-value').textContent;
-      sel.value = 'Ja'; sel.dispatchEvent(new Event('change', {bubbles:true}));
-      requestAnimationFrame(() => requestAnimationFrame(() => done({
-        // the three Erbbau fields become mandatory only once the branch is open
-        grew: Number(card.querySelector('.count-value').textContent.split('/')[1])
-            - Number(closed.split('/')[1]),
-      })));
-    })));
-  })()`), { grew: 3 });
+    const closed = flagged();
+    sel.value = 'Ja'; sel.dispatchEvent(new Event('change', {bubbles:true}));
+    const open = flagged();
+    sel.value = 'Nein'; sel.dispatchEvent(new Event('change', {bubbles:true}));
+    return { closed, open };
+  })()`), { closed: 0, open: 3 });
 
-/* The counter sits on the step, not on its static parts, and every sub-section in
-   Antragsteller is per-applicant — so the second person doubles the whole total. */
-check('adding applicant 2 doubles that card total', await evaluate(`
+/* Every sub-section in Antragsteller is per-applicant, so the second person brings
+   exactly as many mandatory fields as the first — that is what "the step counts both
+   panels" meant when the header still said 0/28. */
+check('adding applicant 2 asks the same set of fields again', await evaluate(`
   (() => {
-    // counter updates are queued to a frame, so every read has to wait for one
     const frame = () => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
-    const card = document.querySelector('#antragsteller');
-    const value = () => card.querySelector('.count-value').textContent;
+    const scope = (n) => \`#antragsteller .applicant[data-applicant="\${n}"]\`;
     return (async () => {
-      const fam = document.querySelector('#a1-familienstand');
-      fam.value = ''; fam.dispatchEvent(new Event('change', {bubbles:true}));
+      /* Emptying a select is not the same as un-answering it: the branch it opened
+         closes on the change event, not on the value. Without this, person 1 still
+         carries an open Güterstand from an earlier check and asks for one field more
+         than the fresh copy. */
+      document.querySelectorAll('#antragsteller .input, #antragsteller .select')
+        .forEach(c => {
+          c.value = '';
+          c.dispatchEvent(new Event('change', { bubbles: true }));
+        });
       await frame();
-      const before = value();
       document.querySelector('#add-applicant').click();
       await frame();
-      const after = value();
-      // taking person 2 back out asks first, even with nothing typed into the copy
+      const first = window.flagged(scope(1));
+      const second = document.querySelectorAll(
+        scope(2) + ' [required][aria-invalid="true"]').length;
+      // person 2 back out again — it asks first, even with nothing typed into the copy
       await window.answer('.applicant[data-applicant="2"] .icon-btn');
       await frame();
-      return { before, after, restored: value() };
+      return { equal: first === second, some: first > 0,
+               goneAfterRemoval: window.flagged(scope(2)) };
     })();
-  })()`), { before: '0/14', after: '0/28', restored: '0/14' });
+  })()`), { equal: true, some: true, goneAfterRemoval: 0 });
 
 /* A step entry opens the step. #beruf would no longer do as the target — it is a
    static sub-section with no state of its own; the sub-entry case is covered above. */

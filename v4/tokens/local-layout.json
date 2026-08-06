@@ -56,9 +56,6 @@
 
         "surface.card": "{neutral.100}",
 
-        "meter.width": "{spacing.16}",
-        "meter.height": "{spacing.1}",
-
         "choice.mark-size": "{spacing.4}",
         "radio.dot-radius": "{spacing.1}",
         "checkbox.radius": "{radius.sm}",

@@ -44,8 +44,6 @@
   --button-radius: var(--radius-lg);
   --pill-radius: var(--radius-full);
   --surface-card: var(--neutral-100);
-  --meter-width: var(--spacing-16);
-  --meter-height: var(--spacing-1);
   --choice-mark-size: var(--spacing-4);
   --radio-dot-radius: var(--spacing-1);
   --checkbox-radius: var(--radius-sm);

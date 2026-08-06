@@ -58,7 +58,6 @@
       clearTimeout(settleTimers.get(el));
       el.classList.remove('settled');
     }
-    scheduleCounters();   // opening or closing a reveal changes what is being asked
   };
 
   /* ------------------------------------------------------------- hydration */
@@ -289,7 +288,6 @@
       toggle.addEventListener('change', () => {
         delete row.dataset.provisional;
         syncAmountRow(row);
-        scheduleCounters();
         if (toggle.checked) input.focus();
       });
 
@@ -308,7 +306,6 @@
         // box: the row is provisional until it actually holds a figure.
         row.dataset.provisional = '';
         syncAmountRow(row);
-        scheduleCounters();
       };
       cell.addEventListener('pointerdown', pick);
       input.addEventListener('input', pick);
@@ -325,7 +322,6 @@
         delete row.dataset.provisional;
         toggle.checked = false;
         syncAmountRow(row);
-        scheduleCounters();
       });
 
       syncAmountRow(row);
@@ -391,7 +387,6 @@
         if (list && list.classList.contains('darlehen-liste')) renumberDarlehen(list);
         if (list && list.classList.contains('kinder-list')) syncKinderAdd();
         touched();
-        scheduleCounters();
       });
     });
   }
@@ -490,47 +485,6 @@
     }
     cards.forEach((card) => { if (card.dataset.open !== 'true') setCardOpen(card, true); });
     return cards[cards.length - 1] || null;
-  }
-
-  let counterQueued = false;
-  const scheduleCounters = () => {
-    if (counterQueued) return;
-    counterQueued = true;
-    requestAnimationFrame(() => { counterQueued = false; updateCounters(); });
-  };
-
-  function updateCounters() {
-    $$('.card').forEach((card) => {
-      const counter = card.querySelector(':scope > .card-head .card-count');
-      if (!counter) return;
-      if (card.id === 'states') { counter.hidden = true; return; }   // static reference
-
-      // A required choice group counts as one item, filled once anything is picked —
-      // a radio group cannot carry `required` usefully, so the markup flags it.
-      const groups = $$('.field[data-required]', card)
-        .filter((g) => isAsked(g) && g.querySelector('input[type="radio"]'));
-      const controls = $$('.input[required], .select[required]', card).filter(isAsked);
-
-      const total = controls.length + groups.length;
-      const filled = controls.filter((c) => c.value.trim() !== '').length
-        + groups.filter((g) => g.querySelector('input[type="radio"]:checked')).length;
-
-      // a card with nothing mandatory says nothing rather than "0/0"
-      counter.hidden = total === 0;
-      if (!total) {
-        delete card.dataset.complete;
-        return;
-      }
-
-      const done = filled === total;
-      card.dataset.complete = String(done);
-      counter.querySelector('.count-value').textContent = done ? '\u2713' : `${filled}/${total}`;
-      counter.querySelector('.count-label').textContent = done ? 'Vollständig' : 'Pflichtfelder';
-      counter.querySelector('[data-count-sr]').textContent = done
-        ? `Alle ${total} Pflichtfelder ausgefüllt`
-        : `${filled} von ${total} Pflichtfeldern ausgefüllt`;
-      counter.querySelector('.count-fill').style.width = `${(filled / total) * 100}%`;
-    });
   }
 
   /* ------------------------------------------------------ Start-Kaskade */
@@ -691,7 +645,6 @@
     refreshTitles(1);
     refreshTitles(2);
     touched();
-    scheduleCounters();
   }
 
   /* ------------------------------------------------- repeatable sub-groups */
@@ -700,7 +653,6 @@
     const node = $(`#${templateId}`).content.firstElementChild.cloneNode(true);
     list.appendChild(node);
     hydrate(node);
-    scheduleCounters();
     return node;
   }
 
@@ -1372,7 +1324,6 @@
   const stellplaetze = $('#stellplaetze');
   $('#add-stellplatz').addEventListener('click', () => {
     addFromTemplate('tpl-stellplatz', stellplaetze);
-  updateCounters();
     renumberStellplaetze();
   });
   addFromTemplate('tpl-stellplatz', stellplaetze);
@@ -1412,8 +1363,7 @@
     }));
   renumberKredite();
 
-  document.addEventListener('input', () => { touched(); scheduleCounters(); });
-  document.addEventListener('change', scheduleCounters);
+  document.addEventListener('input', touched);
   document.addEventListener('blur', (event) => {
     if (event.target.matches('.input, .select')) validate(event.target);
   }, true);

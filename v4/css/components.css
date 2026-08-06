@@ -41,8 +41,8 @@
 }
 /* A third scheme, "grey": the light palette with its two levels traded — the page
    carries the grey and the cards are white. Only these two aliases move; everything
-   that has to read as *not the card* (inputs, nested panels, the meter track, the
-   action bar) already points at --page-bg, so it follows automatically. */
+   that has to read as *not the card* (inputs, nested panels, the action bar)
+   already points at --page-bg, so it follows automatically. */
 :root[data-appearance="grey"] {
   --page-bg: var(--surface-card);               /* the card grey moves to the page */
   --card-bg: var(--color-background-surface);    /* and the cards take the white */
@@ -259,7 +259,7 @@ body {
 }
 /* Direct-child only, here and in every other .card state rule below: a card can now
    hold sub-sections, which are cards themselves, and a descendant selector would let
-   the outer card's state drive their chevrons, heights and meters as well. */
+   the outer card's state drive their chevrons and heights as well. */
 .card[data-open="true"] > .card-head > .card-toggle > .chev { transform: rotate(180deg); }
 
 .card-title {
@@ -268,47 +268,6 @@ body {
   font-weight: var(--font-heading-weight);
   color: var(--color-text-primary);
 }
-/* Pflichtfeld counter ------------------------------------------------------------ */
-
-/* `display: flex` here would otherwise beat the UA's [hidden] rule, leaving an
-   empty meter on cards that ask for nothing. */
-.card-count[hidden] { display: none; }
-
-.card-count {
-  flex: none;
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-2);
-  margin-left: auto;
-  font-size: var(--font-input-text-sm-size);
-  line-height: var(--font-input-text-sm-line);
-  font-weight: var(--font-weight-regular);
-  color: var(--color-text-secondary);
-}
-.count-value {
-  font-weight: var(--font-weight-medium);
-  color: var(--color-text-primary);
-  font-variant-numeric: tabular-nums;
-}
-.count-track {
-  width: var(--meter-width);
-  height: var(--meter-height);
-  background: var(--page-bg);
-  border-radius: var(--pill-radius);
-  overflow: hidden;
-}
-.count-fill {
-  display: block;
-  width: 0;
-  height: 100%;
-  background: var(--color-action-primary);
-  border-radius: var(--pill-radius);
-  transition: width 0.2s ease;
-}
-/* Completion is never colour-only: the numbers become a checkmark and a word. */
-.card[data-complete="true"] > .card-head .count-value,
-.card[data-complete="true"] > .card-head .count-label { color: var(--color-action-primary); }
-.card[data-complete="true"] > .card-head .count-track { display: none; }
 
 /* body --------------------------------------------------------------------------- */
 
@@ -345,7 +304,7 @@ body {
 .card-actions { margin-bottom: var(--card-gap); }
 
 @media (prefers-reduced-motion: reduce) {
-  .card-body, .chev, .count-fill { transition: none; }
+  .card-body, .chev { transition: none; }
   /* Nothing animates here, so there is no reason to clip — and no transitionend to set
      data-settled, which would otherwise leave the clip on for good. */
   .card[data-open="true"] > .card-body > .card-body-inner { overflow: visible; }
@@ -395,8 +354,8 @@ body {
 
 /* Static sub-sections -------------------------------------------------------------- */
 
-/* A step whose parts are always shown at once: no toggle, no meter of its own, just a
-   heading saying which part you are in. The rule between two parts is inset by the
+/* A step whose parts are always shown at once: no toggle, just a heading saying
+   which part you are in. The rule between two parts is inset by the
    card's own padding, so it separates two parts of one block rather than reading as
    the seam between two cards. */
 .subsections > .subsection-static + .subsection-static::before {
@@ -1590,7 +1549,6 @@ body {
 
 @media (max-width: 640px) {
   .col-3, .col-4, .col-6, .col-8 { grid-column: auto / span 12; }
-  .count-label { display: none; }
   .card-toggle { padding: var(--spacing-3) var(--spacing-4); }
   .card-pad { padding: var(--spacing-4); }
   .subsection .card-pad,

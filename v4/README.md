@@ -96,9 +96,7 @@ conventional order, page darkest with the cards raised above it. Everything mean
 read as *on the base level* (inputs, nested panels, the action bar) uses
 `--page-bg`, so it always contrasts with the card fill in both appearances. The light
 card fill collides with `background.hover` (`neutral.100`) exactly, so the card
-header's own hover has to step one further, to `background.active` — the counter's
-meter track stays on `--page-bg` for the same reason, since a `neutral.200` track
-would disappear the moment the header is hovered.
+header's own hover has to step one further, to `background.active`.
 
 Because both levels are aliases, a third scheme costs three declarations:
 `data-appearance="grey"` keeps the light palette but trades them — the page carries
@@ -109,8 +107,8 @@ The third declaration is `--field-bg`, split out of `--page-bg` so the interior 
 control can part company with the page level: in the grey scheme the fields stay
 white on the white cards and their `border.default` outline is the whole boundary —
 a `neutral.300` hairline at 1.45:1, so in that scheme a field is a very quiet shape
-(see the accepted failure below). Inputs, selects and the choice chips use it; the nested panels, the
-meter track and the tooltip stay on `--page-bg`, so they still read as a level
+(see the accepted failure below). Inputs, selects and the choice chips use it; the
+nested panels and the tooltip stay on `--page-bg`, so they still read as a level
 below the card in every scheme.
 
 `--card-bg` sits on the header block (`.card-toggle`) and the body block
@@ -275,7 +273,7 @@ The two do not share CSS.
 
 The `Feldzustände` section at the bottom of the page renders every field state side
 by side for comparison against the design mockup. It is excluded from live
-validation and from the counters, and is not part of the form.
+validation and from the summary, and is not part of the form.
 
 ## The section cards
 
@@ -290,10 +288,15 @@ The form has **six steps**, and only those six are cards:
 | 5 | Finanzierungsobjekt | whichever one of Immobilie / Neubau / Anschlussfinanzierung / Modernisierung / Kapitalbeschaffung applies |
 | 6 | Finanzierungsdetails | — |
 
-Each is a collapsible card: chevron, one heading, and a counter of the mandatory
-fields it still wants. Only **Finanzbedarf** is expanded on load, so the page opens
-as an overview of what the form is going to ask for — seven rows, six of them the form
-and one the `Feldzustände` reference at the bottom.
+Each is a collapsible card: a chevron and one heading, nothing else. Only
+**Finanzbedarf** is expanded on load, so the page opens as an overview of what the form
+is going to ask for — seven rows, six of them the form and one the `Feldzustände`
+reference at the bottom.
+
+An earlier version put a Pflichtfeld counter in every header (`4/6`, a meter, `✓
+Vollständig`). It is gone: the headers are quiet now, and *how far along am I* is
+answered where it matters — by the action bar on the way out, which names how many
+fields are still open and jumps to the first of them.
 
 Everything the sidebar lists *underneath* one of those six is a **sub-section**, not a
 step. It carries no fill and no gap of its own — a hairline rule separates it from the
@@ -302,9 +305,8 @@ with parts rather than as a stack of cards inside a card. Two kinds:
 
 * `.subsection-static` — a heading and its fields, shown outright with the step. This is
   what **Antragsteller**'s four parts and **Finanzen**'s three are: one list, not seven
-  doors, so the headings only say which part you are in. No toggle and no meter of its
-  own; the mandatory fields count towards the step's counter.
-* `.card.subsection` — same, plus a chevron and a counter of its own. Only the five
+  doors, so the headings only say which part you are in. No toggle of its own.
+* `.card.subsection` — same, plus a chevron. Only the five
   **Finanzierungsobjekt** parts use it: exactly one of them applies at a time, so it is
   alone in its step and folding it away is the only thing its toggle has to do.
 
@@ -331,7 +333,7 @@ Two consequences worth knowing:
 
 - **Every `.card` state rule is written against a direct child** (`.card[data-open="true"]
   > .card-body`, not `… .card-body`). A descendant selector would let an outer card's
-  state drive the chevrons, heights and meters of the sub-sections inside it.
+  state drive the chevrons and heights of the sub-sections inside it.
 - **A sidebar sub-entry has to open two things.** `revealCard` walks the whole chain
   of `.card` ancestors, so one line in `wireNav` handles step links and sub-section
   links alike — and so does the submit check when it jumps to the first missing field.
@@ -342,32 +344,27 @@ property yet). `updateStart` hides it outright in that case, along with its side
 entry — an `.object-nav` without a `data-navfor`, since it stands for whichever
 object applies rather than for one of them.
 
-The counter is the interesting part, because "how many mandatory fields does this
-section have?" is not a fixed number:
+"Which fields are mandatory here?" is not a fixed list, and one predicate answers it
+everywhere — `isAsked` in `app.js`. It runs the submit check, the inline validation and
+the summary's read-back, so those three can never disagree:
 
-- **A field only counts once the form is actually asking for it.** Anything inside
-  a closed conditional or an inactive finance-type section is excluded, so
-  Immobilie's total grows by three the moment Erbbaurecht is answered with *Ja*,
-  and the Anschlussfinanzierung card shows no counter at all until that becomes
-  the selected purpose. The test is "is this inside a closed `.reveal`?" —
-  deliberately not a visibility test, which would also discount every field in a
-  collapsed card.
-- **Collapsing a card never hides its fields from the count or from validation.**
-  Both use the same predicate, so the number on a closed card is trustworthy.
-- **Adding the second applicant doubles the relevant totals**, since the copy's
-  fields are equally mandatory.
-- **A required choice group counts as one item**, filled as soon as anything is
-  picked. A radio group cannot carry `required` usefully, so the markup flags it
-  with `data-required` — and submit validates those groups too, otherwise a card
-  could read 5/6 while the form reported itself complete.
-- **A card that asks for nothing shows no counter**, rather than `0/0`.
-- **A step's counter is the sum of its sub-sections'**, and falls out of the same code:
-  the tally walks descendants, so Antragsteller's `0/16` is `11 + 4 + 1` without
-  anything having to add them up.
-- **A position switched off in place is excluded too.** A closed `.reveal` is one way
-  a field stops being asked for; `[data-inactive]` is the other, for a control that
-  stays where it is instead of being revealed — an amount whose position has not been
-  ticked. Both are the same predicate, `isAsked`.
+- **A field only counts once the form is actually asking for it.** Anything inside a
+  closed conditional or an inactive finance-type section is excluded, so Immobilie asks
+  for three fields more the moment Erbbaurecht is answered with *Ja*, and
+  Anschlussfinanzierung asks for nothing until that becomes the selected purpose. The
+  test is "is this inside a closed `.reveal`?" — deliberately not a visibility test,
+  which would also discount every field in a collapsed card.
+- **Collapsing a card never hides its fields from validation.** A shut card is not an
+  answered one, so submit still finds what is missing inside it and opens it.
+- **Adding the second applicant asks for the same set again**, since the copy's fields
+  are equally mandatory.
+- **A required choice group counts as one item**, answered as soon as anything is
+  picked. A radio group cannot carry `required` usefully, so the markup flags it with
+  `data-required` — and submit validates those groups too, otherwise the form could
+  report itself complete with a question untouched.
+- **A position switched off in place is excluded too.** A closed `.reveal` is one way a
+  field stops being asked for; `[data-inactive]` is the other, for a control that stays
+  where it is instead of being revealed — an amount whose position has not been ticked.
 
 ## Finanzen — the amount list
 
@@ -393,8 +390,8 @@ Neither level has a Ja/Nein in front of it. **Adding the first entry is the answ
 button says which of the two it is doing — *+ Immobilie erfassen* while the list is
 empty, *+ Weitere Immobilie erfassen* once it is not. It reads the list rather than
 counting clicks, so removing the last entry puts the question back. A gate that has
-nothing yet therefore contributes nothing to the counter, which is the point: most
-applicants own no other property, and a Ja/Nein pair would ask them to say so twice.
+nothing yet therefore asks for nothing, which is the point: most applicants own no
+other property, and a Ja/Nein pair would ask them to say so twice.
 
 The loan buttons arrive with the property they belong to, so they are **delegated**
 from `#immobilien-liste` rather than wired one by one; the enclosing `.subcard` is the
@@ -404,7 +401,7 @@ Two field decisions come from the source spec rather than from the layout:
 
 - **Nutzung reveals the rent.** *Vermietet* and *Beides* both mean there is a monthly
   income to declare, so `data-show-when="Vermietet|Beides"` asks for it; *Eigengenutzt*
-  closes it again and it drops out of the counter with everything else in a shut reveal.
+  closes it again and it stops being asked for, like everything else in a shut reveal.
 - **Darlehensgeber is an excerpt.** The real register runs to several hundred
   institutions with near-identical names, which belongs behind a type-to-filter control
   — the same one Anschlussfinanzierung's `#an-geber` is standing in for. Until that
@@ -500,15 +497,14 @@ text is not announced twice. The icon is a real focusable button with its own
 accessible name — which does add a tab stop per annotated field, worth weighing on a
 form this long.
 
-Completion is never colour alone: the fraction becomes a checkmark and the word
-*Vollständig*, and the meter is a redundant cue rather than the only one. The
-counter also carries a visually-hidden full sentence ("9 von 11 Pflichtfeldern
-ausgefüllt"), so the compact `9/11` is not what gets announced.
+The action bar's progress line is a `role="status"` live region, so "Noch 3
+Pflichtfelder offen" is announced rather than only shown — and submit moves the focus
+to the first of them, so the message and the caret always agree.
 
-Auditing this turned up 20 fields whose label showed a required asterisk while the
-control carried no `required` attribute — invisible to both the counter and
-validation. 18 were real form fields and now carry it; the two in the reference
-card were left alone deliberately.
+Auditing the required fields turned up 20 whose label showed a required asterisk while
+the control carried no `required` attribute — invisible to validation. 18 were real
+form fields and now carry it; the two in the reference card were left alone
+deliberately.
 
 Three implementation notes worth keeping:
 
@@ -525,9 +521,6 @@ Three implementation notes worth keeping:
   separate `.card-pad` inside it. With padding on the clipping element, a 32px
   strip of the collapsed content stays visible. Clipping is released once the card
   has settled, so the info tooltips are not cut off at the card edge.
-- `.card-count[hidden]` needs an explicit `display: none`, because the author-level
-  `display: flex` otherwise beats the UA's `[hidden]` rule and leaves an empty
-  meter behind.
 
 ## Deleting Antragsteller 2 or a child
 
@@ -586,7 +579,7 @@ no further work. What it leaves out is as much of the point as what it shows:
 
 - **Anything not asked for.** A closed conditional, a position whose checkbox is not
   ticked, a step switched off by the finance type (`#objekt` when no object is known),
-  and the `Feldzustände` reference section — the same `isAsked()` the counters use.
+  and the `Feldzustände` reference section — the same `isAsked()` validation uses.
 - **Anything empty.** The list is what was answered; a blank row saying nothing is
   worse than no row.
 - **The label's decoration.** The required asterisk, and the info icon whose bubble

@@ -131,10 +131,8 @@ check('the form button names the step it leads to', await evaluate(`
    pristine page, before anything here has typed into the form, so what is measured
    is the button's work alone. */
 check('Beispieldaten einfügen leaves no mandatory field open', await evaluate(`
-  (async () => {
+  (() => {
     document.querySelector('#prefill').click();
-    // die Zähler laufen im nächsten Frame, nicht im Klick
-    await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
 
     const asked = el => !el.closest('.reveal:not(.open), [data-inactive], [hidden]');
     const controls = [...document.querySelectorAll('#main .input[required], #main .select[required]')]
@@ -145,15 +143,13 @@ check('Beispieldaten einfügen leaves no mandatory field open', await evaluate(`
     return {
       openControls: controls.length,
       openGroups: groups.length,
-      allCardsComplete: [...document.querySelectorAll('#main > .card')]
-        .filter(c => c.id !== 'states').every(c => c.dataset.complete === 'true'),
       // die zwei Adressen des Versandschritts kommen mit, das Häkchen nicht
       mailsFilled: !!document.querySelector('#mail-kunde').value
         && !!document.querySelector('#mail-makler').value,
       consentUntouched: document.querySelector('#consent-broker').checked === false,
       says: document.querySelector('#prefill-status').textContent.startsWith('Beispieldaten'),
     };
-  })()`), { openControls: 0, openGroups: 0, allCardsComplete: true, mailsFilled: true,
+  })()`), { openControls: 0, openGroups: 0, mailsFilled: true,
             consentUntouched: true, says: true });
 
 check('the demo case is one coherent story, and the object is not the home address', await evaluate(`
