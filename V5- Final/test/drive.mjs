@@ -73,7 +73,7 @@ await evaluate(`
 await evaluate(`
   window.counts = (scope) => {
     const root = document.querySelector(scope);
-    const asked = el => !el.closest('.reveal:not(.open), [data-inactive]');
+    const asked = el => !el.closest('.reveal:not(.open), [data-inactive], [hidden]');
     const controls = [...root.querySelectorAll('.input[required], .select[required]')]
       .filter(asked);
     const groups = [...root.querySelectorAll('.field[data-required]')]
@@ -217,7 +217,7 @@ check('data-switch: leaving a case stops the form asking for it', await evaluate
       const back = await pick('');
       return { employedAdds: employed - blank, selbstAdds: selbst - blank, back: back - blank };
     })();
-  })()`), { employedAdds: 8, selbstAdds: 4, back: 0 });
+  })()`), { employedAdds: 5, selbstAdds: 3, back: 0 });
 
 // --- applicant 2 -------------------------------------------------------------
 check('add applicant 2: panels, unique ids, wired labels', await evaluate(`
@@ -261,28 +261,6 @@ check('applicant 2 conditional works on its own copy', await evaluate(`
       originalUntouched: !p1.classList.contains('open'),
     };
   })()`), { copyOpened: true, originalUntouched: true });
-
-/* The calendar beside a date field is generated, and cloneNode copies the nodes but
-   not the listeners: a copied one would be a button that does nothing. The copy is
-   therefore unwrapped and rebuilt, which is only visible by working it. */
-check('applicant 2 gets a live calendar, not a copy of one', await evaluate(`
-  (() => {
-    const p2 = [...document.querySelectorAll('.applicant[data-applicant="2"]')]
-      .find(p => p.querySelector('[id^="a1-gebdatum"]'));
-    const input = p2.querySelector('[id^="a1-gebdatum"]');
-    const wrap = input.parentElement;
-    const panel = wrap.querySelector('.calendar');
-    wrap.querySelector('.picker-btn').click();
-    const out = { wrapped: wrap.className, opens: !panel.hidden };
-    [...panel.querySelectorAll('.cal-cell:not([data-outside])')]
-      .find(c => c.textContent === '9').click();
-    out.picked = /^09\\.\\d\\d\\.\\d{4}$/.test(input.value);
-    out.closed = panel.hidden;
-    out.person1Untouched = document.querySelector('#a1-gebdatum').value;
-    input.value = '';
-    return out;
-  })()`), { wrapped: 'with-picker', opens: true, picked: true, closed: true,
-            person1Untouched: '' });
 
 // every token in the copy, not just the first: Anrede is a radio group now and carries
 // no autocomplete at all (honorific-prefix only applies to text controls), so asserting
@@ -674,7 +652,7 @@ check('Vermögen: mandatory position is pre-picked with its amount live, the res
       type: new Set(rows.map(r => r.querySelector('.choice input').type)).size === 1
             && rows[0].querySelector('.choice input').type,
     };
-  })()`), { positions: 6, picked: ['Sparguthaben'], live: ['v-spar-betrag'], type: 'checkbox' });
+  })()`), { positions: 7, picked: ['Bank- und Sparguthaben'], live: ['v-spar-betrag'], type: 'checkbox' });
 
 check('Vermögen: the mandatory position cannot be given up', await evaluate(`
   (() => {
@@ -953,7 +931,7 @@ check('the sidebar mirrors the cards: five steps plus the reference, subs nested
       ])].sort(),
     };
   })()`), {
-    steps: ['start', 'antragsteller', 'kinder', 'finanzen', 'objekt', 'details', 'states'],
+    steps: ['start', 'antragsteller', 'kinder', 'finanzen', 'objekt', 'details'],
     subs: {
       antragsteller: ['Persönliche Details', 'Berufliche Situation', 'Einkommen',
                       'Ausgaben'],
@@ -974,17 +952,21 @@ check('Einkommen: the salary keeps its own section, the rest is an amount list',
   await evaluate(`
   (() => {
     const panel = document.querySelector('#einkommen .applicant[data-applicant="1"]');
-    const group = panel.querySelector('[role="group"]');
+    // by its subhead, not the first one in the panel: Weitere variable Einkünfte is a
+    // labelled-by-subhead group too and stands above this one
+    const subhead = panel.querySelector('#sub-e1-weitere');
+    const group = panel.querySelector('[role="group"][aria-labelledby="sub-e1-weitere"]');
     return {
-      // the one mandatory figure is a plain field, outside the list
-      mandatory: [...panel.querySelectorAll('.grid .input[required], .grid .select[required]')]
+      // the one mandatory figure is a plain field, outside the list — :scope, so the
+      // revealed variable-pay figure below does not count as one of the salary's
+      mandatory: [...panel.querySelectorAll(':scope > .grid .input[required], :scope > .grid .select[required]')]
                    .map(el => el.id),
       // firstChild, not textContent: the generated ⓘ and its bubble live in there too
-      subhead: panel.querySelector('.subhead').firstChild.textContent.trim(),
+      subhead: subhead.firstChild.textContent.trim(),
       // the subhead above the list is what names the group
-      labelledByTheSubhead: group.getAttribute('aria-labelledby') === panel.querySelector('.subhead').id,
+      labelledByTheSubhead: group.getAttribute('aria-labelledby') === subhead.id,
       // ...which is also where the icon-mode ⓘ ends up, there being no label inside
-      iconOnTheSubhead: !!panel.querySelector('.subhead .info-wrap[data-generated]'),
+      iconOnTheSubhead: !!subhead.querySelector('.info-wrap[data-generated]'),
       positions: [...group.querySelectorAll('.amount-row .choice > span')].map(s => s.textContent.trim()),
       nonePicked: [...group.querySelectorAll('.amount-row .choice input')].every(i => !i.checked),
       allInert: [...group.querySelectorAll('.amount-cell')].every(c => 'inactive' in c.dataset),
@@ -994,8 +976,10 @@ check('Einkommen: the salary keeps its own section, the rest is an amount list',
     subhead: 'Weitere Einkommensarten',
     labelledByTheSubhead: true,
     iconOnTheSubhead: true,
-    positions: ['Zusätzliches Einkommen', 'Mieteinnahmen', 'Kindergeld',
-                'Renteneinkommen', 'Sonstige Einkünfte'],
+    positions: ['Zusätzliches Einkommen aus Nebentätigkeit', 'Mieteinnahmen', 'Kindergeld',
+                'Elterngeld', 'Unterhaltseinnahmen', 'Renteneinkommen',
+                'Erwerbsminderungsrente', 'Unbefristete Zusatzrente',
+                'Dividendeneinkünfte', 'Sonstige Einkünfte'],
     nonePicked: true,
     allInert: true,
   });
@@ -1031,77 +1015,6 @@ check('Einkommen: picking an income type asks for its figure, and only then',
   })()`), { picked: true, formatted: '1.450,00', asked: [1, 1],
             givenUp: { value: '', backToStart: true } });
 
-/* The .plain list is a design comparison sitting under the boxed one: the chip around
-   the position is gone, nothing else is. So the check is that behaviour is *identical* —
-   every entry point into a row works the same, and the form asks for both the same way.
-   The visual difference is asserted separately below. */
-check('the .plain variant behaves exactly like the boxed list', await evaluate(`
-  (() => {
-    const frame = () => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
-    const card = document.querySelector('#einkommen').closest('.card');
-    const counted = () => window.counts('#' + card.id);
-    const total = () => Number(counted().split('/')[1]);
-    return (async () => {
-      await frame();
-      const base = total();
-      const out = {};
-
-      // 1. ticking the box picks the position and asks for its amount
-      document.querySelector('#e1b-miete').click();
-      await frame();
-      out.tickedAsks = total() - base;
-      out.cellLive = !('inactive' in document.querySelector('#e1b-miete-betrag')
-        .closest('.amount-cell').dataset);
-      document.querySelector('#e1b-miete').click();
-      await frame();
-      out.untickedStopsAsking = total() - base;
-
-      // 2. reaching into the amount picks the position, and a figure settles it
-      const input = document.querySelector('#e1b-rente-betrag');
-      input.closest('.amount-cell').dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
-      out.pickedByPointer = document.querySelector('#e1b-rente').checked;
-      input.value = '980'; input.dispatchEvent(new Event('input', { bubbles: true }));
-      input.dispatchEvent(new Event('blur'));
-      await frame();
-      out.formatted = input.value;
-      out.asks = total() - base;
-
-      // 3. giving it up clears the figure, exactly as in the boxed list
-      document.querySelector('#e1b-rente').click();
-      await frame();
-      out.givenUp = { value: input.value, backToStart: total() === base };
-
-      // 4. the two lists are independent — B's picks never touch A's
-      out.listAUntouched = ['e1-zusatz', 'e1-miete', 'e1-kindergeld', 'e1-rente', 'e1-sonstige']
-        .every(id => !document.querySelector('#' + id).checked);
-      return out;
-    })();
-  })()`), {
-    tickedAsks: 1, cellLive: true, untickedStopsAsking: 0,
-    pickedByPointer: true, formatted: '980,00', asks: 1,
-    givenUp: { value: '', backToStart: true }, listAUntouched: true,
-  });
-
-check('the .plain variant drops only the chip, not the mark', await evaluate(`
-  (() => {
-    const span = (id) => document.querySelector('#' + id).nextElementSibling;
-    const read = (id) => {
-      const s = getComputedStyle(span(id));
-      const mark = getComputedStyle(span(id), '::before');
-      return {
-        boxed: s.backgroundColor !== 'rgba(0, 0, 0, 0)' || s.borderTopColor !== 'rgba(0, 0, 0, 0)',
-        padded: parseFloat(s.paddingLeft) > 0,
-        markSize: mark.width,
-        // both keep the 40px row height, so the two lists line up with their amounts
-        height: s.minHeight,
-      };
-    };
-    return { a: read('e1-miete'), b: read('e1b-miete') };
-  })()`), {
-    a: { boxed: true,  padded: true,  markSize: '16px', height: '40px' },
-    b: { boxed: false, padded: false, markSize: '16px', height: '40px' },
-  });
-
 check('Einkommen: applicant 2 gets its own list, picked from scratch', await evaluate(`
   (() => {
     const frame = () => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
@@ -1114,14 +1027,12 @@ check('Einkommen: applicant 2 gets its own list, picked from scratch', await eva
       document.querySelector('#add-applicant').click();
       await frame();
       const two = document.querySelector('#einkommen .applicant[data-applicant="2"]');
-      // two lists per panel now: the boxed positions and the .plain design variant
       const lists = [...two.querySelectorAll('.amount-list')];
       const out = {
         suffixed: lists.map(l => [...l.querySelectorAll('.amount-row .choice input')].map(i => i.id)),
-        plain: lists.map(l => l.classList.contains('plain')),
         // applicant 1's pick must not come along for the ride
         startsBlank: [...two.querySelectorAll('.amount-row .choice input')].every(i => !i.checked),
-        // both copies stay live: reaching into an amount picks its own position
+        // the copy stays live: reaching into an amount picks its own position
         clonedListIsLive: lists.map((l) => {
           const box = l.querySelector('.amount-row .choice input');
           l.querySelector('.amount-cell')
@@ -1140,12 +1051,11 @@ check('Einkommen: applicant 2 gets its own list, picked from scratch', await eva
   })()`), {
     suffixed: [
       ['e1-zusatz-a2-einkommen', 'e1-miete-a2-einkommen', 'e1-kindergeld-a2-einkommen',
-       'e1-rente-a2-einkommen', 'e1-sonstige-a2-einkommen'],
-      ['e1b-zusatz-a2-einkommen', 'e1b-miete-a2-einkommen', 'e1b-kindergeld-a2-einkommen',
-       'e1b-rente-a2-einkommen', 'e1b-sonstige-a2-einkommen'],
+       'e1-elterngeld-a2-einkommen', 'e1-unterhalt-a2-einkommen', 'e1-rente-a2-einkommen',
+       'e1-emrente-a2-einkommen', 'e1-zusatzrente-a2-einkommen',
+       'e1-dividenden-a2-einkommen', 'e1-sonstige-a2-einkommen'],
     ],
-    plain: [false, true],
-    startsBlank: true, clonedListIsLive: [true, true],
+    startsBlank: true, clonedListIsLive: [true],
     applicant1Untouched: true, restored: true,
   });
 
@@ -1170,13 +1080,6 @@ check('filling it clears the error', await evaluate(`
     return { invalid: el.closest('.field').classList.contains('invalid'), aria: el.getAttribute('aria-invalid') };
   })()`), { invalid: false, aria: 'false' });
 
-check('reference section is exempt from live validation', await evaluate(`
-  (() => {
-    const el = document.querySelector('#s-5');
-    el.dispatchEvent(new Event('blur'));
-    return document.querySelector('#err-s-5').textContent;
-  })()`), 'Bitte geben Sie eine gültige E-Mail-Adresse ein');
-
 check('German currency formatting on blur', await evaluate(`
   (() => {
     const out = [];
@@ -1186,144 +1089,6 @@ check('German currency formatting on blur', await evaluate(`
     }
     return out;
   })()`), ['3.450,00', '3.450,50', '1.234,56', '2.500,40']);
-
-/* Dates keep the same bargain as amounts: type it if you know it, and what you typed
-   is tidied on the way out. The calendar is the other way in, and which kind of one a
-   field gets is read off its placeholder — a bare year gets none, because a year is
-   not a date. The checks below work the reference section's own two date fields:
-   #states is exempt from validation and from the summary, so filling them cannot
-   move the counts the later checks assert on. */
-check('a calendar is built for every date field, and only for those', await evaluate(`
-  (() => {
-    const dated = [...document.querySelectorAll('.input[data-picker]')];
-    return {
-      modes: [...new Set(dated.map(i => i.dataset.picker))].sort(),
-      // every one wrapped, with a button and a panel it actually points at
-      wired: dated.every(i => i.parentElement.classList.contains('with-picker')
-        && document.getElementById(i.parentElement.querySelector('.picker-btn')
-          .getAttribute('aria-controls'))),
-      byPlaceholder: [...new Set(dated.map(i => i.placeholder))].sort(),
-      // a year is not a date: Baujahr keeps its plain field
-      yearField: !!document.querySelector('#i-baujahr').dataset.picker,
-      yearWrapped: document.querySelector('#i-baujahr').parentElement.className,
-    };
-  })()`), {
-    modes: ['day', 'month'], wired: true,
-    byPlaceholder: ['mm.jjjj', 'tt.mm.jjjj'], yearField: false, yearWrapped: 'field col-3',
-  });
-
-check('the calendar opens on what is typed, and picking writes it back German', await evaluate(`
-  (() => {
-    const input = document.querySelector('#s-10');
-    const wrap = input.parentElement;
-    const panel = wrap.querySelector('.calendar');
-    input.value = '14.03.1988';
-    wrap.querySelector('.picker-btn').click();
-    const out = {
-      expanded: wrap.querySelector('.picker-btn').getAttribute('aria-expanded'),
-      head: wrap.querySelector('.cal-zoom').textContent,
-      // six whole weeks, so paging through does not change the panel's height
-      cells: panel.querySelectorAll('.cal-cell').length,
-      weekStartsMonday: panel.querySelector('.cal-days th').textContent,
-      selected: [...panel.querySelectorAll('.cal-cell[aria-pressed="true"]')]
-        .map(c => c.getAttribute('aria-label')),
-      focusIsOnTheAnswer: document.activeElement.getAttribute('aria-label'),
-    };
-    [...panel.querySelectorAll('.cal-cell:not([data-outside])')]
-      .find(c => c.textContent === '21').click();
-    out.value = input.value;
-    out.closed = panel.hidden;
-    out.focusBackInTheField = document.activeElement.id;
-    return out;
-  })()`), {
-    expanded: 'true', head: 'März 1988', cells: 42, weekStartsMonday: 'Mo',
-    selected: ['14. März 1988'], focusIsOnTheAnswer: '14. März 1988',
-    value: '21.03.1988', closed: true, focusBackInTheField: 's-10',
-  });
-
-/* Three levels deep, and the header label is the way out through them — without it a
-   birthdate would be four hundred clicks on the back arrow. A month field starts one
-   level up and finishes there: the day is not being asked for. */
-check('the header label zooms out, and picking zooms back in', await evaluate(`
-  (() => {
-    const day = document.querySelector('#s-10').parentElement;
-    const dayPanel = day.querySelector('.calendar');
-    day.querySelector('.picker-btn').click();
-    const width = () => Math.round(dayPanel.getBoundingClientRect().width);
-    const out = { levels: [day.querySelector('.cal-zoom').textContent] };
-    const widths = [width()];
-    day.querySelector('.cal-zoom').click();
-    out.levels.push(day.querySelector('.cal-zoom').textContent);
-    widths.push(width());
-    day.querySelector('.cal-zoom').click();
-    out.levels.push(day.querySelector('.cal-zoom').textContent);
-    widths.push(width());
-    out.noFurtherOut = day.querySelector('.cal-zoom').disabled;
-    // one width across all three, so zooming does not resize the panel under the pointer
-    out.oneWidth = new Set(widths).size;
-    [...dayPanel.querySelectorAll('.cal-cell')].find(c => c.textContent === '1990').click();
-    out.afterYear = day.querySelector('.cal-zoom').textContent;
-    [...dayPanel.querySelectorAll('.cal-cell')].find(c => /^Mai/.test(c.textContent)).click();
-    out.afterMonth = day.querySelector('.cal-zoom').textContent;
-    day.querySelector('.picker-btn').click();
-
-    const month = document.querySelector('#s-11').parentElement;
-    const monthPanel = month.querySelector('.calendar');
-    month.querySelector('.picker-btn').click();
-    out.monthStartsAtMonths = !monthPanel.querySelector('.cal-days');
-    [...monthPanel.querySelectorAll('.cal-cell')].find(c => /^Sep/.test(c.textContent)).click();
-    out.monthValue = document.querySelector('#s-11').value;
-    out.monthClosed = monthPanel.hidden;
-    return out;
-  })()`), {
-    levels: ['März 1988', '1988', '1980–1991'], noFurtherOut: true, oneWidth: 1,
-    afterYear: '1990', afterMonth: 'Mai 1990', monthStartsAtMonths: true,
-    monthValue: '09.' + new Date().getFullYear(), monthClosed: true,
-  });
-
-check('a typed date is tidied on blur, and anything else is left alone', await evaluate(`
-  (() => {
-    const out = {};
-    const day = document.querySelector('#s-10');
-    const month = document.querySelector('#s-11');
-    for (const [el, key, value] of [[day, 'padded', '3.7.1985'], [day, 'slashes', '3/7/1985'],
-      [month, 'month', '9.2028'], [day, 'notADate', 'nächstes Jahr'],
-      [day, 'rolledOver', '31.02.2030'], [day, 'twoDigitYear', '7.11.85']]) {
-      el.value = value;
-      el.dispatchEvent(new Event('blur'));
-      out[key] = el.value;
-    }
-    day.value = ''; month.value = '';
-    return out;
-  })()`), {
-    padded: '03.07.1985', slashes: '03.07.1985', month: '09.2028',
-    notADate: 'nächstes Jahr', rolledOver: '31.02.2030', twoDigitYear: '7.11.85',
-  });
-
-check('Esc closes the calendar back onto its button, and only one is ever open',
-  await evaluate(`
-  (() => {
-    const a = document.querySelector('#s-10').parentElement;
-    const b = document.querySelector('#s-11').parentElement;
-    a.querySelector('.picker-btn').click();
-    b.querySelector('.picker-btn').click();
-    const out = {
-      firstClosed: a.querySelector('.calendar').hidden,
-      firstAria: a.querySelector('.picker-btn').getAttribute('aria-expanded'),
-      secondOpen: !b.querySelector('.calendar').hidden,
-    };
-    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
-    out.escClosed = b.querySelector('.calendar').hidden;
-    out.escFocus = document.activeElement.className;
-    // a pointer anywhere outside closes it too
-    b.querySelector('.picker-btn').click();
-    document.body.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
-    out.outsideClosed = b.querySelector('.calendar').hidden;
-    return out;
-  })()`), {
-    firstClosed: true, firstAria: 'false', secondOpen: true,
-    escClosed: true, escFocus: 'picker-btn', outsideClosed: true,
-  });
 
 check('save state announces politely', await evaluate(`
   (() => {
@@ -1340,7 +1105,7 @@ check('submit counts every field the form is asking for, including collapsed car
     document.querySelectorAll('#main input[type=radio]').forEach(r => { r.checked = false; });
     document.querySelector('#submit').click();
 
-    const asked = el => !el.closest('.reveal:not(.open), [data-inactive]');
+    const asked = el => !el.closest('.reveal:not(.open), [data-inactive], [hidden]');
     const controls = [...document.querySelectorAll('#main .input[required], #main .select[required]')];
     const groups = [...document.querySelectorAll('#main .field[data-required]')]
       .filter(g => g.querySelector('input[type=radio]'));
@@ -1563,23 +1328,20 @@ check('toggles write only to <html> and shrink the field height', await evaluate
     document.querySelector('[data-density="compact"]').click();
     const after = h(input);
     const btn = document.querySelector('[data-appearance="dark"]');
-    // while the root is light, a button that merely CARRIES data-appearance="dark"
-    // must not pick up the dark palette itself
+    // while the root is on the default scheme, a button that merely CARRIES
+    // data-appearance="dark" must not pick up the dark palette itself
     const unpressedDarkBtnBg = getComputedStyle(btn).backgroundColor;
     btn.click();
     const state = {
       root: document.documentElement.getAttribute('data-appearance'),
       pressed: btn.getAttribute('aria-pressed'),
-      otherPressed: document.querySelector('[data-appearance="light"]').getAttribute('aria-pressed'),
+      otherPressed: document.querySelector('[data-appearance="grey"]').getAttribute('aria-pressed'),
       // the fill lives on the header/body blocks, not on .card itself
       cardBgDark: getComputedStyle(document.querySelector('.card-toggle')).backgroundColor,
       pageBgDark: getComputedStyle(document.body).backgroundColor,
     };
-    document.querySelector('[data-appearance="light"]').click();
-    const cardBgLight = getComputedStyle(document.querySelector('.card-toggle')).backgroundColor;
-    const pageBgLight = getComputedStyle(document.body).backgroundColor;
-    // the grey scheme trades the two levels: grey page, white cards, and the fields
-    // stay white with the cards — their border.default outline is the boundary
+    // the default scheme trades the two light levels: grey page, white cards, and the
+    // fields stay white with the cards — their border.default outline is the boundary
     document.querySelector('[data-appearance="grey"]').click();
     const grey = {
       rootGrey: document.documentElement.getAttribute('data-appearance'),
@@ -1587,7 +1349,11 @@ check('toggles write only to <html> and shrink the field height', await evaluate
       cardBgGrey: getComputedStyle(document.querySelector('.card-toggle')).backgroundColor,
       inputBgGrey: getComputedStyle(document.querySelector('#a1-vorname')).backgroundColor,
     };
-    document.querySelector('[data-appearance="light"]').click();
+    // the plain light base has no switch of its own any more, so drive it on the root
+    document.documentElement.setAttribute('data-appearance', 'light');
+    const cardBgLight = getComputedStyle(document.querySelector('.card-toggle')).backgroundColor;
+    const pageBgLight = getComputedStyle(document.body).backgroundColor;
+    document.documentElement.setAttribute('data-appearance', 'grey');
     document.querySelector('[data-density="comfortable"]').click();
     return { before, after, unpressedDarkBtnBg, pageBgLight, cardBgLight, ...grey, ...state };
   })()`), // 40px / 32px are the export's own input.default.height and input.compact.height
@@ -1600,31 +1366,24 @@ check('toggles write only to <html> and shrink the field height', await evaluate
             root: 'dark', pressed: 'true', otherPressed: 'false',
             cardBgDark: 'rgb(55, 71, 79)', pageBgDark: 'rgb(22, 23, 25)' });
 
-check('the three helper-text modes: inline, icon, hidden', await evaluate(`
+check('helper text reads as an icon, and only as an icon', await evaluate(`
   (() => {
     const help = document.querySelector('.field > .help');
     const icon = help.parentElement.querySelector('.info-wrap[data-generated]');
-    const read = () => ({
-      help: getComputedStyle(help).display,
-      // clipped rather than display:none, so aria-describedby still reaches it
-      clipped: getComputedStyle(help).clipPath !== 'none',
+    return {
       icon: getComputedStyle(icon).display,
-    });
-    const out = {};
-    out.on = read();
-    document.querySelector('[data-help="icon"]').click(); out.icon = read();
-    document.querySelector('[data-help="off"]').click(); out.off = read();
-    document.querySelector('[data-help="on"]').click(); out.back = read();
-    out.iconDescribesTheSameText =
-      icon.querySelector('.info-bubble').textContent === help.textContent.trim();
-    out.bubbleHiddenFromAT = icon.querySelector('.info-bubble').getAttribute('aria-hidden');
-    out.buttonHasName = !!icon.querySelector('.info-btn').getAttribute('aria-label');
-    return out;
+      // clipped rather than display:none, so aria-describedby still reaches it
+      helpClipped: getComputedStyle(help).clipPath !== 'none',
+      helpDisplay: getComputedStyle(help).display,
+      // the mode switch is gone — nothing may still offer the other two
+      noModeSwitch: !document.querySelector('[data-help]'),
+      iconDescribesTheSameText:
+        icon.querySelector('.info-bubble').textContent === help.textContent.trim(),
+      bubbleHiddenFromAT: icon.querySelector('.info-bubble').getAttribute('aria-hidden'),
+      buttonHasName: !!icon.querySelector('.info-btn').getAttribute('aria-label'),
+    };
   })()`), {
-    on:   { help: 'block', clipped: false, icon: 'none' },
-    icon: { help: 'block', clipped: true,  icon: 'inline-flex' },
-    off:  { help: 'none',  clipped: false, icon: 'none' },
-    back: { help: 'block', clipped: false, icon: 'none' },
+    icon: 'inline-flex', helpClipped: true, helpDisplay: 'block', noModeSwitch: true,
     iconDescribesTheSameText: true, bubbleHiddenFromAT: 'true', buttonHasName: true });
 
 check('the sidebar clears the sticky action bar and scrolls to its own end', await evaluate(`

@@ -23,7 +23,7 @@ v4/
   app.js
   prefill.js                Prototyp-Hilfe: Beispieldaten für die Strecke
   test/drive.mjs            browser-driven behaviour checks (see the file header)
-  test/drive-senden.mjs     the same, for the send step (summary -> e-mail addresses -> sent)
+  test/drive-senden.mjs     the same, for the send step (summary -> consent -> sent)
 ```
 
 Regenerate the CSS after editing anything in `tokens/`:
@@ -98,10 +98,12 @@ read as *on the base level* (inputs, nested panels, the action bar) uses
 card fill collides with `background.hover` (`neutral.100`) exactly, so the card
 header's own hover has to step one further, to `background.active`.
 
-Because both levels are aliases, a third scheme costs three declarations:
+Because both levels are aliases, a further scheme costs three declarations:
 `data-appearance="grey"` keeps the light palette but trades them — the page carries
-the grey and the cards are white. It is a sibling of Hell and Dunkel in the
-**Erscheinungsbild** toggle.
+the grey and the cards are white. That is the scheme `<html>` starts on, and it is
+the **Default** half of the **Erscheinungsbild** toggle, opposite **Dunkel**; the
+plain light base still exists as the token layer underneath it, but it no longer has
+a switch of its own.
 
 The third declaration is `--field-bg`, split out of `--page-bg` so the interior of a
 control can part company with the page level: in the grey scheme the fields stay
@@ -271,10 +273,6 @@ with no basis in the token system. V4 replaces that with the real token layers,
 which is why it has no branding switcher and gains a light/dark switch instead.
 The two do not share CSS.
 
-The `Feldzustände` section at the bottom of the page renders every field state side
-by side for comparison against the design mockup. It is excluded from live
-validation and from the summary, and is not part of the form.
-
 ## The section cards
 
 The form has **six steps**, and only those six are cards:
@@ -290,8 +288,7 @@ The form has **six steps**, and only those six are cards:
 
 Each is a collapsible card: a chevron and one heading, nothing else. Only
 **Finanzbedarf** is expanded on load, so the page opens as an overview of what the form
-is going to ask for — seven rows, six of them the form and one the `Feldzustände`
-reference at the bottom.
+is going to ask for — six rows, one per step.
 
 An earlier version put a Pflichtfeld counter in every header (`4/6`, a meter, `✓
 Vollständig`). It is gone: the headers are quiet now, and *how far along am I* is
@@ -370,9 +367,11 @@ the summary's read-back, so those three can never disagree:
 **Vermögen** is a list of positions, each of which asks for a figure once it is
 picked. **Einkommen** uses the same list for everything past the salary, under a
 *Weitere Einkommensarten* subhead: the monthly net income is the one mandatory figure
-and keeps its own section, while Zusätzliches Einkommen, Mieteinnahmen, Kindergeld,
-Renteneinkommen and Sonstige Einkünfte are positions — most applicants have none of
-them, and five permanently empty fields ask five questions where a list asks one.
+and keeps its own section, while the ten further income types — Nebentätigkeit,
+Mieteinnahmen, Kindergeld, Elterngeld, Unterhaltseinnahmen, Renteneinkommen,
+Erwerbsminderungsrente, Unbefristete Zusatzrente, Dividendeneinkünfte and Sonstige
+Einkünfte — are positions: most applicants have none of them, and ten permanently
+empty fields ask ten questions where a list asks one.
 It is per applicant there, so the list is cloned for Antragsteller 2 like the rest of
 the panel.
 
@@ -384,13 +383,17 @@ nested, because a charge in Abteilung III of the Grundbuch belongs to the object
 registered on and not to the household — two properties with one loan each cannot be
 expressed by a single flat list of loans.
 
-Neither level has a Ja/Nein in front of it. **Adding the first entry is the answer**:
-`.gate-row` puts the question and the button that answers it on one line, and the
-button says which of the two it is doing — *+ Immobilie erfassen* while the list is
-empty, *+ Weitere Immobilie erfassen* once it is not. It reads the list rather than
-counting clicks, so removing the last entry puts the question back. A gate that has
-nothing yet therefore asks for nothing, which is the point: most applicants own no
-other property, and a Ja/Nein pair would ask them to say so twice.
+The outer level sits behind a **Ja/Nein gate**, the same shape as Verbindlichkeiten:
+*Sind Immobilien vorhanden?* opens a reveal holding the list and the add button.
+Answering *Ja* is already the statement that there is a property, so the first card
+comes with the answer and the button sits **under** it — only while the list is empty,
+so reopening the gate does not discard what was typed. The button still says which of
+the two it is doing (*+ Immobilie erfassen* / *+ Weitere Immobilie erfassen*), read
+off the list rather than off a click count, because removing the last card leaves the
+gate open with an empty list.
+
+The inner level has no gate: on a property that is already there, `.gate-row` puts the
+Abteilung-III question and the button that answers it on one line.
 
 The loan buttons arrive with the property they belong to, so they are **delegated**
 from `#immobilien-liste` rather than wired one by one; the enclosing `.subcard` is the
@@ -475,64 +478,18 @@ Vermögen is household-level, not per applicant — a Selbstauskunft asks for th
 brought into the financing as one pot, and Eigenkapital only means anything as a
 household figure.
 
-## Dates: a text field with a calendar in it
+## Helper text is an icon
 
-Every date in the form is a **text field first**. An adviser filling in a birthdate
-types `14.03.1988` faster than any calendar can be clicked through, and `tt.mm.jjjj` is
-the form the placeholder promises. The calendar is the **second** way in, not a
-replacement — hence a button inside the field rather than a different control.
-
-Which kind of date a field is asking for is read off that placeholder, so a date in a
-repeatable template gets a calendar without anything being wired by hand
-(`buildDatePickers`):
-
-| Placeholder | What opens |
-|---|---|
-| `tt.mm.jjjj` | Day grid, with the month and year grids behind it |
-| `mm.jjjj` | Month grid, with the year grid behind it |
-| `jjjj` | **Nothing.** A year is not a date, and a calendar that can only pick one is a worse way to type four digits — *Baujahr* keeps its plain field |
-
-Deliberately **not** `<input type="date">`: the native picker brings its own field with
-it — segments in the browser's order, its own placeholder, a value in ISO and a control
-the design system has no say over — and the field, not the popup, is what this form is
-documenting.
-
-- **Three levels, and the header label is the way out through them.** *März 1988* zooms
-  to that year's months, and those to a run of twelve years. Without it a birthdate is
-  four hundred clicks on the back arrow. Picking at a level that is not the answer zooms
-  back in one step instead of filling the field. A month field starts one level up and
-  finishes there — the day is not being asked for.
-- **Today is an edge, the answer is a fill.** Two different things, so two different
-  marks (`aria-current="date"` and `aria-pressed`), each readable without the other.
-- **Six whole weeks, always**, with the days either side of the month dimmed rather than
-  blank: the panel keeps one height as it is paged, and the week a month starts in is a
-  real week. All three levels share one width, so zooming does not resize the panel
-  under the pointer.
-- **What is typed is tidied on the way out**, the way an amount is: `3.7.1985` becomes
-  `03.07.1985`. Anything that is not a date — including `31.02.` — is left exactly as it
-  was; saying so is validation's job, not the picker's.
-- **Keyboard throughout.** `Alt+↓` opens it from the field, arrows walk the grid and page
-  into the neighbouring month when they run off an edge, `Home`/`End` stay in the row,
-  `PageUp`/`PageDown` page, `Esc` closes it back onto its button. The grid is one stop in
-  the tab order, not forty-two.
-- **It escapes the card** only because an open card releases its overflow clipping once
-  it has settled — the same thing the help tooltip depends on. It sits left-aligned under
-  the field and flips to the right edge when it would otherwise leave the window.
-
-## Helper text has three modes
-
-The sidebar's **Hilfetexte** switch now has three settings, since the same guidance
-suits a broker and a client differently:
-
-| Mode | Behaviour |
-|---|---|
-| `Ein` | inline under the label — the default, best while learning the form |
-| `Icon` | collapsed into a small info icon beside the label, shown on hover or keyboard focus |
-| `Aus` | hidden outright, for a client-facing view |
+Helper text sits in a small info icon beside the label, shown on hover or keyboard
+focus. V5 briefly carried a **Hilfetexte** switch offering three modes — inline,
+icon, and off — on the theory that the same guidance suits a broker and a client
+differently. It is gone: reading the form, the modes did not tell apart clearly
+enough to be worth the choice, so the icon is the one form and the switch no longer
+appears in the sidebar.
 
 The icon and its tooltip are built at hydration from the helper paragraphs
 themselves, so there is one source of wording and cloned applicant panels and
-template rows get them too. In `Icon` mode the paragraph is **visually hidden but
+template rows get them too. The paragraph is **visually hidden but
 left in the DOM** rather than `display: none`, because the field's
 `aria-describedby` points at it and `display: none` would drop it from the
 accessibility tree; the bubble is a visual duplicate and is `aria-hidden`, so the
@@ -621,8 +578,8 @@ field, answer from the control. A field added to the form therefore appears here
 no further work. What it leaves out is as much of the point as what it shows:
 
 - **Anything not asked for.** A closed conditional, a position whose checkbox is not
-  ticked, a step switched off by the finance type (`#objekt` when no object is known),
-  and the `Feldzustände` reference section — the same `isAsked()` validation uses.
+  ticked, and a step switched off by the finance type (`#objekt` when no object is
+  known) — the same `isAsked()` validation uses.
 - **Anything empty.** The list is what was answered; a blank row saying nothing is
   worse than no row.
 - **The label's decoration.** The required asterisk, and the info icon whose bubble
@@ -642,29 +599,26 @@ The summary is rebuilt on every entry, so no answer can go stale between the two
 
 ### The consent, and what the customer has to do
 
-The consent is not something the broker asserts — it is collected from the customer.
-The card said both at once for a while: a checkbox claiming the consent already
-existed, and directly under it a note promising to go and ask for it by e-mail. Only
-one of those can be true, so the checkbox is gone. What is left is the thing that is
-actually needed to ask.
+Two things are asked for before sending, both required:
 
-**Two e-mail addresses**, both required: the customer's, which is where the request for
-their consent goes, and the broker's, which is where the reference ID goes. Neither is
-collected anywhere in the form, so both are asked for here. They sit above the note
-that explains them, because the address is the ask and the note is the explanation —
-a short sentence over the fields says the consent comes from the customer, that we ask
-automatically, and that the address is all we need.
+- **The broker's confirmation** that the customer's consent to transmit the data to
+  the advisor exists — a checkbox with no chip around it (`.choice.plain`), because a
+  consent is a sentence and the label has to be allowed to wrap. The mark stays on the
+  first line rather than centring itself over the paragraph (`--choice-mark-offset`).
+- **Two e-mail addresses**: the customer's, which is where the request for their own
+  confirmation goes, and the broker's, which is where the reference ID goes. Neither is
+  collected anywhere in the form, so both are asked for here.
 
-Below the fields, an info note says plainly that the customer receives an e-mail with a
-confirmation link, that the consent is complete when they click it, and that nobody has
-to chase it. Directly above the send button — not at the top of the page, where it
-would be forgotten by the time it matters — a warning note says that after sending the
-form cannot be opened or corrected any more.
+Next to the checkbox, an info note says plainly that the customer receives an e-mail
+with a confirmation link and that the consent is only complete once they click it, and
+that nobody has to chase it. Directly above the send button — not at the top of the
+page, where it would be forgotten by the time it matters — a warning note says that
+after sending the form cannot be opened or corrected any more.
 
 The send button is **never disabled**. It validates on click and shows what is missing,
 the same way the form's own submit does: a disabled button announces nothing and
-explains nothing. Both checks run at once, so someone who has to fix something sees
-everything that is missing rather than one item at a time.
+explains nothing. All three checks run at once, so someone who has to fix something
+sees everything that is missing rather than one item at a time.
 
 ### Sent means gone
 
@@ -714,8 +668,8 @@ wie bei Handeingabe. Die Datei kann ersatzlos entfernt werden.
 Vier Regeln machen den Unterschied zwischen einer Befüllung und einem Datenmüllhaufen:
 
 - **Nur, wonach gefragt wird.** Ein Feld in einem geschlossenen Zweig, eine Position,
-  die nicht angehakt ist, die Objektkarte, die es zum gewählten Zweck nicht gibt, und
-  der `Feldzustände`-Abschnitt bleiben leer — dieselbe Regel wie `isAsked()`.
+  die nicht angehakt ist, und die Objektkarte, die es zum gewählten Zweck nicht gibt,
+  bleiben leer — dieselbe Regel wie `isAsked()`.
 - **Nur, was leer ist.** Eigene Eingaben werden nicht überschrieben. Einzige Ausnahme
   ist der Darlehensbetrag, der mit `0,00` startet und damit nichts sagt.
 - **Freiwillige Felder nur mit Eintrag im Katalog.** Ein Pflichtfeld ohne bekannte

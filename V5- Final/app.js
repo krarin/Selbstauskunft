@@ -101,7 +101,6 @@
     wireAmountRows(root);
     wireRemovers(root);
     wireCurrency(root);
-    wireUnitPickers(root);
     buildDatePickers(root);
   }
 
@@ -122,10 +121,10 @@
     });
   }
 
-  /* Every helper text also gets an icon + tooltip built next to its label, for the
-     "Icon" helper-text mode. The paragraph itself stays put — it is what the field's
-     aria-describedby points at — and the bubble is a visual duplicate, so it is
-     hidden from the accessibility tree to avoid reading the same text twice. */
+  /* Every helper text is shown as an icon + tooltip next to its label. The paragraph
+     itself stays put — it is what the field's aria-describedby points at — and the
+     bubble is a visual duplicate, so it is hidden from the accessibility tree to
+     avoid reading the same text twice. */
   function buildHelpIcons(root) {
     $$('.field > .help', root).forEach((help) => {
       const field = help.parentElement;
@@ -248,20 +247,52 @@
      clears it, or an amount nobody claims any more would still be submitted.
      `data-inactive` on the cell is the single hook the counter and the submit check
      read — see isAsked. */
+  /* Some positions have more to say than a figure — which Bausparkasse, what the
+     contract is worth, when it falls due. Those carry a .amount-detail reveal right
+     after their row, and it follows the same toggle: picked shows the details, given
+     up hides them and empties them, exactly as the amount behaves. Optional, so a
+     row without one is unchanged. */
+  const detailOf = (row) => {
+    const next = row.nextElementSibling;
+    return next && next.classList.contains('amount-detail') ? next : null;
+  };
+
+  /* Usually one cell, the amount. A position the figure alone does not answer carries
+     a second one beside it — Nebentätigkeit also asks when it started — and it is the
+     same deal: it follows the toggle, and it is emptied when the position is given up.
+     The first cell stays the amount, so what takes the caret does not move. */
+  const cellsOf = (row) => $$(':scope > .amount-cell', row);
+
   function syncAmountRow(row) {
     const toggle = row.querySelector(':scope > .choice > input');
-    const cell = row.querySelector(':scope > .amount-cell');
-    const input = cell.querySelector('.input');
+    const cells = cellsOf(row);
+    const detail = detailOf(row);
 
     if (toggle.checked) {
-      delete cell.dataset.inactive;
+      cells.forEach((cell) => { delete cell.dataset.inactive; });
+      openReveal(detail, true);
       return;
     }
-    cell.dataset.inactive = '';
-    input.value = '';
-    // an error left showing on a field nobody can see any more
-    cell.classList.remove('invalid');
-    input.setAttribute('aria-invalid', 'false');
+    cells.forEach((cell) => {
+      const input = cell.querySelector('.input');
+      cell.dataset.inactive = '';
+      input.value = '';
+      // an error left showing on a field nobody can see any more
+      cell.classList.remove('invalid');
+      input.setAttribute('aria-invalid', 'false');
+    });
+
+    openReveal(detail, false);
+    if (!detail) return;
+    // Same reason the amount is cleared: a Bausparkasse nobody claims any more would
+    // still be submitted, and would be waiting there if the position is picked again.
+    $$('.field', detail).forEach((field) => {
+      const control = field.querySelector(CONTROL_SEL);
+      if (!control) return;
+      control.value = '';
+      control.setAttribute('aria-invalid', 'false');
+      field.classList.remove('invalid');
+    });
   }
 
   function wireAmountRows(root) {
@@ -269,8 +300,10 @@
       if (row.dataset.wired) return;
       row.dataset.wired = '1';
       const toggle = row.querySelector(':scope > .choice > input');
-      const cell = row.querySelector(':scope > .amount-cell');
-      const input = cell.querySelector('.input');
+      const cells = cellsOf(row);
+      const inputs = cells.map((c) => c.querySelector('.input'));
+      // the amount is what the caret is handed and what settles the row
+      const input = inputs[0];
 
       // A mandatory position is still listed, and still ticked, but cannot be given
       // up. Cancelling the click covers the keyboard too — space fires one as well.
@@ -310,8 +343,10 @@
         row.dataset.provisional = '';
         syncAmountRow(row);
       };
-      cell.addEventListener('pointerdown', pick);
-      input.addEventListener('input', pick);
+      // Every cell on the row, not just the amount: reaching into the Beginndatum is
+      // the same declaration of intent as reaching into the figure beside it.
+      cells.forEach((c) => c.addEventListener('pointerdown', pick));
+      inputs.forEach((i) => i.addEventListener('input', pick));
 
       /* Leaving a provisional row empty takes the pick back. Clicking into a Betrag
          field and moving on without typing anything is how someone browses the list,
@@ -319,13 +354,16 @@
          Pflichtfeld the user never asked for. A figure entered settles the row: from
          then on it is picked like any other, so emptying it again reports the missing
          amount instead of quietly dropping the position. */
-      input.addEventListener('blur', () => {
+      inputs.forEach((field) => field.addEventListener('blur', (event) => {
         if (!('provisional' in row.dataset)) return;
-        if (input.value.trim()) { delete row.dataset.provisional; return; }
+        // Stepping from the amount to the Beginndatum beside it — or out to the row's
+        // own calendar button — is not leaving the row, so the pick is not up yet.
+        if (event.relatedTarget && row.contains(event.relatedTarget)) return;
+        if (inputs.some((i) => i.value.trim())) { delete row.dataset.provisional; return; }
         delete row.dataset.provisional;
         toggle.checked = false;
         syncAmountRow(row);
-      });
+      }));
 
       syncAmountRow(row);
     });
@@ -388,7 +426,6 @@
         if (list && list.id === 'kredite-liste') renumberKredite();
         if (list && list.id === 'immobilien-liste') renumberImmobilien();
         if (list && list.classList.contains('darlehen-liste')) renumberDarlehen(list);
-        if (list && list.classList.contains('voradresse-liste')) renumberVoradressen(list);
         if (list && list.classList.contains('kinder-list')) syncKinderAdd();
         touched();
       });
@@ -415,13 +452,9 @@
     $$('.with-unit', root).forEach((wrap) => {
       const unit = wrap.querySelector('.unit');
       const input = wrap.querySelector('.input');
-      if (!input || !unit || input.dataset.wired) return;
+      if (!input || !unit || unit.textContent.trim() !== '€' || input.dataset.wired) return;
       input.dataset.wired = '1';
       input.addEventListener('blur', () => {
-        // The unit is read here rather than above: a switchable field — the broker's fee,
-        // stated either as a percentage or as a sum — has to stop formatting as a currency
-        // the moment it is no longer one. "3" is a rate, "3,00" would be a claim about cents.
-        if (unit.textContent.trim() !== '€') return;
         if (!input.value.trim()) return;
         const value = parseAmount(input.value);
         if (value === null) return;
@@ -763,21 +796,12 @@
       level = firstLevel;
       panel.hidden = false;
       button.setAttribute('aria-expanded', 'true');
-      /* Left-aligned under the field, unless that would push it out of the window — a
-         date in the last column of a narrow layout, or the last field before the action
-         bar. Measured rather than guessed: the field's own size says nothing about where
-         it sits. Upwards only when there is actually room up there; otherwise below and
-         let the page scroll, which beats a panel pinned over the label it belongs to.
-         The 8px is a breathing margin, not a design value. */
-      const edge = 8;
-      const view = document.documentElement;
+      /* Left-aligned under the field, unless that would push it off the right of the
+         window — a date in the last column of a narrow layout. Measured rather than
+         guessed, because the field's own width says nothing about where it sits. */
       delete panel.dataset.align;
-      delete panel.dataset.drop;
-      const box = panel.getBoundingClientRect();
-      if (box.right > view.clientWidth - edge) panel.dataset.align = 'end';
-      if (box.bottom > view.clientHeight - edge
-        && wrap.getBoundingClientRect().top > box.height + edge) {
-        panel.dataset.drop = 'up';
+      if (panel.getBoundingClientRect().right > document.documentElement.clientWidth - 8) {
+        panel.dataset.align = 'end';
       }
       openPicker = api;
       render(true);
@@ -849,24 +873,6 @@
     });
   }
 
-  /* A select that says which unit the amount beside it is in. The broker's fee is quoted
-     either as a percentage of the price or as a sum, and the unit box has to follow the
-     answer — otherwise the field reads "3 %" while the select says Euro. The select's
-     option values are the unit itself, so there is nothing to map. */
-  function wireUnitPickers(root) {
-    $$('select[data-unit-for]', root).forEach((select) => {
-      if (select.dataset.wiredUnit) return;
-      select.dataset.wiredUnit = '1';
-      const target = $(select.dataset.unitFor);
-      const unit = target && target.closest('.with-unit');
-      if (!unit) return;
-      const box = unit.querySelector('.unit');
-      const sync = () => { box.textContent = select.value; };
-      select.addEventListener('change', sync);
-      sync();
-    });
-  }
-
   /* ---------------------------------------------- collapsible cards */
 
   /* A required control counts towards its card whether or not the card is open, but
@@ -874,8 +880,11 @@
      the form is not asking for it yet. Deliberately not an offsetParent test, which
      would also discount every field in a collapsed card. [data-inactive] is the same
      idea for a control switched off in place rather than revealed — an amount whose
-     position has not been ticked. */
-  const isAsked = (control) => !control.closest('.reveal:not(.open), [data-inactive]');
+     position has not been ticked. [hidden] is the third: a field that does not apply
+     to the Immobilienart on the table, and the object card while no object is known.
+     Three ways to not be asked, one rule that reads all of them. */
+  const isAsked = (control) =>
+    !control.closest('.reveal:not(.open), [data-inactive], [hidden]');
 
   /* The form has five collapsible steps, and only those five: everything the sidebar
      lists under one of them is a .subsection-static, shown outright with the card it
@@ -971,6 +980,39 @@
       'navfor' in a.dataset ? a.dataset.navfor === key : !!key));
   }
 
+  /* ------------------------------------------------------- Immobilienart */
+
+  /* Which fields the Immobilie section asks for depends on the Immobilienart. A
+     Grundstück has no Baujahr, no Wohnfläche, no Etage and no Bauweise: there is no
+     building yet to have any of them, and a field that cannot be answered is worse
+     than a field that is not there. So each element that is not for every art carries
+     `data-art` — a "|"-separated list of the arts it belongs to, or "!" followed by
+     the arts it does not, which is the shorter half to write when one art is the
+     exception rather than the rule.
+
+     Deliberately `hidden` rather than a .reveal: the fields that come and go are
+     scattered through the section between fields that always apply, and a reveal can
+     only take a contiguous block. Hidden is one of the three ways a control stops
+     being asked for — see isAsked — so a field that does not apply leaves the
+     Pflichtfeld count, the submit check and the summary with it. Values are left
+     where they are, exactly as a closing reveal leaves them: switching back and
+     forth between two arts must not quietly empty what was already typed. */
+  const immobilienart = $('#immobilienart');
+
+  function syncImmobilienart() {
+    const art = immobilienart.value;
+    $$('[data-art]').forEach((el) => {
+      const list = el.dataset.art;
+      const inverted = list.startsWith('!');
+      const listed = matchesAny(inverted ? list.slice(1) : list, art);
+      el.hidden = inverted ? listed : !listed;
+    });
+    /* The sidebar says which art is being described, the same way the Antragsteller
+       entry picks up the first name — see refreshTitles. The section heading keeps
+       its own name: the nav is the place a reader is scanning for where they are. */
+    $('#immo-nav-title').textContent = art ? `Immobilie · ${art}` : 'Immobilie';
+  }
+
   /* -------------------------------------------------------- Antragsteller */
 
   let applicantCount = 1;
@@ -1031,10 +1073,9 @@
     });
     $$('select', copy).forEach((el) => { el.selectedIndex = 0; });
     $$('.reveal', copy).forEach((el) => el.classList.remove('open', 'settled'));
-    $$('[data-wired], [data-wired-switch], [data-wired-unit]', copy).forEach((el) => {
+    $$('[data-wired], [data-wired-switch]', copy).forEach((el) => {
       delete el.dataset.wired;
       delete el.dataset.wiredSwitch;
-      delete el.dataset.wiredUnit;
     });
     /* The calendar beside a date field is generated furniture, and cloneNode copies
        nodes but not the listeners behind them — a copied button would sit there doing
@@ -1046,12 +1087,6 @@
       wrap.replaceWith(input);
     });
     $$('.child-row', copy).forEach((el) => el.remove());
-    // Applicant 2 has an address history of their own, not a copy of applicant 1's — so
-    // the list starts empty and its button goes back to saying "add the first one".
-    $$('.voradresse-liste', copy).forEach((list) => {
-      list.replaceChildren();
-      renumberVoradressen(list);
-    });
 
     const head = copy.querySelector('.applicant-head');
     head.querySelector('.applicant-title').textContent = 'Antragsteller 2';
@@ -1136,10 +1171,10 @@
       : '+ Kredit erfassen';
   }
 
-  /* The add button is also the answer to "are there any?", so it says which of the two
-     it is doing: the first entry, or a further one. Same wording rule as the children
-     list, and it reads the list rather than counting clicks, so removing the last entry
-     puts the question back. */
+  /* The Ja/Nein gate answers "are there any?", so the button underneath normally reads
+     "further". It still says which of the two it is doing, because removing the last
+     card leaves the gate open with an empty list — same wording rule as the children
+     list, read off the list rather than off a click count. */
   function renumberImmobilien() {
     $$('#immobilien-liste .im-title').forEach((title, index) => {
       title.textContent = `Immobilie ${index + 1}`;
@@ -1149,36 +1184,14 @@
       : '+ Immobilie erfassen';
   }
 
-  /* Loans belong to one thing, so the numbering and the button are per list — for a
-     property in the portfolio that thing is the enclosing .subcard, for the object being
-     financed it is the .pad of the gate that revealed the list. Either way it is the
-     nearest of the two, and its own add button is the only one inside it. */
+  /* Loans belong to one property, so the numbering and the button are per list — the
+     enclosing .subcard is that property, and its own add button is the only one in it. */
   function renumberDarlehen(list) {
     $$('.dl-title', list).forEach((title, index) => {
       title.textContent = `Darlehen ${index + 1}`;
     });
-    const scope = list.closest('.subcard, .pad');
-    if (scope) {
-      scope.querySelector('.add-darlehen').textContent =
-        list.children.length ? '+ Weiteres Darlehen ergänzen' : '+ Darlehen erfassen';
-    }
-  }
-
-  /* Previous addresses belong to one applicant, so the numbering and the button are per
-     panel — with two applicants there are two lists, and neither may count the other's
-     entries. Scoped to .applicant for that reason, the same way a property's loans are
-     scoped to their .subcard. */
-  function renumberVoradressen(list) {
-    $$('.adr-title', list).forEach((title, index) => {
-      title.textContent = `Vorherige Adresse ${index + 1}`;
-    });
-    const scope = list.closest('.applicant') || list.parentElement;
-    const button = scope && scope.querySelector('.add-voradresse');
-    if (button) {
-      button.textContent = list.children.length
-        ? '+ Weitere vorherige Adresse hinzufügen'
-        : '+ Vorherige Adresse hinzufügen';
-    }
+    list.closest('.subcard').querySelector('.add-darlehen').textContent =
+      list.children.length ? '+ Weiteres Darlehen ergänzen' : '+ Darlehen erfassen';
   }
 
   /* ------------------------------------------------------------ save state */
@@ -1217,7 +1230,7 @@
 
   function validate(control) {
     const field = control.closest('.field');
-    if (!field || field.closest('#states')) return true;   // the reference section is static
+    if (!field) return true;
 
     const empty = !control.value.trim();
     // Required only counts while the form is actually asking: tabbing through an
@@ -1305,7 +1318,7 @@
 
   /* --------------------------------------------------------------- toggles */
 
-  const SETTINGS = ['appearance', 'density', 'help'];
+  const SETTINGS = ['appearance', 'density'];
 
   function wireToggles() {
     $$('.seg').forEach((group) => {
@@ -1562,15 +1575,14 @@
   /* The read-back is generated, never maintained: it walks the form the user just
      filled in, so a field added to the form appears here without a line of work.
      One group per step, and within a step the entries keep document order and are
-     bundled by the repetition they sit in. The Feldzustände reference section is
-     not part of the form, and a step switched off by the finance type is hidden —
-     neither belongs in a summary of the answers. */
+     bundled by the repetition they sit in. A step switched off by the finance type
+     is hidden — it does not belong in a summary of the answers. */
   function buildReview() {
     const host = $('#review');
     host.textContent = '';
 
     $$(':scope > .card', VIEWS.form.view).forEach((card) => {
-      if (card.id === 'states' || card.hidden) return;
+      if (card.hidden) return;
 
       const rowsByContext = new Map();
       $$('.field', card).forEach((field) => {
@@ -1602,6 +1614,8 @@
 
   /* Einwilligung und Versand -------------------------------------------------- */
 
+  const consent = $('#consent-broker');
+  const consentField = $('#consent-field');
   const mailKunde = $('#mail-kunde');
   const mailMakler = $('#mail-makler');
   const sendText = $('#send-text');
@@ -1626,6 +1640,19 @@
     return !invalid;
   }
 
+  /* The consent is a checkbox with no chip, so the error cannot be carried by a
+     border the way it is on a choice group — it is a message under the sentence,
+     wired to the box with aria-describedby like every other field error. */
+  function validateConsent() {
+    const ok = consent.checked;
+    consentField.classList.toggle('invalid', !ok);
+    if (!ok) {
+      messageFor(consentField, consent).textContent =
+        'Ohne diese Bestätigung dürfen wir die Angaben nicht an den Berater übermitteln';
+    }
+    return ok;
+  }
+
   /* Who the confirmation email goes to, in words: the applicant's name if it is
      known, otherwise the neutral noun. Used in the sentence on the summary, so it
      has to read as part of it either way. */
@@ -1637,7 +1664,7 @@
 
   function openSummary() {
     buildReview();
-    $('#consent-customer').textContent = customerName() || 'Ihre Kundin oder Ihr Kunde';
+    $('#consent-customer').textContent = customerName() || 'der Kunde';
     sendText.textContent = 'Noch nicht gesendet — Sie können weiterhin ändern';
     showView('summary');
   }
@@ -1667,9 +1694,10 @@
   }
 
   async function send() {
-    /* Both checks run, not just up to the first failure: someone who has to fix
-       something should see everything that is missing at once. */
+    /* All three checks run, not just up to the first failure: someone who has to
+       fix something should see everything that is missing at once. */
     const missing = [
+      { ok: validateConsent(), focus: consent },
       { ok: validateMail(mailKunde), focus: mailKunde },
       { ok: validateMail(mailMakler), focus: mailMakler },
     ].filter((check) => !check.ok);
@@ -1680,9 +1708,9 @@
       return;
     }
 
-    const customer = customerName() || 'Ihre Kundin oder Ihr Kunde';
+    const customer = customerName() || 'Der Kunde';
     if (!await confirmAction({
-      title: 'Jetzt an die Beraterin oder den Berater senden?',
+      title: 'Jetzt an den Berater senden?',
       text: `Danach können Sie die Selbstauskunft nicht mehr öffnen und nichts mehr `
         + `ändern. ${customer} erhält eine E-Mail zur eigenen Bestätigung, und Ihre `
         + `Referenz-ID senden wir an ${mailMakler.value.trim()}.`,
@@ -1695,7 +1723,7 @@
 
     const reference = referenceId();
     $('#ref-id').textContent = reference;
-    $('#sent-name').textContent = customerName() || 'Ihrer Kundin oder Ihrem Kunden';
+    $('#sent-name').textContent = customerName() || 'Ihrem Kunden';
     $('#sent-mail-makler').textContent = mailMakler.value.trim();
     $('#sent-mail-kunde').textContent = mailKunde.value.trim();
     $('#copy-status').textContent = '';
@@ -1735,6 +1763,9 @@
   zweck.addEventListener('change', updateStart);
   gefunden.addEventListener('change', updateStart);
   updateStart();
+
+  immobilienart.addEventListener('change', syncImmobilienart);
+  syncImmobilienart();
 
   $$('.applicant[data-applicant="1"]').forEach(wireNameEcho);
   $('#add-applicant').addEventListener('click', () => setApplicants(2));
@@ -1805,23 +1836,25 @@
     renumberImmobilien();
   });
 
+  /* Same rule as the loans below: "Ja" is already the statement that there is a
+     property, so the first card comes with the answer and the button under it only
+     ever adds a further one. Only while the list is empty — reopening the gate must
+     not discard what was typed. */
+  $$('#immo-toggle > .choices input[type="radio"]').forEach((radio) =>
+    radio.addEventListener('change', () => {
+      if (radio.checked && radio.value === 'Ja' && !immobilienListe.children.length) {
+        addFromTemplate('tpl-immobilie-besitz', immobilienListe);
+      }
+      renumberImmobilien();
+    }));
+  renumberImmobilien();
+
   immobilienListe.addEventListener('click', (event) => {
     const button = event.target.closest('.add-darlehen');
     if (!button) return;
     const list = button.closest('.subcard').querySelector('.darlehen-liste');
     addFromTemplate('tpl-darlehen', list);
     renumberDarlehen(list);
-  });
-
-  /* Previous addresses, one list per applicant. Delegated on the panel container for the
-     same reason the loan buttons are: applicant 2's button arrives with the clone, long
-     after this runs. */
-  $('[data-applicants="pd"]').addEventListener('click', (event) => {
-    const button = event.target.closest('.add-voradresse');
-    if (!button) return;
-    const list = button.closest('.applicant').querySelector('.voradresse-liste');
-    addFromTemplate('tpl-voradresse', list);
-    renumberVoradressen(list);
   });
 
   /* Answering "Ja" is already the statement that there is a loan, so the first card
@@ -1840,23 +1873,6 @@
       renumberKredite();
     }));
   renumberKredite();
-
-  /* The loans on the object being financed. Same panel, same gate behaviour as above;
-     the button is wired directly rather than by delegation, because unlike the loans on
-     a property in the portfolio there is exactly one of these lists. */
-  const objektDarlehen = $('#objekt-darlehen-liste');
-  $('#add-objekt-darlehen').addEventListener('click', () => {
-    addFromTemplate('tpl-objekt-darlehen', objektDarlehen);
-    renumberDarlehen(objektDarlehen);
-  });
-  $$('#belastet-toggle > .choices input[type="radio"]').forEach((radio) =>
-    radio.addEventListener('change', () => {
-      if (radio.checked && radio.value === 'Ja' && !objektDarlehen.children.length) {
-        addFromTemplate('tpl-objekt-darlehen', objektDarlehen);
-      }
-      renumberDarlehen(objektDarlehen);
-    }));
-  renumberDarlehen(objektDarlehen);
 
   document.addEventListener('input', touched);
   document.addEventListener('blur', (event) => {
@@ -1891,6 +1907,8 @@
   // Prototype only: in the real product the case ends on the sent screen.
   $('#restart').addEventListener('click', () => location.reload());
 
+  // Ticking the box is the answer, so the complaint about it missing goes at once.
+  consent.addEventListener('change', () => { if (consent.checked) validateConsent(); });
   [mailKunde, mailMakler].forEach((input) =>
     input.addEventListener('blur', () => validateMail(input)));
 

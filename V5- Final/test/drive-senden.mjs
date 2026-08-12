@@ -1,6 +1,6 @@
 /* Drives the send flow — Formular -> Zusammenfassung -> Gesendet — in a real
    browser and asserts on actual DOM state: the read-back generated from the form,
-   the e-mail gate, the confirmation dialog, the reference ID, and the lock that
+   the consent gate, the confirmation dialog, the reference ID, and the lock that
    makes the form unreachable afterwards.
 
    Same setup as drive.mjs, and a FRESH page each run: the last check sends the
@@ -51,7 +51,7 @@ const check = (name, got, want) => {
    recognised again in the read-back. */
 await evaluate(`
   window.fill = () => {
-    const asked = el => !el.closest('.reveal:not(.open), [data-inactive]');
+    const asked = el => !el.closest('.reveal:not(.open), [data-inactive], [hidden]');
     // The purpose drives the whole cascade, so it is answered first and the
     // conditionals it opens are filled afterwards.
     const zweck = document.querySelector('#zweck');
@@ -105,7 +105,7 @@ await evaluate(`
      empty optional row is invisible to the read-back anyway. */
   window.reset = () => {
     document.querySelectorAll('#main .input, #main .select').forEach(control => {
-      if (!control.closest('#states')) control.value = '';
+      control.value = '';
     });
     /* Back to the markup's own answers, not to nothing: "Alleine" ships checked,
        and re-clicking it fires a change the form reads as "remove person 2" — which
@@ -114,6 +114,8 @@ await evaluate(`
     document.querySelectorAll('#main input[type=radio]')
       .forEach(r => { r.checked = r.defaultChecked; });
     ['#mail-kunde', '#mail-makler'].forEach(sel => { document.querySelector(sel).value = ''; });
+    const consent = document.querySelector('#consent-broker');
+    if (consent.checked) consent.click();
     document.querySelectorAll('.field.invalid').forEach(f => f.classList.remove('invalid'));
   };
   'ready'
@@ -134,19 +136,21 @@ check('Beispieldaten einfügen leaves no mandatory field open', await evaluate(`
 
     const asked = el => !el.closest('.reveal:not(.open), [data-inactive], [hidden]');
     const controls = [...document.querySelectorAll('#main .input[required], #main .select[required]')]
-      .filter(c => asked(c) && !c.closest('#states') && !c.value.trim());
+      .filter(c => asked(c) && !c.value.trim());
     const groups = [...document.querySelectorAll('#main .field[data-required]')]
       .filter(g => asked(g) && g.querySelector('input[type=radio]')
         && !g.querySelector('input[type=radio]:checked'));
     return {
       openControls: controls.length,
       openGroups: groups.length,
-      // die zwei Adressen des Versandschritts kommen mit
+      // die zwei Adressen des Versandschritts kommen mit, das Häkchen nicht
       mailsFilled: !!document.querySelector('#mail-kunde').value
         && !!document.querySelector('#mail-makler').value,
+      consentUntouched: document.querySelector('#consent-broker').checked === false,
       says: document.querySelector('#prefill-status').textContent.startsWith('Beispieldaten'),
     };
-  })()`), { openControls: 0, openGroups: 0, mailsFilled: true, says: true });
+  })()`), { openControls: 0, openGroups: 0, mailsFilled: true,
+            consentUntouched: true, says: true });
 
 check('the demo case is one coherent story, and the object is not the home address', await evaluate(`
   (() => {
@@ -230,8 +234,6 @@ check('the read-back is generated per step and carries the answers, not the stor
       // nothing empty made it in
       noEmptyAnswers: [...document.querySelectorAll('#review dd')]
         .every(dd => dd.textContent.trim() !== ''),
-      // the static reference card is not part of the answers
-      hasStates: titles.includes('Feldzustände'),
       editButtons: groups.every(g => !!g.querySelector('.link-btn')),
     };
   })()`), {
@@ -242,7 +244,6 @@ check('the read-back is generated per step and carries the answers, not the stor
     vorname: 'Erika',
     darlehensnehmer: 'Alleine',
     noEmptyAnswers: true,
-    hasStates: false,
     editButtons: true,
   });
 
@@ -288,22 +289,33 @@ check('reopening the summary rebuilds it from the form', await evaluate(`
 
 // --- Einwilligung ------------------------------------------------------------
 
-check('both e-mail addresses are asked for before sending', await evaluate(`
+check('the consent sentence and the two e-mail fields are asked for before sending', await evaluate(`
   (() => {
     document.querySelector('#send').click();
     return {
       stillOnSummary: document.documentElement.dataset.view,
+      consentInvalid: document.querySelector('#consent-field').classList.contains('invalid'),
+      consentDescribed: !!document.querySelector('#consent-broker')
+        .getAttribute('aria-describedby'),
+      consentMessage: document.querySelector('#consent-field .error-text').textContent
+        .startsWith('Ohne diese Bestätigung'),
       mailsInvalid: ['#mail-kunde', '#mail-makler']
         .every(s => document.querySelector(s).closest('.field').classList.contains('invalid')),
-      kundeDescribed: !!document.querySelector('#mail-kunde')
-        .getAttribute('aria-describedby'),
-      kundeMessage: document.querySelector('#mail-kunde').closest('.field')
-        .querySelector('.error-text').textContent.startsWith('Für den Versand'),
-      focusOnFirstGap: document.activeElement.id,
+      focusOnConsent: document.activeElement.id,
       barSays: document.querySelector('#send-text').textContent.includes('bitte ergänzen'),
     };
-  })()`), { stillOnSummary: 'summary', mailsInvalid: true, kundeDescribed: true,
-            kundeMessage: true, focusOnFirstGap: 'mail-kunde', barSays: true });
+  })()`), { stillOnSummary: 'summary', consentInvalid: true, consentDescribed: true,
+            consentMessage: true, mailsInvalid: true, focusOnConsent: 'consent-broker',
+            barSays: true });
+
+check('ticking the box clears its error at once', await evaluate(`
+  (() => {
+    document.querySelector('#consent-broker').click();
+    return {
+      checked: document.querySelector('#consent-broker').checked,
+      invalid: document.querySelector('#consent-field').classList.contains('invalid'),
+    };
+  })()`), { checked: true, invalid: false });
 
 check('a half-typed address is rejected, a whole one accepted', await evaluate(`
   (() => {
@@ -347,7 +359,7 @@ check('sending asks first, and backing out changes nothing', await evaluate(`
     out.viewAfterCancel = document.documentElement.dataset.view;
     out.formStillEditable = !document.querySelector('#darlehensbetrag').disabled;
     return out;
-  })()`), { asked: true, title: 'Jetzt an die Beraterin oder den Berater senden?', tone: 'btn primary',
+  })()`), { asked: true, title: 'Jetzt an den Berater senden?', tone: 'btn primary',
             names: true, warns: true, focusOnCancel: 'cancel', viewAfterCancel: 'summary',
             formStillEditable: true });
 

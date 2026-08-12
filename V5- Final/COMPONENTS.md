@@ -48,7 +48,7 @@ Mobile mode at 640px.
 | 15 | Sub-section divider | `.subsections > * + *` | Inset rule between statics (hairline variant for collapsibles unused) | — | |
 | 16 | Sub-section title | `.subsection-title` | — | — | |
 | 17 | Subhead | `.subhead` | With top rule · first-child (no rule) | — | |
-| 18 | Nested panel | `.subcard` + `.subcard-head` | — | Numbered title (auto-renumbered on add/remove), remove button in head; nests one level (property → loan, applicant → previous address), and appears un-nested behind a gate (Verbindlichkeiten → Kredit, Finanzierungsdetails → Darlehen) or straight under an add button with no gate at all (Persönliche Details → Vorherige Adresse) | |
+| 18 | Nested panel | `.subcard` + `.subcard-head` | — | Numbered title (auto-renumbered on add/remove), remove button in head; nests one level (property → loan) | |
 | 19 | Applicant panel | `.applicants` / `.applicant` | **One applicant** — no panel, no border, no head · **two** (`.two`) — bordered panel with title | Side by side ≥ column min, stacks ≤640px; title shows `Antragsteller 2 – <name>` once a name is typed | |
 | **Fields** ||||||
 | 20 | Field wrapper | `.field` | Spans 3/4/6/8/12 cols | Default, **invalid** (`.invalid` drives border + shows message on every control type inside) | |
@@ -58,31 +58,30 @@ Mobile mode at 640px.
 | 24 | Info icon + tooltip | `.info-wrap` > `.info-btn` + `.info-bubble` | — | Idle (16px ring, 24px invisible hit area for WCAG 2.5.8), hover → bubble, focus-visible → bubble, `aria-expanded` → bubble. Bubble is `aria-hidden` (visual duplicate) | |
 | 25 | Text input | `.input` | Plain · numeric (`.num` right-aligned, tabular figures) · multi-line (`<textarea class="input textarea">`, height from `rows`, floor of two field heights, vertical resize only) | Empty (placeholder), filled, hover, **focus** (glow, no size change), focus-visible (+ outer ring), **invalid** (error border), **disabled**, recessed (in an unpicked amount row) | |
 | 26 | Select | `.select` inside `.select-wrap` | — | Placeholder (`Bitte wählen`), chosen, focus, invalid, **disabled** (chevron dims too). Chevron is a token-coloured mask, not an image | |
-| 27 | Input with unit | `.with-unit` + `.unit` | Units in use: `€`, `m²`, `kWh/m²`, `%`, `Jahre` · **switchable** (a `select[data-unit-for="#id"]` beside it writes the unit box — the broker's fee is quoted in `%` or `€`) | Default, **focus-within** (the *group* carries the glow **and the keyboard ring**, the input inside carries neither — an outline on the input alone would stop at the seam), invalid (unit box takes the error border too), disabled. Thousands/decimal formatting on blur applies while the unit reads `€` and stops when it does not, so a switched field never shows `3,00 %` | |
-| 28 | Date field + calendar | `.with-picker` > `.input` + `.picker-btn` + `.calendar` | Day field (`tt.mm.jjjj`) · month field (`mm.jjjj`). A bare year (`jjjj`) gets **no** picker | Typed (the field is a plain text input and stays the primary way in; tidied on blur — `3.7.1985` → `03.07.1985`), calendar closed / **open** (`aria-expanded`, button `aria-haspopup="dialog"`), three levels (days → months → years, header label zooms out, one panel width for all three), cell states: default, hover, **today** (`aria-current="date"`, accent edge), **selected** (`aria-pressed="true"`, accent fill), adjacent month (dimmed), focus-visible. Left-aligned under the field, **flipped to the right edge** when it would leave the window. Dismissed by Esc (focus back to the button), pointer outside, or focus leaving. Built by script from the placeholder — see `buildDatePickers` | |
-| 29 | Error message | `.error-text` | — | Hidden, shown (only via `.field.invalid`); wired with `aria-describedby` | |
-| 30 | Radio chip | `.choice` + `input[type="radio"]` | Row (`.choices`) · grid (`.grid-choices`, auto-fit) | Unchecked (**empty ring drawn**), hover, **checked** (accent fill + accent text + medium + 2px ring + centre dot), focus-visible, invalid (unchecked chips take the error border) | |
-| 31 | Checkbox chip | `.choice` + `input[type="checkbox"]` | Same as above | Unchecked (**empty square drawn**), hover, **checked** (accent-filled box + white checkmark), **locked/mandatory** (stays checked, click and Space cancelled, keeps normal fill — *not* disabled styling), focus-visible, invalid | |
-| 32 | Bare checkbox | `.choice.plain` | Amount-list row | Unchecked, checked, invalid (**the empty box** carries the error border), focus-visible. Mark stays on the first line of a wrapping label | |
-| 33 | Amount row | `.amount-row` > `.choice` + `.amount-cell` | Chip variant · `.plain` (no chip, just the checkbox) | **Not picked** (`data-inactive` — field recedes but stays reachable and full-contrast), **picked** (amount becomes required), **locked** (mandatory position), **provisional** (picked by clicking into the field, taken back on blur if nothing was typed), invalid amount. Two fixed columns; stacks ≤640px | |
-| 34 | Conditional reveal | `.reveal` > `.reveal-inner` > `.pad` | — | Closed (`0fr`, `visibility:hidden`, excluded from validation and the summary), open, **settled** (releases clipping so the focus glow is not sliced) | |
-| 35 | Gate row | `.gate-row` | — | **Empty list** (`+ Immobilie erfassen`) · **non-empty** (`+ Weitere Immobilie erfassen`) — reads the list, not a click count | |
-| 36 | Repeatable row | `.child-row` (+ `.c-name` / `.c-date`) | — | First row (no rule), subsequent rows (top rule + spacing); wraps; remove button bottom-aligned to the field line | |
+| 27 | Input with unit | `.with-unit` + `.unit` | Units in use: `€`, `m²`, `kWh/m²`, `%`, `Jahre` | Default, **focus-within** (the *group* carries the glow, the input inside carries none), invalid (unit box takes the error border too), disabled | |
+| 28 | Error message | `.error-text` | — | Hidden, shown (only via `.field.invalid`); wired with `aria-describedby` | |
+| 29 | Radio chip | `.choice` + `input[type="radio"]` | Row (`.choices`) · grid (`.grid-choices`, auto-fit) | Unchecked (**empty ring drawn**), hover, **checked** (accent fill + accent text + medium + 2px ring + centre dot), focus-visible, invalid (unchecked chips take the error border) | |
+| 30 | Checkbox chip | `.choice` + `input[type="checkbox"]` | Same as above | Unchecked (**empty square drawn**), hover, **checked** (accent-filled box + white checkmark), **locked/mandatory** (stays checked, click and Space cancelled, keeps normal fill — *not* disabled styling), focus-visible, invalid | |
+| 31 | Bare checkbox | `.choice.plain` | Consent (multi-line label) | Unchecked, checked, invalid (**the empty box** carries the error border), focus-visible. Mark stays on the first line of a wrapping label | |
+| 32 | Amount row | `.amount-row` > `.choice` + `.amount-cell` | — (the position is a chip) | **Not picked** (`data-inactive` — field recedes but stays reachable and full-contrast), **picked** (amount becomes required), **locked** (mandatory position), **provisional** (picked by clicking into the field, taken back on blur if nothing was typed), invalid amount. Two fixed columns, always — a position with one further field to ask (Nebentätigkeit · Tag des Beginns) puts it in the `.amount-detail` row underneath rather than in a third column, which needed 784px across and squeezed the position label to four lines below that. Stacks ≤640px. Every cell on the row follows the toggle | |
+| 33 | Conditional reveal | `.reveal` > `.reveal-inner` > `.pad` | — | Closed (`0fr`, `visibility:hidden`, excluded from validation and the summary), open, **settled** (releases clipping so the focus glow is not sliced) | |
+| 34 | Gate row | `.gate-row` | — | Question and the button that answers it on one line (Darlehen, inside a property card). Empty list · non-empty — the button wording reads the list, not a click count | |
+| 35 | Repeatable row | `.child-row` (+ `.c-name` / `.c-date`) | — | First row (no rule), subsequent rows (top rule + spacing); wraps; remove button bottom-aligned to the field line | |
 | **Buttons** ||||||
-| 37 | Button | `.btn` | **primary** · **ghost** · **danger** | Default, hover, active *(defined for `danger` only — see gaps)*, focus-visible. Full width ≤640px. **No disabled state — by design:** the send button always validates and reports what is missing | |
-| 38 | Add button | `.add-btn` | — | Default (dashed accent border), hover, focus-visible; label text swaps with list state | |
-| 39 | Icon button | `.icon-btn` + `.ico-trash` | — | Default (bare glyph, no box, 24px hit area), **hover → danger colour**, focus-visible | |
-| 40 | Link button | `.link-btn` | — | Default (underlined link text), hover, focus-visible. Looks like a link, behaves as a button (`Bearbeiten`) | |
+| 36 | Button | `.btn` | **primary** · **ghost** · **danger** | Default, hover, active *(defined for `danger` only — see gaps)*, focus-visible. Full width ≤640px. **No disabled state — by design:** the send button always validates and reports what is missing | |
+| 37 | Add button | `.add-btn` | — | Default (dashed accent border), hover, focus-visible; label text swaps with list state | |
+| 38 | Icon button | `.icon-btn` + `.ico-trash` | — | Default (bare glyph, no box, 24px hit area), **hover → danger colour**, focus-visible | |
+| 39 | Link button | `.link-btn` | — | Default (underlined link text), hover, focus-visible. Looks like a link, behaves as a button (`Bearbeiten`) | |
 | **Feedback** ||||||
-| 41 | Note / callout | `.note` | Default (`warning-low`) · `.info` · `.success` · `.warn` | With title (`.note-title`) · single paragraph · multi-paragraph. Tone is **never** the only signal — each note carries a headline saying the same thing. Text colour stays `text.primary` in all three appearances | |
-| 42 | Modal | `.modal` (native `<dialog>`) + `.modal-inner` / `-title` / `-text` / `-actions` | Destructive (danger confirm) · neutral (primary confirm, used for sending) | Closed, open (`showModal()` → focus trap, Esc, `::backdrop` dimming, entry animation via `@starting-style`). **The safe answer always holds initial focus** | |
-| 43 | Save state | `.save-state` | — | `Änderungen werden gespeichert …` · `Als Entwurf gespeichert · HH:MM` · `Noch nicht gesendet — Sie können weiterhin ändern` · `bitte ergänzen Sie das Markierte` · **`.locked`** (after sending). `role="status" aria-live="polite"`. Hidden ≤640px **except** `.locked` | |
-| 44 | Action bar | `.actionbar` + `.actionbar-inner` | Form · summary · sent (one per view) | Sticky bottom; left-aligned to the form's outer width so the primary button lands on the form's right edge; wraps ≤640px | |
+| 40 | Note / callout | `.note` | Default (`warning-low`) · `.info` · `.success` · `.warn` | With title (`.note-title`) · single paragraph · multi-paragraph. Tone is **never** the only signal — each note carries a headline saying the same thing. Text colour stays `text.primary` in all three appearances | |
+| 41 | Modal | `.modal` (native `<dialog>`) + `.modal-inner` / `-title` / `-text` / `-actions` | Destructive (danger confirm) · neutral (primary confirm, used for sending) | Closed, open (`showModal()` → focus trap, Esc, `::backdrop` dimming, entry animation via `@starting-style`). **The safe answer always holds initial focus** | |
+| 42 | Save state | `.save-state` | — | `Änderungen werden gespeichert …` · `Als Entwurf gespeichert · HH:MM` · `Noch nicht gesendet — Sie können weiterhin ändern` · `bitte ergänzen Sie das Markierte` · **`.locked`** (after sending). `role="status" aria-live="polite"`. Hidden ≤640px **except** `.locked` | |
+| 43 | Action bar | `.actionbar` + `.actionbar-inner` | Form · summary · sent (one per view) | Sticky bottom; left-aligned to the form's outer width so the primary button lands on the form's right edge; wraps ≤640px | |
 | **Send flow** ||||||
-| 45 | Numbered steps | `.steps` > `li` + `.step-title` | — | Counter-generated circles — adding a step is one line of markup, no numbers to renumber | |
-| 46 | Review group | `.review-group` / `-head` / `-title` / `-context` / `.review-list` | — | With `Bearbeiten` button; **context crumb** for repetitions (`Immobilie 1 · Darlehen 2`, omitted when there is only one); **empty state** (`.review-empty`); question-over-answer ≤640px | |
-| 47 | Reference ID box | `.refbox` + `.ref-id` + `.ref-status` | — | Idle, **copied** (live-region confirmation), **copy unavailable** (selects the ID, tells the user Ctrl/Cmd+C — never claims a copy that did not happen). Status line reserves its height so the box does not jump | |
-| 48 | Phone preview frame | `.phone` | — | **Prototype-only** — an iframe of the same page at 390×844 so the real breakpoints fire. Not a product component | |
+| 44 | Numbered steps | `.steps` > `li` + `.step-title` | — | Counter-generated circles — adding a step is one line of markup, no numbers to renumber | |
+| 45 | Review group | `.review-group` / `-head` / `-title` / `-context` / `.review-list` | — | With `Bearbeiten` button; **context crumb** for repetitions (`Immobilie 1 · Darlehen 2`, omitted when there is only one); **empty state** (`.review-empty`); question-over-answer ≤640px | |
+| 46 | Reference ID box | `.refbox` + `.ref-id` + `.ref-status` | — | Idle, **copied** (live-region confirmation), **copy unavailable** (selects the ID, tells the user Ctrl/Cmd+C — never claims a copy that did not happen). Status line reserves its height so the box does not jump | |
+| 47 | Phone preview frame | `.phone` | — | **Prototype-only** — an iframe of the same page at 390×844 so the real breakpoints fire. Not a product component | |
 
 ---
 
@@ -102,8 +101,7 @@ Worth resolving before build:
 | **Disabled button** | Not styled. Deliberate here (the send button always validates and explains), but a real design system needs one. |
 | **Input hover border** | `border.hover` (`neutral.400`) is *lighter* than what `border.default` needs for 3:1, so a hover border would read as a step backwards. Unused today. |
 | **No typeahead / combobox** | `Darlehensgeber` and `#an-geber` are `<select>` excerpts standing in for a several-hundred-entry register. This needs a real type-to-filter control. |
-| **Date picker** | Built locally (row 28) because the native `<input type="date">` brings its own field with it — segments in the browser's order, its own placeholder, an ISO value. The design system has no calendar of its own; this one is assembled from existing tokens and needs adopting or replacing. |
-| **Not present at all** | Textarea, toast/snackbar, table, tabs, pagination, top-of-form error summary, loading/skeleton states, file upload. |
+| **Not present at all** | Textarea, date picker beyond the native one, toast/snackbar, table, tabs, pagination, top-of-form error summary, loading/skeleton states, file upload. |
 
 ## Behaviour a developer must not lose
 
@@ -116,10 +114,7 @@ Not styling, but the reason several components look the way they do:
   missing inside a shut card and opens it.
 - **A required choice group counts as one item** and is flagged with `data-required`
   (a radio group cannot carry `required` usefully).
-- **A step is the only thing anyone has to open.** Its parts are static — they come with
-  it and stay — so expanding a card never leaves a row of shut sub-headers to click.
-- **A date field is a text field first.** The calendar is a second way in, built from the
-  placeholder; typing stays faster and is what the format is written for.
+- **Expanding a step expands its sub-sections; a sub-section never closes its parent.**
 - **Every `.card` state rule is a direct-child selector** — cards nest, and a descendant
   selector would let an outer card drive the inner one's chevron and height.
 - **Reaching into an amount field picks its position**, and ticking a position hands the

@@ -39,8 +39,10 @@
 :root[data-appearance="dark"] {
   --page-bg: var(--color-background-page);
 }
-/* A third scheme, "grey": the light palette with its two levels traded — the page
-   carries the grey and the cards are white. Only these two aliases move; everything
+/* The default scheme, "grey": the light palette with its two levels traded — the page
+   carries the grey and the cards are white. It is what <html> starts on; the plain
+   light base above it is no longer offered as a switch. Only these two aliases move;
+   everything
    that has to read as *not the card* (inputs, nested panels, the action bar)
    already points at --page-bg, so it follows automatically. */
 :root[data-appearance="grey"] {
@@ -50,6 +52,15 @@
 }
 
 *, *::before, *::after { box-sizing: border-box; }
+
+/* The browser's own [hidden] rule is a UA rule, so any author `display` beats it no
+   matter how weak the selector — a hidden .field (display:flex) or .add-btn
+   (inline-flex) would sit there in plain sight. Every rule below sets display on a
+   class, so this has to be the one !important in the file. It is also what lets
+   `hidden` mean "not being asked for" throughout: isAsked reads the attribute, and a
+   field that does not apply to the Immobilienart is hidden rather than revealed
+   away. */
+[hidden] { display: none !important; }
 
 html { -webkit-text-size-adjust: 100%; }
 
@@ -116,31 +127,49 @@ body {
   scrollbar-color: var(--color-border-default) transparent;
 }
 
-/* Top-level entries sit one type step above their sub-entries, so the two levels
-   read as a hierarchy and not as one flat list with some items indented. */
+/* Top-level entries sit one type step above their sub-entries and carry the heavier
+   weight, so the two levels read as a hierarchy and not as one flat list with some
+   items indented. Flex rather than block because the top-level ones lead with an
+   icon that has to stay on the text's centre line. */
 .nav a {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
   padding: var(--spacing-2) var(--spacing-3);
   border-radius: var(--button-radius);
   color: var(--color-text-secondary);
   text-decoration: none;
   font-size: var(--font-heading-sm-size);
   line-height: var(--font-heading-sm-line);
+  font-weight: var(--font-weight-bold);
 }
 .nav a:hover { background: var(--color-background-hover); color: var(--color-text-primary); }
 .nav a[aria-current="true"] {
   background: var(--color-action-primary-subtle);
   color: var(--color-action-primary);
-  font-weight: var(--font-weight-medium);
 }
-/* Indented under the step it belongs to. There are no group headings left in here:
-   every step is a link of its own, and a heading above a step's sub-entries would be
-   a second, unclickable copy of that link. */
+
+/* One size for all six, set from the same step as the burger, so the icon column is
+   straight however tall the label wraps. Never shrinks: a squeezed glyph is a
+   different shape, not a smaller one. */
+.nav-icon {
+  width: var(--spacing-5);
+  height: var(--spacing-5);
+  flex: none;
+}
+
+/* Indented under the step it belongs to — by the width of that step's icon plus its
+   gap, so the sub-labels line up with the parent label rather than with its glyph.
+   There are no group headings left in here: every step is a link of its own, and a
+   heading above a step's sub-entries would be a second, unclickable copy of that
+   link. */
 .nav a.sub {
-  padding-left: var(--spacing-6);
+  padding-left: calc(var(--spacing-3) + var(--spacing-5) + var(--spacing-2));
   font-size: var(--font-body-md-size);
   line-height: var(--font-body-md-line);
+  font-weight: var(--font-weight-regular);
 }
+.nav a.sub[aria-current="true"] { font-weight: var(--font-weight-medium); }
 
 .nav .object-nav { display: none; }
 .nav .object-nav.show { display: block; }
@@ -377,20 +406,15 @@ body {
   color: var(--color-text-primary);
 }
 
-/* Helper text has three modes, switched from the sidebar:
-     on   — shown inline under the label (the default)
-     icon — collapsed into an info icon next to the label, shown on hover or focus.
-            The text stays in the DOM, only visually hidden, so the aria-describedby
-            on the field still reaches it; display:none would drop it from the
-            accessibility tree entirely.
-     off  — hidden outright, for a client-facing view */
-:root[data-help="off"] .help { display: none; }
-
-.info-wrap[data-generated] { display: none; }
-:root[data-help="icon"] .info-wrap[data-generated] { display: inline-flex; }
-
+/* Helper text is always collapsed into an info icon next to the label, shown on hover
+   or focus. Earlier versions could switch this from the sidebar — inline, icon, off —
+   but the three modes were not worth the choice they asked of the reader, so the icon
+   is now the one form. The text itself stays in the DOM, only visually hidden, so the
+   aria-describedby on the field still reaches it; display:none would drop it from the
+   accessibility tree entirely. The icon itself needs no rule of its own here — it is
+   an .info-wrap like the hand-written one, styled further down. */
 .sr-only,
-:root[data-help="icon"] .field > .help {
+.field > .help {
   position: absolute;
   width: 1px;
   height: 1px;
@@ -436,6 +460,7 @@ body {
 .col-4  { grid-column-end: span 4; }
 .col-6  { grid-column-end: span 6; }
 .col-8  { grid-column-end: span 8; }
+.col-9  { grid-column-end: span 9; }
 .col-12 { grid-column-end: span 12; }
 
 /* Forces a field to the first column, breaking the row so it stacks under the
@@ -520,10 +545,6 @@ body {
   outline: none;
   box-shadow: var(--focus-glow);
 }
-
-/* Reference-only: renders the focus state without taking focus, for the
-   Feldzustände overview. Never used by a real field. */
-.input.focus-demo { box-shadow: var(--focus-glow); }
 
 /* Keyboard users additionally get an outer ring: the 2px accent border alone is
    3.67:1 against the page, which passes 1.4.11 but is easy to lose on a long
@@ -621,16 +642,12 @@ body {
   box-shadow: var(--focus-glow);
 }
 .with-unit .input:focus { box-shadow: none; }
-
-/* The keyboard ring goes the same way as the glow, and for the same reason: drawn on
-   the input alone it stops at the seam and cuts the field in two, with the unit box
-   left outside the very ring that says where the focus is. "30" and "Jahre" are one
-   answer, so they are ringed as one control. */
+/* Same reasoning for the keyboard ring: an outline on the input alone would stop at
+   the seam and leave the € box outside the ring, so the group wears it. */
 .with-unit .input:focus-visible { outline: none; }
 .with-unit:has(.input:focus-visible) {
   outline: var(--border-width-emphasis) solid var(--color-border-focus);
   outline-offset: var(--border-width-default);
-  border-radius: var(--field-radius);
 }
 
 /* date field + calendar ---------------------------------------------------- */
@@ -683,7 +700,6 @@ body {
 }
 /* flipped when the panel would otherwise leave the window — set on open, measured */
 .calendar[data-align="end"] { left: auto; right: 0; }
-.calendar[data-drop="up"] { top: auto; bottom: calc(100% + var(--spacing-1)); }
 
 .cal-head {
   display: flex;
@@ -726,10 +742,7 @@ body {
 .cal-zoom:hover { background: var(--color-background-active); }
 .cal-zoom:disabled { cursor: default; background: none; }   /* the outermost level */
 
-/* One width for all three levels, so zooming out to the months and back does not
-   resize the panel under the pointer. Seven day columns is the widest it ever is. */
-.cal-body { width: calc(7 * var(--spacing-8)); }
-.cal-days { width: 100%; table-layout: fixed; border-collapse: collapse; }
+.cal-days { border-collapse: collapse; }
 .cal-days th {
   padding-bottom: var(--spacing-1);
   font-size: var(--font-body-sm-size);
@@ -990,6 +1003,13 @@ body {
 /* the toggle is the row, not a chip sitting in it */
 .amount-row > .choice > span { width: 100%; }
 
+/* A position whose figure alone does not answer it — Nebentätigkeit is also a date —
+   used to take a third column beside the amount. Three fixed columns need 784px across
+   and the card does not have that at every width: what gave way was the position
+   column, whose label wrapped to four lines while the amount's error message ran into
+   the date box. So that case now uses the .amount-detail reveal underneath, like the
+   Vermögen variant — see below. There is no .with-extra any more. */
+
 /* Not picked: the field stays where it is and stays reachable — clicking into it
    is itself how the position gets picked (see wireAmountRows), so hiding it would
    remove the shortcut. Only the fill recedes, and it keeps full contrast: this is
@@ -1003,32 +1023,40 @@ body {
    than "always applies" — so only the pointer says it is not up for negotiation. */
 .amount-row[data-locked] > .choice input { cursor: default; }
 
-/* .plain — the same list with no chip around the position: just the checkbox and the
-   label it belongs to. Only the container the label sits in is dropped; the mark
-   itself is untouched, so a picked position still fills accent and carries its
-   checkmark, and that mark is now the only thing carrying the state. Purely visual —
-   the row, the toggle and the amount cell are the same elements, so wireAmountRows,
-   isAsked and the counter cannot tell the two variants apart.
-
-   The border stays at zero alpha rather than being removed: it holds its 1px in the
-   box model, so the label does not shift by a pixel between the two states. */
-.amount-list.plain .amount-row > .choice > span,
-.amount-list.plain .amount-row > .choice input + span {
-  padding: 0;
-  background: none;
-  border-color: transparent;
-  box-shadow: none;
-  color: var(--color-text-primary);
-  font-weight: var(--font-weight-regular);
-}
-/* The chip's glyph offset re-adds the padding the span insets its content by. There
-   is none here, so the checkmark lines up with the box it belongs in. */
-.amount-list.plain .choice input[type="checkbox"]:checked + span::after {
-  left: var(--border-width-default);
-}
-
 @media (prefers-reduced-motion: reduce) {
   .amount-cell { transition: none; }
+}
+
+/* ------------------------------------------- amount list with detail fields */
+
+/* Variante B of Vermögen: a position that has more to say than a figure carries its
+   own detail fields, and they only appear once the position is picked — the same
+   deal the amount already makes, extended from one control to a row of them.
+   The details sit UNDER the row rather than beside it: the position/amount pair is
+   two fixed columns wide, and a third column of dropdowns would either squeeze them
+   or run off the card. Underneath, the full twelve-column grid is free, so the
+   details themselves lie horizontally — which is the point of the variant.
+
+   .amount-item wraps the pair so the reveal is a sibling of its row and nothing else
+   between them; .amount-list keeps its own gap for the plain rows, and the wider
+   step between items comes from the list modifier below. */
+.amount-list.with-detail { gap: var(--spacing-5); }
+
+.amount-item {
+  display: flex;
+  flex-direction: column;
+}
+
+/* A rule down the left binds the details to the position above them: without it a
+   loose grid of dropdowns reads as a new question rather than as this row's small
+   print. Indented to the choice box's own text, so the rule starts where the label
+   does. Padding, not margin, on .pad — .reveal animates its row height and a margin
+   there would be measured outside the grid track. */
+.amount-detail > .reveal-inner > .pad {
+  padding-top: var(--spacing-3);
+  padding-left: var(--spacing-4);
+  margin-left: var(--spacing-4);
+  border-left: var(--border-width-default) solid var(--color-border-default);
 }
 
 /* ----------------------------------------------------- conditional reveal */
@@ -1112,10 +1140,14 @@ body {
 /* A child sits directly on the card — no panel of its own. One child therefore looks
    like any other row of fields; from the second on, a thin rule is what separates
    them, so the boundary only appears once there is something to divide. */
+/* Top-aligned, not bottom-aligned: every field in the row carries exactly one label
+   line, so the tops line up the controls just as well — and the Geburtsdatum message
+   then grows downwards instead of pushing its own input up out of line with the name
+   beside it. */
 .child-row {
   display: flex;
   flex-wrap: wrap;
-  align-items: flex-end;
+  align-items: flex-start;
   gap: var(--spacing-3);
 }
 .child-row + .child-row {
@@ -1125,12 +1157,14 @@ body {
 }
 .child-row .c-name { flex: 2 1 var(--layout-col-min-choice); }
 .child-row .c-date { flex: 1 1 var(--layout-col-min-choice); }
-/* The row is bottom-aligned, so giving the button the input's own height puts its
-   centre on the input's centre — the trash lines up with the field line, not with
-   the row's bottom edge. Follows the density switch, since --field-height does. */
+/* The button has no label of its own, so it starts one label line lower than the
+   fields do; giving it the input's own height then puts its centre on the input's
+   centre — the trash lines up with the field line. All three values are tokens, so
+   this follows the density switch as --field-height does. */
 .child-row > .icon-btn {
   flex: none;
   height: var(--field-height);
+  margin-top: calc(var(--font-input-text-md-line) + var(--field-gap-label));
 }
 
 /* Bare glyph, no box: next to a row of fields a bordered square reads as another
@@ -1715,7 +1749,7 @@ body {
 }
 
 @media (max-width: 640px) {
-  .col-3, .col-4, .col-6, .col-8 { grid-column: auto / span 12; }
+  .col-3, .col-4, .col-6, .col-8, .col-9 { grid-column: auto / span 12; }
   .card-toggle { padding: var(--spacing-3) var(--spacing-4); }
   .card-pad { padding: var(--spacing-4); }
   .subsection .card-pad,
@@ -1727,22 +1761,13 @@ body {
      the row rather than collapsing away: the field is what a tap picks the position
      with, and it cannot be tapped if it is not there. Stacked, the two gaps have to
      differ or twelve evenly spaced boxes read as twelve items instead of six pairs —
-     the position sits tight against its own amount, and the pairs stand apart.
-
-     The step is 8px, not the 4px that would read tightest: the focus glow is drawn
-     outside the field's border, so at 4px it lands on the label box above and the
-     two look welded together the moment the field is tapped. */
-  .amount-row { grid-template-columns: minmax(0, 1fr); gap: var(--spacing-2); }
+     the position sits tight against its own amount, and the pairs stand apart. */
+  .amount-row { grid-template-columns: minmax(0, 1fr); gap: var(--spacing-1); }
   .amount-list { gap: var(--spacing-4); }
-  /* Stacked, a full-width field is wider than any figure that goes in it and reads
-     as a second row of the same weight as the position. Narrower and pushed to the
-     right edge it reads as the position's answer, and the € stays where the thumb
-     leaves off. Not the desktop 200px: on a 320px screen that is nearly the whole
-     width again, so the cap only applies once there is room for it. */
-  .amount-row > .amount-cell {
-    justify-self: end;
-    width: min(60%, var(--layout-col-amount));
-  }
+  /* The detail fields are already stacked here (.col-* go full width above), so the
+     indent buys nothing and only costs field width. The rule stays: it is the only
+     thing left saying these belong to the position above. */
+  .amount-detail > .reveal-inner > .pad { padding-left: var(--spacing-3); margin-left: 0; }
   .save-state { display: none; }
   /* Ausnahme von der Zeile darüber: nach dem Senden ist diese Meldung der ganze
      Inhalt der Leiste, und dass nichts mehr geändert werden kann, gehört auf jede

@@ -21,9 +21,10 @@
   const form = $('#main');
   const status = $('#prefill-status');
 
-  /* Dieselbe Regel wie isAsked() in app.js, plus [hidden] für die
-     Objektkarte, die mit dem Finanzierungszweck kommt und geht. Bewusst
-     nachgebaut statt importiert: die Datei soll nichts aus app.js brauchen. */
+  /* Dieselbe Regel wie isAsked() in app.js — geschlossener Zweig, nicht angehakte
+     Position, ausgeblendetes Feld (die Objektkarte, die mit dem Finanzierungszweck
+     kommt und geht; ein Feld, das nicht zur Immobilienart passt). Bewusst nachgebaut
+     statt importiert: die Datei soll nichts aus app.js brauchen. */
   const asked = (el) => !el.closest('.reveal:not(.open), [data-inactive], [hidden]');
 
   /* Ein Feld mit "0,00" ist nicht ausgefüllt, sondern zeigt seinen Nullwert —
@@ -79,8 +80,7 @@
     [/Nettoeinkommen/,                      '4.200,00'],
     [/Kaltmiete/,                           '980,00'],
     [/Lebenshaltungskosten/,                '1.150,00'],
-    [/^Sparguthaben/,                       '45.000,00'],
-    [/^Kaufpreis/,                          '400.000,00'],
+    [/Sparguthaben/,                        '45.000,00'],
     [/^Eingesetztes Eigenkapital/,          '80.000,00'],
     [/^Gewünschte monatliche Rate/,         '1.250,00'],
     [/^Gewünschte Laufzeit/,                '30'],
@@ -96,18 +96,10 @@
     [/Erbbauzins/,                          '1.200,00'],
     [/^Geplante Fertigstellung/,            '06.2027'],
 
-    [/^Aktueller Darlehensgeber|^Name des Hauptkreditgebers/, 'Sparkasse KölnBonn'],
+    [/^Aktueller Darlehensgeber/,           'Sparkasse KölnBonn'],
     [/^Aktuelle Restschuld/,                '145.000,00'],
-    [/^Aktueller Zinssatz/,                 '3,4'],
-    [/^Anfänglicher Darlehensbetrag/,       '180.000,00'],
-    [/^Aktuelle Rate/,                      '740,00'],
-    [/^Restschuld zum Ablösetermin/,        '120.000,00'],
-    [/^Ende der Zinsbindung|^Ende des Erbbaurechtsvertrags|^Zinsbindung bis/, '31.12.2031'],
-    [/^Laufzeitende/,                       '31.12.2041'],
-    [/^Auszahlung an den Verkäufer/,         '06.10.2026'],
-    [/^Höhe der Maklergebühr/,              '3,57'],
+    [/^Ende der Zinsbindung|^Ende des Erbbaurechtsvertrags/, '31.12.2031'],
     [/^Modernisierungssumme/,               '60.000,00'],
-    [/^Höhe der Modernisierungskosten/,     '25.000,00'],
     [/Kapitalbetrag/,                       '50.000,00'],
     [/^Verwendungszweck/,                   'Ablösung Privatkredit'],
   ];
@@ -120,17 +112,6 @@
   const CHILD_VALUES = [
     [/^Name/,         'Lena Mustermann'],
     [/^Geburtsdatum/, '12.06.2019'],
-  ];
-
-  /* Eine vorherige Anschrift ist per Definition eine andere als die aktuelle — sonst
-     stünde dieselbe Adresse zweimal im Antrag. Erika ist 2015 aus Bonn nach Köln
-     gezogen, das ist die Adresse davor. */
-  const PREV_ADDRESS_VALUES = [
-    [/^Straße/,        'Alte Gasse'],
-    [/^Hausnr|^Nr\./,  '4'],
-    [/^PLZ/,           '53111'],
-    [/^Ort/,           'Bonn'],
-    [/^Wohnhaft von/,  '01.09.2011'],
   ];
 
   const OBJECT_VALUES = [
@@ -153,9 +134,6 @@
     [/Parkplätze/,                  'Ja'],
     [/Massivbauweise/,              'Ja'],
     [/Gesamtanzahl der Wohnungen/,  'Ja'],
-    // Beim Kauf über einen Makler ist die Provision Teil des Falls, nicht ein Zweig,
-    // den die Beispieldaten ungefragt aufmachen — Modernisierungen bleiben auf "Nein".
-    [/Maklergebühr an/,             'Ja'],
   ];
 
   /* Bevorzugte Einträge in Auswahllisten, über den Text erkannt statt über die
@@ -198,7 +176,7 @@
     $$('.choices', form).forEach((choices) => {
       const radios = $$('input[type="radio"]', choices);
       const field = choices.closest('.field');
-      if (!radios.length || !field || field.closest('#states')) return;
+      if (!radios.length || !field) return;
       if (!asked(field) || radios.some((radio) => radio.checked)) return;
 
       const label = labelOf(field, null);
@@ -215,7 +193,7 @@
   function fillSelects() {
     let filled = 0;
     $$('.select', form).forEach((select) => {
-      if (select.closest('#states') || select.disabled || select.value) return;
+      if (select.disabled || select.value) return;
       if (!asked(select)) return;
 
       const options = Array.from(select.options)
@@ -236,7 +214,7 @@
   function fillInputs() {
     let filled = 0;
     $$('.input', form).forEach((input) => {
-      if (input.closest('#states') || input.disabled || !isEmpty(input)) return;
+      if (input.disabled || !isEmpty(input)) return;
       if (!asked(input)) return;
 
       const field = input.closest('.field');
@@ -244,7 +222,6 @@
       // Der Katalog der Stelle zuerst, der allgemeine danach.
       const tables = [
         input.closest('.child-row') ? CHILD_VALUES : null,
-        input.closest('.voradresse-liste') ? PREV_ADDRESS_VALUES : null,
         input.closest('#objekt') ? OBJECT_VALUES : null,
         VALUES,
       ].filter(Boolean);
@@ -262,7 +239,8 @@
   }
 
   /* Auch die zwei Adressen des Versandschritts, damit die Strecke bis zur
-     Referenz-ID in drei Klicks durchläuft. */
+     Referenz-ID in drei Klicks durchläuft. Das Einwilligungshäkchen bleibt
+     bewusst leer — es ist die Entscheidung, um die es auf der Seite geht. */
   function fillSendStep() {
     [['#mail-kunde', 'erika.mustermann@example.com'],
       ['#mail-makler', 'makler@finlink.de']].forEach(([selector, value]) => {
