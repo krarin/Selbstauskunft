@@ -1,5 +1,5 @@
 /* ============================================================================
-   V4 behaviour. Declarative: the markup says what depends on what, this file
+   V5 behaviour. Declarative: the markup says what depends on what, this file
    just wires it up. Adding a conditional needs no change here.
 
      data-controls="#id" data-show-when="Ja"   trigger opens the reveal with that id
@@ -1368,7 +1368,7 @@
       $('.app').append(phone);
       return;
     }
-    frame.contentWindow.postMessage({ v4: settings() }, '*');
+    frame.contentWindow.postMessage({ v5: settings() }, '*');
   }
 
   /* The copy inside the frame: take the settings off the URL, and keep taking
@@ -1382,7 +1382,7 @@
     });
     apply(Object.fromEntries(params));
     window.addEventListener('message', (event) => {
-      if (event.data && event.data.v4) apply(event.data.v4);
+      if (event.data && event.data.v5) apply(event.data.v5);
     });
   }
 

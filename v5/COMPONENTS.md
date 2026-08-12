@@ -1,4 +1,4 @@
-# V4 component inventory — developer handoff
+# V5 component inventory — developer handoff
 
 Every component the Selbstauskunft prototype is built from, with the states each one
 needs. Derived from [css/components.css](css/components.css) and

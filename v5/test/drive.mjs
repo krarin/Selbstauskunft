@@ -1,4 +1,4 @@
-/* Drives the V4 prototype in a real browser over the DevTools protocol and
+/* Drives the V5 prototype in a real browser over the DevTools protocol and
    asserts on actual DOM state — the conditional cascade, the applicant-2 clone's
    id/label/name rewriting, the repeatable groups, validation, currency parsing
    and the mode toggles.
@@ -8,14 +8,14 @@
      python3 -m http.server 8777                 # from the repository root
      "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
        --headless --disable-gpu --remote-debugging-port=9222 \
-       --user-data-dir=/tmp/v4-profile http://localhost:8777/v4/index.html &
-     node v4/test/drive.mjs
+       --user-data-dir=/tmp/v5-profile http://localhost:8777/v5/index.html &
+     node v5/test/drive.mjs
 
    No dependencies: Node's built-in fetch and WebSocket do the whole job. */
 const base = 'http://127.0.0.1:9222';
 
 const targets = await (await fetch(`${base}/json/list`)).json();
-const page = targets.find((t) => t.type === 'page' && t.url.includes('v4/index.html'));
+const page = targets.find((t) => t.type === 'page' && t.url.includes('v5/index.html'));
 if (!page) { console.error('page target not found', targets.map(t => t.url)); process.exit(1); }
 
 const ws = new WebSocket(page.webSocketDebuggerUrl);

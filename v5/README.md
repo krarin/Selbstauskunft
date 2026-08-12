@@ -1,6 +1,6 @@
-# V4 — Selbstauskunft, generated from BETA-Foundations
+# V5 — Selbstauskunft, generated from BETA-Foundations
 
-V4 rebuilds the form on the FinLink design tokens instead of hand-picked values.
+V5 rebuilds the form on the FinLink design tokens instead of hand-picked values.
 Colour, typography, spacing, radius, elevation, field geometry, light/dark and
 density all come out of the Figma variable export; only `css/components.css` is
 written by hand, and it may reference **nothing but** semantic tokens.
@@ -8,7 +8,7 @@ written by hand, and it may reference **nothing but** semantic tokens.
 Open `index.html` directly in a browser — no build step is needed to view it.
 
 ```
-v4/
+v5/
   tokens/
     figma-foundations-variables.json  BETA-Foundations export — the source of truth
     local-layout.json                 the short list of names Figma does not define
@@ -29,8 +29,8 @@ v4/
 Regenerate the CSS after editing anything in `tokens/`:
 
 ```
-python3 v4/build-tokens.py            # rewrite css/tokens.*.css, print the contrast report
-python3 v4/build-tokens.py --check    # non-zero exit if the generated CSS is stale
+python3 v5/build-tokens.py            # rewrite css/tokens.*.css, print the contrast report
+python3 v5/build-tokens.py --check    # non-zero exit if the generated CSS is stale
 ```
 
 ## How the layers work
@@ -269,7 +269,7 @@ so there is one source of colour, not two.
 
 `DESIGN-SYSTEM.md` at the repository root documents V1–V3, whose accent lives in
 `--brand-*` variables and whose Teal/Blue/Neutral switch is a prototype construct
-with no basis in the token system. V4 replaces that with the real token layers,
+with no basis in the token system. V5 replaces that with the real token layers,
 which is why it has no branding switcher and gains a light/dark switch instead.
 The two do not share CSS.
 
