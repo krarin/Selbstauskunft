@@ -1845,16 +1845,17 @@
           <label for="d-rate">Gewünschte monatliche Rate</label>
           <div class="with-unit"><input class="input" id="d-rate" inputmode="decimal"><span class="unit">€</span></div>
         </div>
-        <!-- Two plain yes/no questions share a row; the KfW one below keeps the full
-             width because it is the only one of the three that opens something. -->
-        <div class="field col-6 col-start" role="group" aria-labelledby="lbl-d-bauspar" data-required>
+        <!-- Eine Ja/Nein-Frage pro Zeile: nebeneinander steht die zweite Frage weit
+             rechts von ihren eigenen Knöpfen und liest sich als Überschrift der
+             ersten Reihe mit. -->
+        <div class="field col-12 col-start" role="group" aria-labelledby="lbl-d-bauspar" data-required>
           <span class="group-label" id="lbl-d-bauspar">Möchten Sie einen Bausparvertrag einsetzen? <span class="req" aria-hidden="true">*</span></span>
           <div class="choices">
             <label class="choice"><input type="radio" name="d-bauspar" value="Ja"><span>Ja</span></label>
             <label class="choice"><input type="radio" name="d-bauspar" value="Nein"><span>Nein</span></label>
           </div>
         </div>
-        <div class="field col-6" role="group" aria-labelledby="lbl-d-sonder" data-required>
+        <div class="field col-12 col-start" role="group" aria-labelledby="lbl-d-sonder" data-required>
           <span class="group-label" id="lbl-d-sonder">Wünschen Sie eine Sondertilgung? <span class="req" aria-hidden="true">*</span></span>
           <div class="choices">
             <label class="choice"><input type="radio" name="d-sonder" value="Ja"><span>Ja</span></label>
