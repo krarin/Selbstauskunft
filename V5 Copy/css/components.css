@@ -1,54 +1,32 @@
 /* ============================================================================
    V5 components — the only hand-written stylesheet.
-   Load order: tokens.primitives -> tokens.semantic -> tokens.local -> tokens.a11y
-               -> components.css
+   Load order: tokens.css -> tokens.ext.css -> tokens.a11y.css -> components.css
 
-   HOUSE RULE: every value below is a var() from the semantic or local layer.
-   No hex, no px, no primitive (--teal-500 etc.) may appear in this file. That is
-   what makes a change in BETA-Foundations land here by regenerating, not by editing.
-   Two things cannot be tokens and are marked `EXCEPTION:` inline; media-query
-   breakpoints are a third, since CSS does not allow var() in a media query.
+   HOUSE RULE: every value below is a var() from a PUBLIC layer — --ds-*, never
+   --_ds-*. No hex, no px, no primitive. That is what makes a change in Finlink
+   Core land here by regenerating, not by editing. build-tokens.py fails the
+   build if a primitive leaks into this file.
 
-   Field geometry (40px tall, 8px radius, 12px inset) is the export's own
-   input.default.* — not chosen here. The density attribute swaps it for
-   input.compact.* via tokens.local.css.
+   Typography is applied as whole roles, never as loose properties: see the
+   role-adoption section below. Nothing outside it sets font-size, line-height,
+   letter-spacing or font-weight.
+
+   Media-query breakpoints are the one thing that cannot be a token, since CSS
+   does not allow var() in a media query. Deliberate deviations are marked
+   inline: `INTERIM G-nn` where the token system is missing something (the entry
+   is in TOKEN-GAPS.md), `EXCEPTION:` where CSS itself is the limit.
    ========================================================================== */
 
-/* Two surface levels, because the design calls for a white page with light-grey
-   cards — the inverse of how the export names its two neutrals. Rather than rename
-   globally, the swap is declared per appearance: dark keeps the conventional order
-   (page darkest, cards raised above it), so only the light theme trades places.
-   Everything meant to read as "on the base level" — inputs, nested panels, the
-   action bar — uses --page-bg, so it always contrasts with the card fill. */
+/* Two values that are genuinely derived rather than authored — calc() over tokens
+   the components are already built from, so they track the density switch and the
+   layout scale instead of being guessed constants. Everything that used to be
+   declared here (the three surface levels and the per-appearance shuffle) now lives
+   in tokens.ext.css, where the token layer can own it. */
 :root {
-  --page-bg: var(--color-background-surface);
-  --card-bg: var(--surface-card);
-  /* The interior of a control, split from --page-bg so the grey scheme can keep its
-     fields white on white cards and let the border.default outline carry the
-     boundary. Everywhere else it simply follows the page level. */
-  --field-bg: var(--page-bg);
-  /* derived from the tokens the action bar is actually built from, so it tracks the
-     density switch instead of being a guessed constant */
-  --actionbar-height: calc(var(--field-height) + 2 * var(--spacing-3)
-    + var(--border-width-default));
-  /* the shell's own outer width, so the sticky bar can line its buttons up with the
-     right edge of the form column instead of centring on its own */
-  --layout-shell-max: calc(var(--layout-nav-width) + var(--spacing-10)
-    + var(--layout-content-max) + 2 * var(--layout-gutter));
-}
-:root[data-appearance="dark"] {
-  --page-bg: var(--color-background-page);
-}
-/* The default scheme, "grey": the light palette with its two levels traded — the page
-   carries the grey and the cards are white. It is what <html> starts on; the plain
-   light base above it is no longer offered as a switch. Only these two aliases move;
-   everything
-   that has to read as *not the card* (inputs, nested panels, the action bar)
-   already points at --page-bg, so it follows automatically. */
-:root[data-appearance="grey"] {
-  --page-bg: var(--surface-card);               /* the card grey moves to the page */
-  --card-bg: var(--color-background-surface);    /* and the cards take the white */
-  --field-bg: var(--color-background-surface);   /* fields stay white, outline only */
+  --ds-actionbar-height: calc(var(--ds-field-height) + 2 * var(--ds-spacing-12)
+    + var(--ds-border-width-1));
+  --ds-layout-shell-max: calc(var(--ds-layout-nav-width) + var(--ds-spacing-40)
+    + var(--ds-layout-content-max) + 2 * var(--ds-layout-gutter));
 }
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -64,32 +42,276 @@
 
 html { -webkit-text-size-adjust: 100%; }
 
-body {
-  margin: 0;
-  font-family: var(--font-family-sans);
-  font-size: var(--font-body-md-size);
-  line-height: var(--font-body-md-line);
-  font-weight: var(--font-weight-regular);
-  color: var(--color-text-primary);
-  background: var(--page-bg);
-  -webkit-font-smoothing: antialiased;
+/* tokens.css §5.5 owns the rest of the body: family, colour, background and the
+   body-md-default bundle that is the document default. Only the UA margin is
+   this file's business. */
+body { margin: 0; }
+
+/* INTERIM G-21 — Finlink has no link colour. text.info.bold is 3.93:1 on white,
+   large-text only, and §9.2's neutral-plus-underline interim drops the colour
+   affordance entirely on a form this full of links. text.brand.bold is 5.32:1
+   after the contrast pass, so the link is teal rather than blue. Hover resolves
+   to the same teal.700 today — see G-21/G-24. */
+:where(a) { color: var(--ds-color-text-brand-bold-default); }
+
+/* ------------------------------------------------- typography role adoption
+
+   Every text node in this file takes exactly ONE of the 14 roles, applied as a
+   whole bundle. tokens.css defines the roles and their .ds-text-* classes; this
+   section binds the component selectors to them, which keeps the markup free of
+   type classes and keeps each role authored in exactly one place.
+
+   Plain comma lists, not :is() — :is() takes the specificity of its most
+   specific argument, which would let one high-specificity selector drag a whole
+   role up and start winning arguments it should lose. A comma list leaves every
+   selector at its own weight, so .subsection > .card-head .card-title still
+   beats .card-title on its own merits.
+
+   Order matters in exactly one place: body-md-default is emitted last so
+   .choice.plain > input + span beats .choice input:checked + span, which it ties
+   with on specificity. That is the same order the two rules had before.
+
+   Nothing below sets a size, ratio or weight of its own — if a component ever
+   needs one, the role is wrong or the role does not exist yet (§9.4). */
+
+.page-title {
+  font-family: var(--ds-font-family-sans);
+  font-size: var(--ds-typography-heading-lg-font-size);
+  line-height: var(--ds-typography-heading-lg-line-height);
+  letter-spacing: var(--ds-typography-heading-lg-letter-spacing);
+  font-weight: var(--ds-typography-heading-lg-font-weight);
 }
 
-:where(a) { color: var(--color-text-link); }
+.card-title,
+.card-static > .card-head,
+.ref-id {
+  font-family: var(--ds-font-family-sans);
+  font-size: var(--ds-typography-heading-md-font-size);
+  line-height: var(--ds-typography-heading-md-line-height);
+  letter-spacing: var(--ds-typography-heading-md-letter-spacing);
+  font-weight: var(--ds-typography-heading-md-font-weight);
+}
+
+.nav a,
+.subsection > .card-head .card-title,
+.subsection-title,
+.modal-title,
+.review-title {
+  font-family: var(--ds-font-family-sans);
+  font-size: var(--ds-typography-heading-sm-font-size);
+  line-height: var(--ds-typography-heading-sm-line-height);
+  letter-spacing: var(--ds-typography-heading-sm-letter-spacing);
+  font-weight: var(--ds-typography-heading-sm-font-weight);
+}
+
+.nav .eyebrow,
+.review-context {
+  font-family: var(--ds-font-family-sans);
+  font-size: var(--ds-typography-heading-xs-font-size);
+  line-height: var(--ds-typography-heading-xs-line-height);
+  letter-spacing: var(--ds-typography-heading-xs-letter-spacing);
+  font-weight: var(--ds-typography-heading-xs-font-weight);
+}
+
+.cal-cell[aria-pressed="true"],
+.steps > li::before {
+  font-family: var(--ds-font-family-sans);
+  font-size: var(--ds-typography-body-sm-strong-font-size);
+  line-height: var(--ds-typography-body-sm-strong-line-height);
+  letter-spacing: var(--ds-typography-body-sm-strong-letter-spacing);
+  font-weight: var(--ds-typography-body-sm-strong-font-weight);
+}
+
+.seg button[aria-pressed="true"],
+.save-state.locked,
+.info-btn {
+  font-family: var(--ds-font-family-sans);
+  font-size: var(--ds-typography-body-sm-medium-font-size);
+  line-height: var(--ds-typography-body-sm-medium-line-height);
+  letter-spacing: var(--ds-typography-body-sm-medium-letter-spacing);
+  font-weight: var(--ds-typography-body-sm-medium-font-weight);
+}
+
+.seg button,
+.nav-note,
+.help,
+.cal-days th,
+.cal-cell,
+.error-text,
+.info-bubble,
+.save-state,
+.link-btn,
+.review-list > dt,
+.ref-status {
+  font-family: var(--ds-font-family-sans);
+  font-size: var(--ds-typography-body-sm-default-font-size);
+  line-height: var(--ds-typography-body-sm-default-line-height);
+  letter-spacing: var(--ds-typography-body-sm-default-letter-spacing);
+  font-weight: var(--ds-typography-body-sm-default-font-weight);
+}
+
+/* INTERIM G-22 — .subhead, .applicant-title and .subcard-head are structurally
+   headings at 14px, and Finlink's smallest heading role is 12px. body-md-strong
+   is the right size and weight doing a heading's job. */
+.req,
+.subhead,
+.cal-zoom,
+.applicant-title,
+.subcard-head,
+.note-title {
+  font-family: var(--ds-font-family-sans);
+  font-size: var(--ds-typography-body-md-strong-font-size);
+  line-height: var(--ds-typography-body-md-strong-line-height);
+  letter-spacing: var(--ds-typography-body-md-strong-letter-spacing);
+  font-weight: var(--ds-typography-body-md-strong-font-weight);
+}
+
+.skip-link,
+.nav a.sub[aria-current="true"],
+.field > label,
+.field > .group-label,
+.gate-row > .gate-label,
+.choice input:checked + span,
+.add-btn,
+.btn,
+.step-title,
+.review-list > dd,
+.nav-toggle {
+  font-family: var(--ds-font-family-sans);
+  font-size: var(--ds-typography-body-md-medium-font-size);
+  line-height: var(--ds-typography-body-md-medium-line-height);
+  letter-spacing: var(--ds-typography-body-md-medium-letter-spacing);
+  font-weight: var(--ds-typography-body-md-medium-font-weight);
+}
+
+.nav a.sub,
+.with-unit .unit,
+.choice > span,
+.note,
+.modal-text,
+.choice.plain > input + span {
+  font-family: var(--ds-font-family-sans);
+  font-size: var(--ds-typography-body-md-default-font-size);
+  line-height: var(--ds-typography-body-md-default-line-height);
+  letter-spacing: var(--ds-typography-body-md-default-letter-spacing);
+  font-weight: var(--ds-typography-body-md-default-font-weight);
+}
+
+/* The field's type is the one role selected at runtime rather than authored:
+   density swaps the bundle from body-lg-default (16/22) to body-md-medium (14/20)
+   so the text scales with the control. CSS cannot swap a class from a custom
+   property, so the four members are indirected through --ds-field-font-* in
+   tokens.ext.css. It is still one role per node. INTERIM G-17. */
+.input,
+.select,
+.icon-btn {
+  font-family: var(--ds-font-family-sans);
+  font-size: var(--ds-field-font-size);
+  line-height: var(--ds-field-font-line);
+  letter-spacing: var(--ds-field-font-spacing);
+  font-weight: var(--ds-field-font-weight);
+}
+
+/* INTERIM G-06 — no tabular-figures token exists. .ds-numeric is defined in
+   tokens.css; these are the nodes that carry a number meant to be compared down
+   a column, which in a Selbstauskunft is every money field and the reference. */
+.input.num,
+.with-unit .input,
+.ref-id {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+}
+
+
+/* Responsive type — INTERIM G-18.
+
+   Finlink Core's roles are fixed-size; the contract has no viewport axis. This
+   form has always stepped its two largest headings down and its body role UP
+   below 640px, and that is the behaviour being kept.
+
+   It is done by re-binding selectors to a DIFFERENT role, not by re-pointing a
+   role's variables. The obvious version —
+     --ds-typography-heading-lg-font-size: var(--ds-typography-heading-md-font-size)
+   — is broken: custom properties substitute lazily against the final value in
+   the scope, so heading-lg would resolve against a heading-md that the same
+   block has already moved to heading-sm, and step down twice.
+
+   Re-binding also leaves all 14 role definitions immutable, which is what
+   "apply the role whole" is protecting. A side effect worth noting: it puts the
+   three body-lg roles to work, which the contract lists as otherwise unused. */
+@media (max-width: 640px) {
+
+  .page-title {
+    font-size: var(--ds-typography-heading-md-font-size);
+    line-height: var(--ds-typography-heading-md-line-height);
+    letter-spacing: var(--ds-typography-heading-md-letter-spacing);
+    font-weight: var(--ds-typography-heading-md-font-weight);
+  }
+
+  .card-title,
+  .card-static > .card-head,
+  .ref-id {
+    font-size: var(--ds-typography-heading-sm-font-size);
+    line-height: var(--ds-typography-heading-sm-line-height);
+    letter-spacing: var(--ds-typography-heading-sm-letter-spacing);
+    font-weight: var(--ds-typography-heading-sm-font-weight);
+  }
+
+  .req,
+  .subhead,
+  .cal-zoom,
+  .applicant-title,
+  .subcard-head,
+  .note-title {
+    font-size: var(--ds-typography-body-lg-strong-font-size);
+    line-height: var(--ds-typography-body-lg-strong-line-height);
+    letter-spacing: var(--ds-typography-body-lg-strong-letter-spacing);
+    font-weight: var(--ds-typography-body-lg-strong-font-weight);
+  }
+
+  .skip-link,
+  .nav a.sub[aria-current="true"],
+  .field > label,
+  .field > .group-label,
+  .gate-row > .gate-label,
+  .choice input:checked + span,
+  .add-btn,
+  .btn,
+  .step-title,
+  .review-list > dd,
+  .nav-toggle {
+    font-size: var(--ds-typography-body-lg-medium-font-size);
+    line-height: var(--ds-typography-body-lg-medium-line-height);
+    letter-spacing: var(--ds-typography-body-lg-medium-letter-spacing);
+    font-weight: var(--ds-typography-body-lg-medium-font-weight);
+  }
+
+  .nav a.sub,
+  .with-unit .unit,
+  .choice > span,
+  .note,
+  .modal-text,
+  .choice.plain > input + span {
+    font-size: var(--ds-typography-body-lg-default-font-size);
+    line-height: var(--ds-typography-body-lg-default-line-height);
+    letter-spacing: var(--ds-typography-body-lg-default-letter-spacing);
+    font-weight: var(--ds-typography-body-lg-default-font-weight);
+  }
+
+}
 
 /* ---------------------------------------------------------------- app shell */
 
 .skip-link {
   position: absolute;
-  left: var(--spacing-4);
-  top: var(--spacing-2);
+  left: var(--ds-spacing-16);
+  top: var(--ds-spacing-8);
   z-index: 10;
-  padding: var(--spacing-2) var(--spacing-4);
-  background: var(--page-bg);
-  color: var(--color-text-link);
-  border: var(--border-width-emphasis) solid var(--color-border-focus);
-  border-radius: var(--button-radius);
-  font-weight: var(--font-weight-medium);
+  padding: var(--ds-spacing-8) var(--ds-spacing-16);
+  background: var(--ds-surface-page);
+  color: var(--ds-color-text-brand-bold-default);
+  border: var(--ds-border-width-2) solid var(--ds-color-border-brand-bold-default);
+  border-radius: var(--ds-button-radius);
   transform: translateY(-200%);
 }
 .skip-link:focus { transform: none; }
@@ -97,13 +319,13 @@ body {
 /* The shell is anchored left, not centred: the sidebar stays at the viewport edge
    (one gutter in) at every width, and the form column takes the room that frees up.
    Capping that column rather than the shell is what stops the form from running the
-   full width of a wide monitor — the space past --layout-content-max is left empty
+   full width of a wide monitor — the space past --ds-layout-content-max is left empty
    instead of being handed to the fields. */
 .app {
   display: grid;
-  grid-template-columns: var(--layout-nav-width) minmax(0, var(--layout-content-max));
-  gap: var(--spacing-10);
-  padding: var(--spacing-10) var(--layout-gutter) var(--spacing-16);
+  grid-template-columns: var(--ds-layout-nav-width) minmax(0, var(--ds-layout-content-max));
+  gap: var(--ds-spacing-40);
+  padding: var(--ds-spacing-40) var(--ds-layout-gutter) var(--ds-spacing-64);
 }
 
 /* -------------------------------------------------------------------- nav */
@@ -113,18 +335,18 @@ body {
    nav thinks it has room, so there is nothing to scroll. */
 .nav {
   position: sticky;
-  top: var(--spacing-10);
+  top: var(--ds-spacing-40);
   align-self: start;
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-1);
-  max-height: calc(100vh - var(--spacing-10) - var(--actionbar-height)
-    - var(--spacing-4));
-  padding-right: var(--spacing-1);
+  gap: var(--ds-spacing-4);
+  max-height: calc(100vh - var(--ds-spacing-40) - var(--ds-actionbar-height)
+    - var(--ds-spacing-16));
+  padding-right: var(--ds-spacing-4);
   overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-width: thin;
-  scrollbar-color: var(--color-border-default) transparent;
+  scrollbar-color: var(--ds-color-border-neutral-bold-default) transparent;
 }
 
 /* Top-level entries sit one type step above their sub-entries and carry the heavier
@@ -134,27 +356,24 @@ body {
 .nav a {
   display: flex;
   align-items: center;
-  gap: var(--spacing-2);
-  padding: var(--spacing-2) var(--spacing-3);
-  border-radius: var(--button-radius);
-  color: var(--color-text-secondary);
+  gap: var(--ds-spacing-8);
+  padding: var(--ds-spacing-8) var(--ds-spacing-12);
+  border-radius: var(--ds-button-radius);
+  color: var(--ds-color-text-neutral-subtle-default);
   text-decoration: none;
-  font-size: var(--font-heading-sm-size);
-  line-height: var(--font-heading-sm-line);
-  font-weight: var(--font-weight-bold);
 }
-.nav a:hover { background: var(--color-background-hover); color: var(--color-text-primary); }
+.nav a:hover { background: var(--ds-color-background-neutral-subtle-default); color: var(--ds-color-text-neutral-bold-default); }
 .nav a[aria-current="true"] {
-  background: var(--color-action-primary-subtle);
-  color: var(--color-action-primary);
+  background: var(--ds-color-background-brand-subtlest-default);
+  color: var(--ds-color-text-brand-bold-default);
 }
 
 /* One size for all six, set from the same step as the burger, so the icon column is
    straight however tall the label wraps. Never shrinks: a squeezed glyph is a
    different shape, not a smaller one. */
 .nav-icon {
-  width: var(--spacing-5);
-  height: var(--spacing-5);
+  width: var(--ds-spacing-20);
+  height: var(--ds-spacing-20);
   flex: none;
 }
 
@@ -164,12 +383,8 @@ body {
    heading above a step's sub-entries would be a second, unclickable copy of that
    link. */
 .nav a.sub {
-  padding-left: calc(var(--spacing-3) + var(--spacing-5) + var(--spacing-2));
-  font-size: var(--font-body-md-size);
-  line-height: var(--font-body-md-line);
-  font-weight: var(--font-weight-regular);
+  padding-left: calc(var(--ds-spacing-12) + var(--ds-spacing-20) + var(--ds-spacing-8));
 }
-.nav a.sub[aria-current="true"] { font-weight: var(--font-weight-medium); }
 
 .nav .object-nav { display: none; }
 .nav .object-nav.show { display: block; }
@@ -181,61 +396,50 @@ body {
 .nav-toggle { display: none; }
 
 .nav-divider {
-  margin: var(--spacing-5) var(--spacing-3);
+  margin: var(--ds-spacing-20) var(--ds-spacing-12);
   border: 0;
-  border-top: var(--border-width-default) solid var(--color-border-default);
+  border-top: var(--ds-border-width-1) solid var(--ds-color-border-neutral-bold-default);
 }
 
 .nav .eyebrow {
-  margin: var(--spacing-4) var(--spacing-3) var(--spacing-2);
-  font-size: var(--font-heading-eyebrow-size);
-  line-height: var(--font-heading-eyebrow-line);
-  font-weight: var(--font-weight-bold);
-  color: var(--color-text-secondary);
+  margin: var(--ds-spacing-16) var(--ds-spacing-12) var(--ds-spacing-8);
+  color: var(--ds-color-text-neutral-subtle-default);
 }
 
 /* segmented control for the prototype's own switches (density, appearance…) */
-.seg { display: flex; gap: var(--spacing-1); padding: 0 var(--spacing-3); flex-wrap: wrap; }
+.seg { display: flex; gap: var(--ds-spacing-4); padding: 0 var(--ds-spacing-12); flex-wrap: wrap; }
 .seg button {
   flex: 1 1 auto;
-  min-height: var(--spacing-6);
-  padding: var(--spacing-1) var(--spacing-2);
-  font: inherit;
-  font-size: var(--font-body-sm-size);
-  color: var(--color-text-secondary);
-  background: var(--page-bg);
-  border: var(--border-width-default) solid var(--color-border-default);
-  border-radius: var(--button-radius);
+  min-height: var(--ds-spacing-24);
+  padding: var(--ds-spacing-4) var(--ds-spacing-8);
+  color: var(--ds-color-text-neutral-subtle-default);
+  background: var(--ds-surface-page);
+  border: var(--ds-border-width-1) solid var(--ds-color-border-neutral-bold-hovered);
+  border-radius: var(--ds-button-radius);
   cursor: pointer;
 }
 .seg button[aria-pressed="true"] {
-  background: var(--color-action-primary-subtle);
-  border-color: var(--color-action-primary);
-  color: var(--color-action-primary);
-  font-weight: var(--font-weight-medium);
+  background: var(--ds-color-background-brand-subtlest-default);
+  border-color: var(--ds-color-border-brand-bold-default);
+  color: var(--ds-color-text-brand-bold-default);
 }
 
 /* Der Beispieldaten-Knopf. Derselbe Button wie ein "+ hinzufügen" im Formular —
    gestrichelter Akzentrahmen, weil er etwas einsetzt —, hier über die Spaltenbreite.
    Der Innenabstand sitzt am Container, wie bei .seg, damit er auf derselben
    senkrechten Kante steht wie die Umschalter darüber. */
-.nav-tools { padding: 0 var(--spacing-3); }
+.nav-tools { padding: 0 var(--ds-spacing-12); }
 .nav-tools > .add-btn { width: 100%; justify-content: center; text-align: center; }
 .nav-note {
-  margin: var(--spacing-2) 0 0;
-  font-size: var(--font-body-sm-size);
-  line-height: var(--font-body-md-line);
-  color: var(--color-text-secondary);
+  margin: var(--ds-spacing-8) 0 0;
+  color: var(--ds-color-text-neutral-subtle-default);
 }
 
 /* ---------------------------------------------------------------- headings */
 
 .page-title {
-  margin: 0 0 var(--spacing-2);
-  font-size: var(--font-heading-lg-size);
-  line-height: var(--font-heading-lg-line);
-  font-weight: var(--font-heading-weight);
-  color: var(--color-text-primary);
+  margin: 0 0 var(--ds-spacing-8);
+  color: var(--ds-color-text-neutral-bold-default);
 }
 /* Beim Schrittwechsel bekommt die Überschrift den Fokus, damit ein Screenreader
    den neuen Schritt vorliest — markiert wird sie dabei nicht: sie ist kein
@@ -243,9 +447,9 @@ body {
 .page-title:focus { outline: none; }
 
 .lede {
-  margin: 0 0 var(--spacing-8);
-  max-width: var(--layout-measure-prose);
-  color: var(--color-text-secondary);
+  margin: 0 0 var(--ds-spacing-32);
+  max-width: var(--ds-layout-measure-prose);
+  color: var(--ds-color-text-neutral-subtle-default);
 }
 
 /* A section is a collapsible card. The grey fill is the only boundary — no border,
@@ -256,7 +460,7 @@ body {
    section reads as two stacked blocks with a hairline gap between the title bar and
    the fields. Collapsed, only the header block is visible and nothing changes. */
 .card {
-  margin-bottom: var(--section-gap);
+  margin-bottom: var(--ds-section-gap);
 }
 
 .card-head { margin: 0; }
@@ -264,26 +468,25 @@ body {
 .card-toggle {
   display: flex;
   align-items: center;
-  gap: var(--spacing-3);
+  gap: var(--ds-spacing-12);
   width: 100%;
-  padding: var(--spacing-4) var(--card-padding);
-  font: inherit;
+  padding: var(--ds-spacing-16) var(--ds-card-padding);
   color: inherit;
   text-align: left;
-  background: var(--card-bg);
+  background: var(--ds-surface-card);
   border: 0;
-  border-radius: var(--card-radius);
+  border-radius: var(--ds-card-radius);
   cursor: pointer;
 }
 /* background.hover is the same grey the cards use, so hovering would do nothing
    visible; background.active is the next step and the only one that still reads. */
-.card-toggle:hover { background: var(--color-background-active); }
+.card-toggle:hover { background: var(--ds-color-background-neutral-subtle-hovered); }
 
 .chev {
   flex: none;
-  width: var(--spacing-5);
-  height: var(--spacing-5);
-  color: var(--color-text-secondary);
+  width: var(--ds-spacing-20);
+  height: var(--ds-spacing-20);
+  color: var(--ds-color-text-neutral-subtle-default);
   transition: transform 0.18s ease;
 }
 /* Direct-child only, here and in every other .card state rule below: a card can now
@@ -292,10 +495,7 @@ body {
 .card[data-open="true"] > .card-head > .card-toggle > .chev { transform: rotate(180deg); }
 
 .card-title {
-  font-size: var(--font-heading-md-size);
-  line-height: var(--font-heading-md-line);
-  font-weight: var(--font-heading-weight);
-  color: var(--color-text-primary);
+  color: var(--ds-color-text-neutral-bold-default);
 }
 
 /* body --------------------------------------------------------------------------- */
@@ -310,7 +510,7 @@ body {
    at the start of the reveal. */
 .card[data-open="true"] > .card-body {
   grid-template-rows: 1fr;
-  margin-top: var(--spacing-1);
+  margin-top: var(--ds-spacing-4);
 }
 
 /* The overflow container must carry no padding of its own: overflow clips to the
@@ -319,18 +519,18 @@ body {
 .card-body-inner {
   min-height: 0;
   overflow: hidden;
-  background: var(--card-bg);
-  border-radius: var(--card-radius);
+  background: var(--ds-surface-card);
+  border-radius: var(--ds-card-radius);
 }
 /* Symmetrical now that the body is its own block — it no longer borrows the header's
    space above the first field. */
-.card-pad { padding: var(--card-padding); }
+.card-pad { padding: var(--ds-card-padding); }
 
 /* Clipping is only needed while the height animates. Releasing it once the card has
    settled keeps the info tooltips from being cut off at the card edge. */
 .card[data-open="true"][data-settled="true"] > .card-body > .card-body-inner { overflow: visible; }
 
-.card-actions { margin-bottom: var(--card-gap); }
+.card-actions { margin-bottom: var(--ds-card-gap); }
 
 @media (prefers-reduced-motion: reduce) {
   .card-body, .chev { transition: none; }
@@ -347,12 +547,12 @@ body {
    parts rather than as a stack of cards inside a card. Its header is one heading step
    down and its toggle exists for a single purpose — folding a part that is done back
    out of the way. Opening is not its job: it opens with the card (see setCardOpen). */
-.subsections { padding: var(--spacing-2) 0; }
+.subsections { padding: var(--ds-spacing-8) 0; }
 
 .subsection { margin-bottom: 0; }
 /* Only between siblings, so the first one does not get a rule against the card edge. */
 .subsections > .subsection + .subsection {
-  border-top: var(--border-width-default) solid var(--color-border-default);
+  border-top: var(--ds-border-width-1) solid var(--ds-color-border-neutral-bold-default);
 }
 
 /* The reveal's usual top padding would double the sub-section's own header inset.
@@ -364,12 +564,7 @@ body {
   background: none;
   border-radius: 0;
 }
-.subsection > .card-head > .card-toggle:hover { background: var(--color-background-active); }
-
-.subsection > .card-head .card-title {
-  font-size: var(--font-heading-sm-size);
-  line-height: var(--font-heading-sm-line);
-}
+.subsection > .card-head > .card-toggle:hover { background: var(--ds-color-background-neutral-subtle-hovered); }
 
 /* No fill and no rounding: the parent card already provides both, and a second
    rounded block inside it would show as a seam at the corners. The header sits
@@ -380,7 +575,7 @@ body {
   border-radius: 0;
 }
 .subsection .card-pad,
-.subsection-static .card-pad { padding: 0 var(--card-padding) var(--card-gap); }
+.subsection-static .card-pad { padding: 0 var(--ds-card-padding) var(--ds-card-gap); }
 
 /* Static sub-sections -------------------------------------------------------------- */
 
@@ -391,19 +586,16 @@ body {
 .subsections > .subsection-static + .subsection-static::before {
   content: "";
   display: block;
-  height: var(--border-width-default);
-  margin: 0 var(--card-padding);
-  background: var(--color-border-default);
+  height: var(--ds-border-width-1);
+  margin: 0 var(--ds-card-padding);
+  background: var(--ds-color-border-neutral-bold-default);
 }
 
 /* Same inset as the fields underneath, so heading and labels share one left edge. */
 .subsection-title {
-  margin: var(--card-gap) 0 var(--spacing-4);
-  padding: 0 var(--card-padding);
-  font-size: var(--font-heading-sm-size);
-  line-height: var(--font-heading-sm-line);
-  font-weight: var(--font-heading-weight);
-  color: var(--color-text-primary);
+  margin: var(--ds-card-gap) 0 var(--ds-spacing-16);
+  padding: 0 var(--ds-card-padding);
+  color: var(--ds-color-text-neutral-bold-default);
 }
 
 /* Helper text is always collapsed into an info icon next to the label, shown on hover
@@ -430,13 +622,10 @@ body {
    separates it from the fields above. The first one needs no rule — the card
    padding already sets it off. */
 .subhead {
-  margin: var(--spacing-6) 0 var(--spacing-4);
-  padding-top: var(--spacing-6);
-  border-top: var(--border-width-default) solid var(--color-border-default);
-  font-size: var(--font-heading-xs-size);
-  line-height: var(--font-heading-xs-line);
-  font-weight: var(--font-weight-bold);
-  color: var(--color-action-primary);
+  margin: var(--ds-spacing-24) 0 var(--ds-spacing-16);
+  padding-top: var(--ds-spacing-24);
+  border-top: var(--ds-border-width-1) solid var(--ds-color-border-neutral-bold-default);
+  color: var(--ds-color-text-brand-bold-default);
 }
 .card-pad > .subhead:first-child,
 .subhead:first-child {
@@ -450,7 +639,7 @@ body {
 .grid {
   display: grid;
   grid-template-columns: repeat(12, minmax(0, 1fr));
-  gap: var(--field-gap-stack) var(--spacing-4);
+  gap: var(--ds-field-gap-stack) var(--ds-spacing-16);
 }
 /* The width is carried by the *end* edge, leaving the start auto. `grid-column:
    span 6` would put the span on the start edge instead, where .col-start below
@@ -473,7 +662,7 @@ body {
 .field {
   display: flex;
   flex-direction: column;
-  gap: var(--field-gap-label);
+  gap: var(--ds-field-gap-label);
   min-width: 0;
 }
 
@@ -486,33 +675,36 @@ body {
   /* inline flow, not flex: the required asterisk and the info icon have to sit
      after the last word of a label that wraps, not float to its far edge */
   display: block;
-  font-size: var(--font-input-text-md-size);
-  line-height: var(--font-input-text-md-line);
-  font-weight: var(--font-weight-medium);
-  color: var(--color-text-primary);
+  /* subtle, not bold: 7.24:1 on the card and 6.74:1 on the page, so it clears AA
+     comfortably. It is the same token .help carries, so the label and its helper
+     no longer differ in colour — the hierarchy between them is now carried by the
+     type roles alone (body-md-medium 14/500 against body-sm-default 12/400). */
+  color: var(--ds-color-text-neutral-subtle-default);
 }
 
-/* The first card carries the page's opening question, so its title and labels are
-   darkened one step past --color-text-primary (neutral-800) to neutral-950. There is
-   no semantic token at that step, so the primitive is referenced directly — and only
-   under the light theme, where neutral-950 reads as ink rather than as the page
-   background it becomes in dark mode. */
-:root:not([data-appearance="dark"]) #start .card-title,
-:root:not([data-appearance="dark"]) #start .field > label,
-:root:not([data-appearance="dark"]) #start .field > .group-label {
-  color: var(--neutral-950);
+/* The first card carries the page's opening question, so its title is darkened one
+   step past text.neutral.bold.default (grey.900) to grey.950. Finlink does carry
+   that step as text.neutral.bold.hovered, so this is a real semantic rather than
+   the primitive it used to reach for — but it is a hover token doing a resting
+   job, which is the honest reading of it (G-26). Only under the light appearance,
+   where grey.950 is ink rather than the page it becomes in dark.
+
+   The labels used to be darkened with it, back when labels were grey.900 and this
+   was a one-step emphasis. They are grey.700 now, which would make this a
+   three-step jump and leave the first card's labels visibly unlike every other
+   card's — so the labels were dropped from the selector and only the title
+   keeps the ink. */
+:root:not([data-appearance="dark"]) #start .card-title {
+  color: var(--ds-color-text-neutral-bold-hovered);
 }
 
 .req {
-  color: var(--color-feedback-error);
-  font-weight: var(--font-weight-bold);
+  color: var(--ds-color-text-danger-bold-default);
 }
 
 .help {
   margin: 0;
-  font-size: var(--font-input-text-sm-size);
-  line-height: var(--font-input-text-sm-line);
-  color: var(--color-text-secondary);
+  color: var(--ds-color-text-neutral-subtle-default);
 }
 
 /* controls ------------------------------------------------------------------ */
@@ -520,22 +712,18 @@ body {
 .input,
 .select {
   width: 100%;
-  height: var(--field-height);
-  padding: 0 var(--field-padding-x);
-  font-family: inherit;
+  height: var(--ds-field-height);
+  padding: 0 var(--ds-field-padding-x);
   /* the field's type is a density token, not a fixed step: 16/24 at the default
      height, 14/20 in compact, so the text shrinks with the box */
-  font-size: var(--field-font-size);
-  line-height: var(--field-font-line);
-  font-weight: var(--font-weight-regular);
-  color: var(--color-text-primary);
-  background: var(--field-bg);
-  border: var(--border-width-default) solid var(--color-border-default);
-  border-radius: var(--field-radius);
+  color: var(--ds-color-text-neutral-bold-default);
+  background: var(--ds-surface-field);
+  border: var(--ds-border-width-1) solid var(--ds-color-border-neutral-bold-hovered);
+  border-radius: var(--ds-field-radius);
   transition: border-color 0.12s, box-shadow 0.12s;
 }
 
-.input::placeholder { color: var(--color-text-disabled); }
+.input::placeholder { color: var(--ds-color-text-neutral-subtle-disabled); }
 
 /* A focused field is lifted, not outlined: it keeps its own hairline and gains a
    soft accent halo around it. Nothing on the row moves — the glow is drawn outside
@@ -545,7 +733,7 @@ body {
 .input:focus,
 .select:focus {
   outline: none;
-  box-shadow: var(--focus-glow);
+  box-shadow: var(--ds-focus-glow);
 }
 
 /* Keyboard users additionally get an outer ring: the 2px accent border alone is
@@ -565,13 +753,13 @@ body {
 .cal-zoom:focus-visible,
 .cal-cell:focus-visible,
 .link-btn:focus-visible {
-  outline: var(--border-width-emphasis) solid var(--color-border-focus);
-  outline-offset: var(--border-width-default);
+  outline: var(--ds-border-width-2) solid var(--ds-color-border-brand-bold-default);
+  outline-offset: var(--ds-border-width-1);
 }
 
 .select {
   appearance: none;
-  padding-right: var(--spacing-10);
+  padding-right: var(--ds-spacing-40);
 }
 
 /* The chevron is a masked shape, not a coloured SVG: a data-URI background could
@@ -582,22 +770,22 @@ body {
   content: "";
   position: absolute;
   top: 50%;
-  right: var(--spacing-3);
-  width: var(--spacing-4);
-  height: var(--spacing-4);
+  right: var(--ds-spacing-12);
+  width: var(--ds-spacing-16);
+  height: var(--ds-spacing-16);
   transform: translateY(-50%);
-  background: var(--color-text-secondary);
+  background: var(--ds-color-text-neutral-subtle-default);
   mask: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M4.4 7.3 10 12.9l5.6-5.6 1.4 1.4-7 7-7-7z"/></svg>') center / contain no-repeat;
   -webkit-mask: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M4.4 7.3 10 12.9l5.6-5.6 1.4 1.4-7 7-7-7z"/></svg>') center / contain no-repeat;
   pointer-events: none;
 }
-.select-wrap:has(.select:disabled)::after { background: var(--color-text-disabled); }
+.select-wrap:has(.select:disabled)::after { background: var(--ds-color-text-neutral-subtle-disabled); }
 
 .input:disabled,
 .select:disabled {
-  background: var(--color-background-disabled);
-  border-color: var(--color-border-disabled);
-  color: var(--color-text-disabled);
+  background: var(--ds-color-background-neutral-subtle-disabled);
+  border-color: var(--ds-color-border-neutral-subtle-disabled);
+  color: var(--ds-color-text-neutral-subtle-disabled);
   cursor: not-allowed;
 }
 
@@ -610,9 +798,8 @@ body {
    would break out of its grid column. */
 .textarea {
   height: auto;
-  min-height: calc(var(--field-height) * 2);
-  padding: var(--field-padding-y) var(--field-padding-x);
-  line-height: var(--font-body-md-line);
+  min-height: calc(var(--ds-field-height) * 2);
+  padding: var(--ds-field-padding-y) var(--ds-field-padding-x);
   resize: vertical;
 }
 
@@ -622,34 +809,32 @@ body {
   border-top-right-radius: 0;
   border-bottom-right-radius: 0;
   text-align: right;
-  font-variant-numeric: tabular-nums;
 }
 .with-unit .unit {
   display: flex;
   align-items: center;
-  padding: 0 var(--spacing-3);
-  font-size: var(--font-body-md-size);
-  color: var(--color-text-secondary);
-  background: var(--card-bg);
-  border: var(--border-width-default) solid var(--color-border-default);
+  padding: 0 var(--ds-spacing-12);
+  color: var(--ds-color-text-neutral-subtle-default);
+  background: var(--ds-surface-card);
+  border: var(--ds-border-width-1) solid var(--ds-color-border-neutral-bold-hovered);
   border-left: 0;
-  border-radius: 0 var(--field-radius) var(--field-radius) 0;
+  border-radius: 0 var(--ds-field-radius) var(--ds-field-radius) 0;
   white-space: nowrap;
 }
 /* The € box is a later sibling and paints over the input's halo, so the group wears
    the glow as a whole and the input inside it wears none — otherwise the shadow would
    stop dead at the seam. */
 .with-unit:focus-within {
-  border-radius: var(--field-radius);
-  box-shadow: var(--focus-glow);
+  border-radius: var(--ds-field-radius);
+  box-shadow: var(--ds-focus-glow);
 }
 .with-unit .input:focus { box-shadow: none; }
 /* Same reasoning for the keyboard ring: an outline on the input alone would stop at
    the seam and leave the € box outside the ring, so the group wears it. */
 .with-unit .input:focus-visible { outline: none; }
 .with-unit:has(.input:focus-visible) {
-  outline: var(--border-width-emphasis) solid var(--color-border-focus);
-  outline-offset: var(--border-width-default);
+  outline: var(--ds-border-width-2) solid var(--ds-color-border-brand-bold-default);
+  outline-offset: var(--ds-border-width-1);
 }
 
 /* date field + calendar ---------------------------------------------------- */
@@ -660,45 +845,45 @@ body {
    more thing to fill in. The wrapper is built by script (see buildDatePickers), so
    the markup stays a plain text input. */
 .with-picker { position: relative; display: block; }
-.with-picker > .input { padding-right: var(--spacing-10); }
+.with-picker > .input { padding-right: var(--ds-spacing-40); }
 
 .picker-btn {
   position: absolute;
-  top: var(--border-width-default);
-  right: var(--border-width-default);
+  top: var(--ds-border-width-1);
+  right: var(--ds-border-width-1);
   display: flex;
   align-items: center;
   justify-content: center;
-  width: var(--spacing-10);
-  height: calc(var(--field-height) - 2 * var(--border-width-default));
+  width: var(--ds-spacing-40);
+  height: calc(var(--ds-field-height) - 2 * var(--ds-border-width-1));
   padding: 0;
-  color: var(--color-text-secondary);
+  color: var(--ds-color-text-neutral-subtle-default);
   background: none;
   border: 0;
   /* inside the field's own corner, so a hover fill cannot square it off */
-  border-radius: 0 var(--field-radius) var(--field-radius) 0;
+  border-radius: 0 var(--ds-field-radius) var(--ds-field-radius) 0;
   cursor: pointer;
 }
 /* background.hover equals the field fill, so hover has to step to active — the same
    reason the card header does. */
-.picker-btn:hover { color: var(--color-text-primary); background: var(--color-background-active); }
-.picker-btn > .ico-cal { width: var(--spacing-5); height: var(--spacing-5); }
-.input:disabled + .picker-btn { color: var(--color-text-disabled); cursor: not-allowed; }
+.picker-btn:hover { color: var(--ds-color-text-neutral-bold-default); background: var(--ds-color-background-neutral-subtle-hovered); }
+.picker-btn > .ico-cal { width: var(--ds-spacing-20); height: var(--ds-spacing-20); }
+.input:disabled + .picker-btn { color: var(--ds-color-text-neutral-subtle-disabled); cursor: not-allowed; }
 
 /* Anchored under the field it belongs to. It escapes the card only because an open
    card releases its overflow clipping once it has settled — the same thing the help
    tooltip depends on (see .card-body-inner). */
 .calendar {
   position: absolute;
-  top: calc(100% + var(--spacing-1));
+  top: calc(100% + var(--ds-spacing-4));
   left: 0;
   z-index: 20;
   width: max-content;
-  padding: var(--spacing-3);
-  background: var(--page-bg);
-  border: var(--border-width-default) solid var(--color-border-default);
-  border-radius: var(--field-radius);
-  box-shadow: var(--shadow-md);
+  padding: var(--ds-spacing-12);
+  background: var(--ds-surface-page);
+  border: var(--ds-border-width-1) solid var(--ds-color-border-neutral-bold-default);
+  border-radius: var(--ds-field-radius);
+  box-shadow: var(--ds-shadow-md);
 }
 /* flipped when the panel would otherwise leave the window — set on open, measured */
 .calendar[data-align="end"] { left: auto; right: 0; }
@@ -706,85 +891,77 @@ body {
 .cal-head {
   display: flex;
   align-items: center;
-  gap: var(--spacing-1);
-  margin-bottom: var(--spacing-2);
+  gap: var(--ds-spacing-4);
+  margin-bottom: var(--ds-spacing-8);
 }
 .cal-nav {
   display: flex;
   align-items: center;
   justify-content: center;
   flex: none;
-  width: var(--spacing-8);
-  height: var(--spacing-8);
+  width: var(--ds-spacing-32);
+  height: var(--ds-spacing-32);
   padding: 0;
-  color: var(--color-text-secondary);
+  color: var(--ds-color-text-neutral-subtle-default);
   background: none;
   border: 0;
-  border-radius: var(--field-radius);
+  border-radius: var(--ds-field-radius);
   cursor: pointer;
 }
-.cal-nav > svg { width: var(--spacing-5); height: var(--spacing-5); }
-.cal-nav:hover { color: var(--color-text-primary); background: var(--color-background-active); }
+.cal-nav > svg { width: var(--ds-spacing-20); height: var(--ds-spacing-20); }
+.cal-nav:hover { color: var(--ds-color-text-neutral-bold-default); background: var(--ds-color-background-neutral-subtle-hovered); }
 
 /* The month-and-year label is a button, and says so on hover: it is the way out to
    the level above, which is how a birthdate is reached without paging. */
 .cal-zoom {
   flex: 1;
-  height: var(--spacing-8);
-  padding: 0 var(--spacing-2);
-  font: inherit;
-  font-size: var(--font-body-md-size);
-  font-weight: var(--font-weight-bold);
-  color: var(--color-text-primary);
+  height: var(--ds-spacing-32);
+  padding: 0 var(--ds-spacing-8);
+  color: var(--ds-color-text-neutral-bold-default);
   background: none;
   border: 0;
-  border-radius: var(--field-radius);
+  border-radius: var(--ds-field-radius);
   cursor: pointer;
 }
-.cal-zoom:hover { background: var(--color-background-active); }
+.cal-zoom:hover { background: var(--ds-color-background-neutral-subtle-hovered); }
 .cal-zoom:disabled { cursor: default; background: none; }   /* the outermost level */
 
 .cal-days { border-collapse: collapse; }
 .cal-days th {
-  padding-bottom: var(--spacing-1);
-  font-size: var(--font-body-sm-size);
-  font-weight: var(--font-weight-regular);
-  color: var(--color-text-secondary);
+  padding-bottom: var(--ds-spacing-4);
+  color: var(--ds-color-text-neutral-subtle-default);
 }
-.cal-blocks { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--spacing-1); }
+.cal-blocks { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--ds-spacing-4); }
 
 .cal-cell {
   display: flex;
   align-items: center;
   justify-content: center;
   width: 100%;
-  min-width: var(--spacing-8);
-  height: var(--spacing-8);
-  padding: 0 var(--spacing-1);
-  font: inherit;
-  font-size: var(--font-body-sm-size);
-  color: var(--color-text-primary);
+  min-width: var(--ds-spacing-32);
+  height: var(--ds-spacing-32);
+  padding: 0 var(--ds-spacing-4);
+  color: var(--ds-color-text-neutral-bold-default);
   background: none;
   /* transparent rather than none, so marking today cannot move the grid by a pixel */
-  border: var(--border-width-default) solid transparent;
-  border-radius: var(--field-radius);
+  border: var(--ds-border-width-1) solid transparent;
+  border-radius: var(--ds-field-radius);
   cursor: pointer;
 }
-.cal-cell:hover { background: var(--color-background-active); }
+.cal-cell:hover { background: var(--ds-color-background-neutral-subtle-hovered); }
 /* The days either side of the month are shown rather than left blank — the week a
    month starts in is a real week — but they are plainly not this month. */
-.cal-cell[data-outside] { color: var(--color-text-secondary); opacity: 0.55; }
+.cal-cell[data-outside] { color: var(--ds-color-text-neutral-subtle-default); opacity: 0.55; }
 /* Today is an edge, the answer is a fill: two different things, so two different
    marks, and either can be read without the other. */
-.cal-cell[aria-current="date"] { border-color: var(--color-action-primary); }
+.cal-cell[aria-current="date"] { border-color: var(--ds-color-border-brand-bold-default); }
 .cal-cell[aria-pressed="true"] {
-  font-weight: var(--font-weight-bold);
-  color: var(--color-on-primary);
-  background: var(--color-action-primary);
-  border-color: var(--color-action-primary);
+  color: var(--ds-color-text-neutral-inverse-default);
+  background: var(--ds-color-background-brand-bold-default);
+  border-color: var(--ds-color-border-brand-bold-default);
   opacity: 1;
 }
-.cal-cell[aria-pressed="true"]:hover { background: var(--color-action-primary-hover); }
+.cal-cell[aria-pressed="true"]:hover { background: var(--ds-color-background-brand-bold-hovered); }
 
 /* validation --------------------------------------------------------------- */
 
@@ -792,19 +969,17 @@ body {
 .field.invalid .select,
 .input[aria-invalid="true"],
 .select[aria-invalid="true"] {
-  border-color: var(--color-border-error);
+  border-color: var(--ds-color-border-danger-bold-default);
 }
-.field.invalid .with-unit .unit { border-color: var(--color-border-error); }
-.field.invalid .choice input:not(:checked) + span { border-color: var(--color-border-error); }
+.field.invalid .with-unit .unit { border-color: var(--ds-color-border-danger-bold-default); }
+.field.invalid .choice input:not(:checked) + span { border-color: var(--ds-color-border-danger-bold-default); }
 
 .error-text {
   display: none;
   align-items: center;
-  gap: var(--spacing-1);
+  gap: var(--ds-spacing-4);
   margin: 0;
-  font-size: var(--font-input-text-sm-size);
-  line-height: var(--font-input-text-sm-line);
-  color: var(--color-feedback-error-strong);
+  color: var(--ds-color-text-danger-bold-default);
 }
 .field.invalid .error-text { display: flex; }
 
@@ -817,17 +992,13 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: var(--spacing-4);
-  height: var(--spacing-4);
+  width: var(--ds-spacing-16);
+  height: var(--ds-spacing-16);
   padding: 0;
-  font: inherit;
-  font-size: var(--font-input-text-sm-size);
-  line-height: 1;
-  font-weight: var(--font-weight-medium);
-  color: var(--color-text-secondary);
+  color: var(--ds-color-text-neutral-subtle-default);
   background: none;
-  border: var(--border-width-default) solid var(--color-text-secondary);
-  border-radius: var(--pill-radius);
+  border: var(--ds-border-width-1) solid var(--ds-color-text-neutral-subtle-default);
+  border-radius: var(--ds-pill-radius);
   cursor: help;
 }
 /* The circle is 16px so it sits quietly next to a 14px label, but a pointer target
@@ -836,29 +1007,26 @@ body {
 .info-btn::after {
   content: "";
   position: absolute;
-  inset: calc(-1 * var(--spacing-1));
+  inset: calc(-1 * var(--ds-spacing-4));
 }
 
 /* The ring has no fill to set it apart from the label any more, so it needs the gap
    the filled circle could do without — otherwise it collides with the required *. */
-.info-wrap { position: relative; display: inline-flex; vertical-align: middle; margin-left: var(--spacing-1); }
+.info-wrap { position: relative; display: inline-flex; vertical-align: middle; margin-left: var(--ds-spacing-4); }
 .info-bubble {
   position: absolute;
-  bottom: calc(100% + var(--spacing-2));
+  bottom: calc(100% + var(--ds-spacing-8));
   left: 50%;
   transform: translateX(-50%);
   z-index: 5;
   width: max-content;
-  max-width: var(--layout-measure-tooltip);
-  padding: var(--spacing-2) var(--spacing-3);
-  font-size: var(--font-body-sm-size);
-  line-height: var(--font-body-md-line);
-  font-weight: var(--font-weight-regular);
-  color: var(--color-text-primary);
-  background: var(--page-bg);
-  border: var(--border-width-default) solid var(--color-border-default);
-  border-radius: var(--field-radius);
-  box-shadow: var(--shadow-md);
+  max-width: var(--ds-layout-measure-tooltip);
+  padding: var(--ds-spacing-8) var(--ds-spacing-12);
+  color: var(--ds-color-text-neutral-bold-default);
+  background: var(--ds-surface-page);
+  border: var(--ds-border-width-1) solid var(--ds-color-border-neutral-bold-default);
+  border-radius: var(--ds-field-radius);
+  box-shadow: var(--ds-shadow-md);
   opacity: 0;
   visibility: hidden;
   transition: opacity 0.12s;
@@ -869,7 +1037,7 @@ body {
 
 /* ----------------------------------------------------- segmented choices */
 
-.choices { display: flex; flex-wrap: wrap; gap: var(--spacing-2); }
+.choices { display: flex; flex-wrap: wrap; gap: var(--ds-spacing-8); }
 
 .choice { position: relative; display: inline-flex; }
 .choice input {
@@ -885,23 +1053,21 @@ body {
 .choice > span {
   display: inline-flex;
   align-items: center;
-  gap: var(--spacing-2);
-  min-height: var(--field-height);
-  padding: 0 var(--spacing-4);
-  font-size: var(--font-body-md-size);
-  color: var(--color-text-primary);
-  background: var(--field-bg);
-  border: var(--border-width-default) solid var(--color-border-default);
-  border-radius: var(--field-radius);
+  gap: var(--ds-spacing-8);
+  min-height: var(--ds-field-height);
+  padding: 0 var(--ds-spacing-16);
+  color: var(--ds-color-text-neutral-bold-default);
+  background: var(--ds-surface-field);
+  border: var(--ds-border-width-1) solid var(--ds-color-border-neutral-bold-hovered);
+  border-radius: var(--ds-field-radius);
   cursor: pointer;
 }
-.choice input:hover + span { border-color: var(--color-action-primary); }
+.choice input:hover + span { border-color: var(--ds-color-border-brand-bold-default); }
 .choice input:checked + span {
-  background: var(--color-action-primary-subtle);
-  border-color: var(--color-action-primary);
-  color: var(--color-action-primary);
-  font-weight: var(--font-weight-medium);
-  box-shadow: inset 0 0 0 var(--border-width-default) var(--color-action-primary);
+  background: var(--ds-color-background-brand-subtlest-default);
+  border-color: var(--ds-color-border-brand-bold-default);
+  color: var(--ds-color-text-brand-bold-default);
+  box-shadow: inset 0 0 0 var(--ds-border-width-1) var(--ds-color-border-brand-bold-default);
 }
 /* The native input is transparent, so the chip draws its own mark. It is empty while
    unpicked and fills only once picked, and its shape says which rules apply: a circle
@@ -911,36 +1077,36 @@ body {
 .choice > span::before {
   content: "";
   flex: none;
-  width: var(--choice-mark-size);
-  height: var(--choice-mark-size);
-  border: var(--border-width-default) solid var(--color-border-default);
+  width: var(--ds-choice-mark-size);
+  height: var(--ds-choice-mark-size);
+  border: var(--ds-border-width-1) solid var(--ds-color-border-neutral-bold-hovered);
 }
-.choice input:hover + span::before { border-color: var(--color-action-primary); }
-.choice input:checked + span::before { border-color: var(--color-action-primary); }
+.choice input:hover + span::before { border-color: var(--ds-color-border-brand-bold-default); }
+.choice input:checked + span::before { border-color: var(--ds-color-border-brand-bold-default); }
 
 /* radio: a ring that gains a centre dot */
 .choice input[type="radio"] + span::before {
-  border-radius: var(--pill-radius);
+  border-radius: var(--ds-pill-radius);
   /* A dot, not an inset ring: box-shadow spreads inward from the edge, which at this
      size closes the hole entirely. Held at zero size until checked so only the
      background-size has to change. */
   background: radial-gradient(
     circle at center,
-    currentColor 0 var(--radio-dot-radius),
-    transparent var(--radio-dot-radius)
+    currentColor 0 var(--ds-radio-dot-radius),
+    transparent var(--ds-radio-dot-radius)
   ) center / 0 0 no-repeat;
 }
 .choice input[type="radio"]:checked + span::before {
-  border-width: var(--border-width-emphasis);
+  border-width: var(--ds-border-width-2);
   background-size: 100% 100%;
 }
 
 /* checkbox: a square that fills solid and carries a checkmark */
 .choice input[type="checkbox"] + span::before {
-  border-radius: var(--checkbox-radius);
+  border-radius: var(--ds-checkbox-radius);
 }
 .choice input[type="checkbox"]:checked + span::before {
-  background: var(--color-action-primary);
+  background: var(--ds-color-background-brand-bold-default);
 }
 /* The glyph is a second layer rather than a mask on the box above, because a mask
    clips the element it is set on — fill, border and all — leaving a bare checkmark
@@ -950,27 +1116,27 @@ body {
   content: "";
   position: absolute;
   top: 50%;
-  left: calc(var(--border-width-default) + var(--spacing-4));
-  width: var(--choice-mark-size);
-  height: var(--choice-mark-size);
+  left: calc(var(--ds-border-width-1) + var(--ds-spacing-16));
+  width: var(--ds-choice-mark-size);
+  height: var(--ds-choice-mark-size);
   transform: translateY(-50%);
-  background: var(--color-on-primary);
+  background: var(--ds-color-text-neutral-inverse-default);
   /* EXCEPTION: the checkmark is an inline SVG mask because a data URI cannot take a
      var(). Only its alpha is read, so the stroke colour inside the URI paints
      nothing — the visible colour is the tokenised background above. */
   -webkit-mask: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="black" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5.5 10l3 3.5L14.5 6.5"/></svg>') center / 100% 100% no-repeat;
   mask: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="black" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5.5 10l3 3.5L14.5 6.5"/></svg>') center / 100% 100% no-repeat;
 }
-.choice input:hover + span::before { border-color: var(--color-action-primary); }
+.choice input:hover + span::before { border-color: var(--ds-color-border-brand-bold-default); }
 .choice input:checked + span::before {
-  border-color: var(--color-action-primary);
-  border-width: var(--border-width-emphasis);
+  border-color: var(--ds-color-border-brand-bold-default);
+  border-width: var(--ds-border-width-2);
   background-size: 100% 100%;
 }
 
 .choices.grid-choices {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(var(--layout-col-min-choice), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(var(--ds-layout-col-min-choice), 1fr));
 }
 .choices.grid-choices .choice,
 .choices.grid-choices .choice > span { width: 100%; }
@@ -990,17 +1156,17 @@ body {
 .amount-list {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-2);
+  gap: var(--ds-spacing-8);
   /* .field's own gap is the label-to-control step, too tight under the help text */
-  margin-top: var(--spacing-2);
+  margin-top: var(--ds-spacing-8);
 }
 
 .amount-row {
   display: grid;
-  grid-template-columns: minmax(0, var(--layout-col-position)) var(--layout-col-amount);
+  grid-template-columns: minmax(0, var(--ds-layout-col-position)) var(--ds-layout-col-amount);
   justify-content: start;
   align-items: start;
-  gap: var(--spacing-3);
+  gap: var(--ds-spacing-12);
 }
 /* the toggle is the row, not a chip sitting in it */
 .amount-row > .choice > span { width: 100%; }
@@ -1018,7 +1184,7 @@ body {
    an empty slot, not a disabled control. The data-inactive hook is unchanged, and
    still what keeps the amount out of the Pflichtfeld count. */
 .amount-cell { transition: background-color 0.18s ease; }
-.amount-cell[data-inactive] .input { background: var(--color-background-hover); }
+.amount-cell[data-inactive] .input { background: var(--ds-color-background-neutral-subtle-default); }
 
 /* A mandatory position still appears in the list, ticked, but cannot be given up.
    It keeps the normal fill — greying it out would read as "not applicable" rather
@@ -1042,7 +1208,7 @@ body {
    .amount-item wraps the pair so the reveal is a sibling of its row and nothing else
    between them; .amount-list keeps its own gap for the plain rows, and the wider
    step between items comes from the list modifier below. */
-.amount-list.with-detail { gap: var(--spacing-5); }
+.amount-list.with-detail { gap: var(--ds-spacing-20); }
 
 .amount-item {
   display: flex;
@@ -1055,10 +1221,10 @@ body {
    does. Padding, not margin, on .pad — .reveal animates its row height and a margin
    there would be measured outside the grid track. */
 .amount-detail > .reveal-inner > .pad {
-  padding-top: var(--spacing-3);
-  padding-left: var(--spacing-4);
-  margin-left: var(--spacing-4);
-  border-left: var(--border-width-default) solid var(--color-border-default);
+  padding-top: var(--ds-spacing-12);
+  padding-left: var(--ds-spacing-16);
+  margin-left: var(--ds-spacing-16);
+  border-left: var(--ds-border-width-1) solid var(--ds-color-border-neutral-bold-default);
 }
 
 /* ----------------------------------------------------- conditional reveal */
@@ -1071,7 +1237,7 @@ body {
 }
 .reveal.open { grid-template-rows: 1fr; opacity: 1; }
 .reveal > .reveal-inner { overflow: hidden; min-height: 0; }
-.reveal > .reveal-inner > .pad { padding-top: var(--field-gap-stack); }
+.reveal > .reveal-inner > .pad { padding-top: var(--ds-field-gap-stack); }
 .reveal:not(.open) { visibility: hidden; }
 
 /* Clipping is only needed while the row height animates. Releasing it once the reveal has
@@ -1088,8 +1254,8 @@ body {
 
 /* -------------------------------------------------- repeatable sub-groups */
 
-.applicants { display: grid; gap: var(--spacing-4); }
-.applicants.two { grid-template-columns: repeat(auto-fit, minmax(var(--layout-col-min-applicant), 1fr)); }
+.applicants { display: grid; gap: var(--ds-spacing-16); }
+.applicants.two { grid-template-columns: repeat(auto-fit, minmax(var(--ds-layout-col-min-applicant), 1fr)); }
 
 /* Anrede and Titel are chip rows, which need more width than the selects they replaced,
    so each takes a full row of its own and they stack. */
@@ -1098,10 +1264,10 @@ body {
   min-width: 0;
   /* Tighter on the sides than top/bottom: two of these sit side by side inside a
      section card, so the horizontal padding stacks with the card's own gutter. */
-  padding: var(--spacing-5) var(--spacing-3);
-  background: var(--page-bg);
-  border: var(--border-width-default) solid var(--color-border-default);
-  border-radius: var(--card-radius);
+  padding: var(--ds-spacing-20) var(--ds-spacing-12);
+  background: var(--ds-surface-page);
+  border: var(--ds-border-width-1) solid var(--ds-color-border-neutral-bold-default);
+  border-radius: var(--ds-card-radius);
 }
 .applicants:not(.two) .applicant {
   padding: 0;
@@ -1112,31 +1278,26 @@ body {
 .applicant-head {
   display: flex;
   align-items: center;
-  gap: var(--spacing-2);
-  margin-bottom: var(--spacing-4);
+  gap: var(--ds-spacing-8);
+  margin-bottom: var(--ds-spacing-16);
 }
 .applicant-title {
-  font-size: var(--font-heading-xs-size);
-  line-height: var(--font-heading-xs-line);
-  font-weight: var(--font-weight-bold);
-  color: var(--color-text-primary);
+  color: var(--ds-color-text-neutral-bold-default);
 }
 .applicants:not(.two) .applicant-head { display: none; }
 
 .subcard {
-  margin-bottom: var(--spacing-4);
-  padding: var(--spacing-5);
-  background: var(--page-bg);
-  border: var(--border-width-default) solid var(--color-border-default);
-  border-radius: var(--card-radius);
+  margin-bottom: var(--ds-spacing-16);
+  padding: var(--ds-spacing-20);
+  background: var(--ds-surface-page);
+  border: var(--ds-border-width-1) solid var(--ds-color-border-neutral-bold-default);
+  border-radius: var(--ds-card-radius);
 }
 .subcard-head {
   display: flex;
   align-items: center;
-  gap: var(--spacing-2);
-  margin-bottom: var(--spacing-4);
-  font-size: var(--font-heading-xs-size);
-  font-weight: var(--font-weight-bold);
+  gap: var(--ds-spacing-8);
+  margin-bottom: var(--ds-spacing-16);
 }
 
 /* A child sits directly on the card — no panel of its own. One child therefore looks
@@ -1150,23 +1311,23 @@ body {
   display: flex;
   flex-wrap: wrap;
   align-items: flex-start;
-  gap: var(--spacing-3);
+  gap: var(--ds-spacing-12);
 }
 .child-row + .child-row {
-  margin-top: var(--spacing-4);
-  padding-top: var(--spacing-4);
-  border-top: var(--border-width-default) solid var(--color-border-default);
+  margin-top: var(--ds-spacing-16);
+  padding-top: var(--ds-spacing-16);
+  border-top: var(--ds-border-width-1) solid var(--ds-color-border-neutral-bold-default);
 }
-.child-row .c-name { flex: 2 1 var(--layout-col-min-choice); }
-.child-row .c-date { flex: 1 1 var(--layout-col-min-choice); }
+.child-row .c-name { flex: 2 1 var(--ds-layout-col-min-choice); }
+.child-row .c-date { flex: 1 1 var(--ds-layout-col-min-choice); }
 /* The button has no label of its own, so it starts one label line lower than the
    fields do; giving it the input's own height then puts its centre on the input's
    centre — the trash lines up with the field line. All three values are tokens, so
    this follows the density switch as --field-height does. */
 .child-row > .icon-btn {
   flex: none;
-  height: var(--field-height);
-  margin-top: calc(var(--font-input-text-md-line) + var(--field-gap-label));
+  height: var(--ds-field-height);
+  margin-top: calc(var(--ds-typography-body-md-medium-font-size) * var(--ds-typography-body-md-medium-line-height) + var(--ds-field-gap-label));
 }
 
 /* Bare glyph, no box: next to a row of fields a bordered square reads as another
@@ -1176,45 +1337,40 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: var(--spacing-6);
-  height: var(--spacing-6);
+  width: var(--ds-spacing-24);
+  height: var(--ds-spacing-24);
   padding: 0;
-  font: inherit;
-  font-size: var(--field-font-size);
-  color: var(--color-text-secondary);
+  color: var(--ds-color-text-neutral-subtle-default);
   background: none;
   border: 0;
-  border-radius: var(--field-radius);
+  border-radius: var(--ds-field-radius);
   cursor: pointer;
 }
-.icon-btn:hover { color: var(--color-feedback-error-strong); }
+.icon-btn:hover { color: var(--ds-color-text-danger-bold-default); }
 /* the trash glyph, sized off the button rather than the text so it stays centred
    when the density switch changes the surrounding type */
 .icon-btn > .ico-trash {
   flex: none;
-  width: var(--spacing-4);
-  height: var(--spacing-4);
+  width: var(--ds-spacing-16);
+  height: var(--ds-spacing-16);
 }
 
 .add-btn {
   display: inline-flex;
   align-items: center;
-  gap: var(--spacing-2);
-  min-height: var(--spacing-6);
-  padding: var(--spacing-2) var(--spacing-4);
-  font: inherit;
-  font-size: var(--font-body-md-size);
-  font-weight: var(--font-weight-medium);
-  color: var(--color-action-primary);
-  background: var(--page-bg);
-  border: var(--border-width-default) dashed var(--color-action-primary);
-  border-radius: var(--button-radius);
+  gap: var(--ds-spacing-8);
+  min-height: var(--ds-spacing-24);
+  padding: var(--ds-spacing-8) var(--ds-spacing-16);
+  color: var(--ds-color-text-brand-bold-default);
+  background: var(--ds-surface-page);
+  border: var(--ds-border-width-1) dashed var(--ds-color-border-brand-bold-default);
+  border-radius: var(--ds-button-radius);
   cursor: pointer;
 }
-.add-btn:hover { background: var(--color-action-primary-subtle); }
+.add-btn:hover { background: var(--ds-color-background-brand-subtlest-default); }
 
 /* the add button sits above the rows it adds to, so the gap goes below it */
-.add-btn + .kinder-list { margin-top: var(--spacing-3); }
+.add-btn + .kinder-list { margin-top: var(--ds-spacing-12); }
 
 /* A question answered by the button beside it — "Sind Immobilien vorhanden?" needs no
    Ja/Nein, because adding the first entry says Ja and removing the last one says Nein.
@@ -1224,13 +1380,13 @@ body {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--spacing-3);
-  margin-bottom: var(--spacing-4);
+  gap: var(--ds-spacing-12);
+  margin-bottom: var(--ds-spacing-16);
 }
 /* The button belongs to the question, so it sits next to it rather than being pushed
    to the far edge of the card — and wraps under it when the line runs out. */
 .gate-row > .gate-label { flex: 0 1 auto; }
-.grid + .gate-row { margin-top: var(--spacing-6); }
+.grid + .gate-row { margin-top: var(--ds-spacing-24); }
 
 /* The panels inside carry the gap between them; the last one's would push the list
    past the padding of whatever holds it. */
@@ -1239,13 +1395,12 @@ body {
 /* -------------------------------------------------------------- callouts */
 
 .note {
-  padding: var(--spacing-3) var(--spacing-4);
-  font-size: var(--font-body-md-size);
-  color: var(--color-text-primary);
-  background: var(--color-feedback-warning-low-subtle);
-  border: var(--border-width-default) solid var(--color-feedback-warning-low);
-  border-left-width: var(--spacing-1);
-  border-radius: var(--field-radius);
+  padding: var(--ds-spacing-12) var(--ds-spacing-16);
+  color: var(--ds-color-text-neutral-bold-default);
+  background: var(--ds-color-background-warning-subtlest-default);
+  border: var(--ds-border-width-1) solid var(--ds-color-border-warning-bold-default);
+  border-left-width: var(--ds-spacing-4);
+  border-radius: var(--ds-field-radius);
 }
 
 /* A note may carry a headline and more than one paragraph: a callout that stops
@@ -1253,24 +1408,23 @@ body {
    explains itself. The paragraphs own their spacing here, so the plain one-line
    note above stays exactly as it was. */
 .note > p { margin: 0; }
-.note > p + p { margin-top: var(--spacing-2); }
-.note-title { font-weight: var(--font-weight-bold); }
+.note > p + p { margin-top: var(--ds-spacing-8); }
 
 /* Tone modifiers. The fill is always the *-subtle step and the text stays
    --color-text-primary: every subtle token flips to its own 950 in the dark
    scheme, so one text colour holds in all three appearances. The tone is never
    the only signal — each note carries a headline that says the same thing. */
 .note.info {
-  background: var(--color-feedback-info-subtle);
-  border-color: var(--color-feedback-info);
+  background: var(--ds-color-background-info-subtlest-default);
+  border-color: var(--ds-color-border-info-bold-default);
 }
 .note.success {
-  background: var(--color-feedback-success-subtle);
-  border-color: var(--color-feedback-success);
+  background: var(--ds-color-background-success-subtlest-default);
+  border-color: var(--ds-color-border-success-bold-default);
 }
 .note.warn {
-  background: var(--color-feedback-warning-subtle);
-  border-color: var(--color-feedback-warning);
+  background: var(--ds-color-background-warning-strong-subtlest-default);
+  border-color: var(--ds-color-border-warning-strong-bold-default);
 }
 
 /* -------------------------------------------------------------- action bar */
@@ -1279,75 +1433,73 @@ body {
   position: sticky;
   bottom: 0;
   z-index: 4;
-  background: var(--page-bg);
-  border-top: var(--border-width-default) solid var(--color-border-default);
+  background: var(--ds-surface-page);
+  border-top: var(--ds-border-width-1) solid var(--ds-color-border-neutral-bold-default);
 }
 .actionbar-inner {
   display: flex;
   align-items: center;
-  gap: var(--spacing-3);
-  max-width: var(--layout-shell-max);
-  padding: var(--spacing-3) var(--layout-gutter);
+  gap: var(--ds-spacing-12);
+  max-width: var(--ds-layout-shell-max);
+  padding: var(--ds-spacing-12) var(--ds-layout-gutter);
 }
 .save-state {
   display: flex;
   align-items: center;
-  gap: var(--spacing-2);
+  gap: var(--ds-spacing-8);
   /* a <p> keeps its default block margins inside a flex row, which made the action
      bar taller than the button it contains */
   margin: 0 auto 0 0;
-  font-size: var(--font-body-sm-size);
-  color: var(--color-text-secondary);
+  color: var(--ds-color-text-neutral-subtle-default);
 }
 .save-state .dot {
-  width: var(--spacing-2);
-  height: var(--spacing-2);
-  border-radius: var(--pill-radius);
-  background: var(--color-feedback-success);
+  width: var(--ds-spacing-8);
+  height: var(--ds-spacing-8);
+  border-radius: var(--ds-pill-radius);
+  background: var(--ds-color-background-success-bold-default);
 }
 
 .btn {
-  min-height: var(--field-height);
-  padding: 0 var(--spacing-6);
-  font: inherit;
-  font-size: var(--font-body-md-size);
-  font-weight: var(--font-weight-medium);
-  border-radius: var(--button-radius);
+  min-height: var(--ds-field-height);
+  padding: 0 var(--ds-spacing-24);
+  border-radius: var(--ds-button-radius);
   cursor: pointer;
   transition: filter 0.12s, background-color 0.12s;
 }
 .btn.primary {
-  color: var(--color-on-primary);
-  background: var(--color-action-primary);
-  border: var(--border-width-default) solid var(--color-action-primary);
+  color: var(--ds-color-text-neutral-inverse-default);
+  background: var(--ds-color-background-brand-bold-default);
+  border: var(--ds-border-width-1) solid var(--ds-color-border-brand-bold-default);
 }
-/* EXCEPTION: after the contrast pass both --color-action-primary and
-   --color-action-primary-hover resolve to teal.700, so hover would be invisible.
-   The ramp does now reach teal.800/900, so the real fix is to re-point the two
-   tokens in Figma (see README); until then hover is a brightness shift, which at
-   least avoids inventing a colour here. */
-.btn.primary:hover { background: var(--color-action-primary-hover); filter: brightness(0.9); }
+/* EXCEPTION (G-24): white on background.brand.bold.default is 3.67:1, so the
+   contrast pass moves the resting fill to teal.700 — and hovered, one step
+   lighter at teal.600, would then be a *lighter* hover on a darker rest. Both
+   land on teal.700 instead, which makes hover invisible. Finlink's teal ramp
+   stops at 700, so there is no darker step to hover into and no colour can be
+   invented here; the fill is dimmed instead. Resolving G-24 (a teal.800, or a
+   re-authored bold ramp) deletes this rule. */
+.btn.primary:hover { background: var(--ds-color-background-brand-bold-hovered); filter: brightness(0.9); }
 .btn.ghost {
-  color: var(--color-text-primary);
-  background: var(--page-bg);
-  border: var(--border-width-default) solid var(--color-border-default);
+  color: var(--ds-color-text-neutral-bold-default);
+  background: var(--ds-surface-page);
+  border: var(--ds-border-width-1) solid var(--ds-color-border-neutral-bold-hovered);
 }
-.btn.ghost:hover { background: var(--color-background-hover); }
+.btn.ghost:hover { background: var(--ds-color-background-neutral-subtle-default); }
 
 /* Destructive confirmation. Red is carried by the button that does the deleting,
    never by the one that backs out — the colour has to mark the consequence. */
 .btn.danger {
-  color: var(--color-on-danger);
-  background: var(--color-action-danger);
-  border: var(--border-width-default) solid var(--color-action-danger);
+  color: var(--ds-color-text-neutral-inverse-default);
+  background: var(--ds-color-background-danger-bold-default);
+  border: var(--ds-border-width-1) solid var(--ds-color-border-danger-bold-default);
 }
 .btn.danger:hover {
-  background: var(--color-action-danger-hover);
-  border-color: var(--color-action-danger-hover);
+  background: var(--ds-color-background-danger-bold-hovered);
+  border-color: var(--ds-color-border-danger-bold-hovered);
 }
 .btn.danger:active {
-  background: var(--color-action-danger-active);
-  border-color: var(--color-action-danger-active);
+  background: var(--ds-color-background-danger-bold-pressed);
+  border-color: var(--ds-color-border-danger-bold-pressed);
 }
 
 /* ------------------------------------------------------------------- modal */
@@ -1355,42 +1507,39 @@ body {
 /* A native <dialog>: Esc, the focus trap and inert-ing the page behind it are
    the browser's job, so only the box and its backdrop are styled here. */
 .modal {
-  width: min(var(--layout-measure-modal), calc(100% - var(--spacing-8)));
+  width: min(var(--ds-layout-measure-modal), calc(100% - var(--ds-spacing-32)));
   max-width: none;
   padding: 0;
-  color: var(--color-text-primary);
-  /* the raised level, not --page-bg: a dialog sits above the page in every scheme,
-     and in dark mode --page-bg is the near-black the backdrop is dimming towards,
-     which would leave the box with nothing to stand on but its shadow */
-  background: var(--color-background-surface);
+  color: var(--ds-color-text-neutral-bold-default);
+  /* the raised level, not --ds-surface-page: a dialog sits above the page in
+     every appearance, and in dark --ds-surface-page is the near-black the
+     backdrop is dimming towards, which would leave the box with nothing to
+     stand on but its shadow */
+  background: var(--ds-surface-card);
   border: none;
-  border-radius: var(--card-radius);
-  box-shadow: var(--shadow-lg);
+  border-radius: var(--ds-card-radius);
+  box-shadow: var(--ds-shadow-lg);
 }
-.modal::backdrop { background: var(--color-background-overlay); }
+.modal::backdrop { background: var(--ds-surface-overlay); }
 
 .modal-inner {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-3);
-  padding: var(--card-padding);
+  gap: var(--ds-spacing-12);
+  padding: var(--ds-card-padding);
 }
 .modal-title {
   margin: 0;
-  font-size: var(--font-heading-sm-size);
-  line-height: var(--font-heading-sm-line);
-  font-weight: var(--font-heading-weight);
 }
 .modal-text {
   margin: 0;
-  font-size: var(--font-body-md-size);
-  color: var(--color-text-secondary);
+  color: var(--ds-color-text-neutral-subtle-default);
 }
 .modal-actions {
   display: flex;
   justify-content: flex-end;
-  gap: var(--spacing-3);
-  margin-top: var(--spacing-3);
+  gap: var(--ds-spacing-12);
+  margin-top: var(--ds-spacing-12);
 }
 
 /* A dialog is display:none until it opens, so it cannot be transitioned from
@@ -1403,7 +1552,7 @@ body {
     transition: opacity 0.14s ease, translate 0.14s ease;
   }
   @starting-style {
-    .modal[open] { opacity: 0; translate: 0 var(--spacing-2); }
+    .modal[open] { opacity: 0; translate: 0 var(--ds-spacing-8); }
   }
 }
 
@@ -1434,17 +1583,14 @@ body {
    die sonst der Toggle mitbringt. Der Körper ist dauerhaft offen und animiert
    nicht — es gibt keinen Klick, der ihn schließen könnte. */
 .card-static > .card-head {
-  padding: var(--spacing-4) var(--card-padding);
-  font-size: var(--font-heading-md-size);
-  line-height: var(--font-heading-md-line);
-  font-weight: var(--font-heading-weight);
-  color: var(--color-text-primary);
-  background: var(--card-bg);
-  border-radius: var(--card-radius);
+  padding: var(--ds-spacing-16) var(--ds-card-padding);
+  color: var(--ds-color-text-neutral-bold-default);
+  background: var(--ds-surface-card);
+  border-radius: var(--ds-card-radius);
 }
 .card-static > .card-body {
   grid-template-rows: 1fr;
-  margin-top: var(--spacing-1);
+  margin-top: var(--ds-spacing-4);
   transition: none;
 }
 .card-static > .card-body > .card-body-inner { overflow: visible; }
@@ -1452,7 +1598,7 @@ body {
 /* Eine Karte, die eine Folge von Blöcken ist statt eines Feldrasters: Häkchen,
    Hinweis, zwei Felder, Warnung. Das Raster bringt seine Abstände selbst mit,
    ein Stapel unterschiedlicher Blöcke nicht. */
-.flow > * + * { margin-top: var(--field-gap-stack); }
+.flow > * + * { margin-top: var(--ds-field-gap-stack); }
 
 /* Die Schritte, einmal vor dem Senden ("so geht es weiter") und einmal danach
    ("was jetzt passiert"). Nummerierte Kreise statt Aufzählungspunkten, weil die
@@ -1460,10 +1606,10 @@ body {
    weiterer Schritt eine Zeile Markup ist und keine Nummer zum Nachziehen. */
 .steps {
   display: grid;
-  gap: var(--spacing-4);
+  gap: var(--ds-spacing-16);
   counter-reset: step;
-  max-width: var(--layout-measure-prose);
-  margin: 0 0 var(--spacing-8);
+  max-width: var(--ds-layout-measure-prose);
+  margin: 0 0 var(--ds-spacing-32);
   padding: 0;
   list-style: none;
 }
@@ -1476,9 +1622,9 @@ body {
    besteht. */
 .steps > li {
   position: relative;
-  padding-left: calc(var(--spacing-6) + var(--spacing-3));
+  padding-left: calc(var(--ds-spacing-24) + var(--ds-spacing-12));
   counter-increment: step;
-  color: var(--color-text-secondary);
+  color: var(--ds-color-text-neutral-subtle-default);
 }
 .steps > li::before {
   content: counter(step);
@@ -1488,18 +1634,15 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: var(--spacing-6);
-  height: var(--spacing-6);
-  font-size: var(--font-body-sm-size);
-  font-weight: var(--font-weight-bold);
-  color: var(--color-action-primary);
-  background: var(--color-action-primary-subtle);
-  border-radius: var(--pill-radius);
+  width: var(--ds-spacing-24);
+  height: var(--ds-spacing-24);
+  color: var(--ds-color-text-brand-bold-default);
+  background: var(--ds-color-background-brand-subtlest-default);
+  border-radius: var(--ds-pill-radius);
 }
 .step-title {
   display: block;
-  font-weight: var(--font-weight-medium);
-  color: var(--color-text-primary);
+  color: var(--ds-color-text-neutral-bold-default);
 }
 
 /* Die Prüfliste. Sie wird aus dem Formular gelesen (buildReview), also steht hier
@@ -1507,54 +1650,44 @@ body {
    die Antwort daneben und in Medium — gelesen wird die Antwort, die Frage kennt
    man schon vom Ausfüllen. */
 .review-group + .review-group {
-  margin-top: var(--spacing-6);
-  padding-top: var(--spacing-6);
-  border-top: var(--border-width-default) solid var(--color-border-default);
+  margin-top: var(--ds-spacing-24);
+  padding-top: var(--ds-spacing-24);
+  border-top: var(--ds-border-width-1) solid var(--ds-color-border-neutral-bold-default);
 }
 .review-head {
   display: flex;
   align-items: baseline;
-  gap: var(--spacing-3);
-  margin-bottom: var(--spacing-4);
+  gap: var(--ds-spacing-12);
+  margin-bottom: var(--ds-spacing-16);
 }
 .review-title {
   flex: 1 1 auto;
   margin: 0;
-  font-size: var(--font-heading-sm-size);
-  line-height: var(--font-heading-sm-line);
-  font-weight: var(--font-heading-weight);
-  color: var(--color-text-primary);
+  color: var(--ds-color-text-neutral-bold-default);
 }
 /* Ein Zwischentitel innerhalb einer Gruppe — "Antragsteller 2", "Immobilie 1" —,
    damit zwei gleich benannte Felder nicht ohne Zuordnung untereinander stehen. */
 .review-context {
-  margin: var(--spacing-4) 0 var(--spacing-2);
-  font-size: var(--font-heading-eyebrow-size);
-  line-height: var(--font-heading-eyebrow-line);
-  font-weight: var(--font-weight-bold);
-  color: var(--color-text-secondary);
+  margin: var(--ds-spacing-16) 0 var(--ds-spacing-8);
+  color: var(--ds-color-text-neutral-subtle-default);
 }
 .review-head + .review-context { margin-top: 0; }
 
 .review-list {
   display: grid;
   grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
-  gap: var(--spacing-2) var(--spacing-4);
+  gap: var(--ds-spacing-8) var(--ds-spacing-16);
   margin: 0;
 }
 .review-list > dt {
-  font-size: var(--font-input-text-sm-size);
-  line-height: var(--font-input-text-sm-line);
-  color: var(--color-text-secondary);
+  color: var(--ds-color-text-neutral-subtle-default);
 }
 .review-list > dd {
   margin: 0;
-  font-size: var(--font-body-md-size);
-  font-weight: var(--font-weight-medium);
-  color: var(--color-text-primary);
+  color: var(--ds-color-text-neutral-bold-default);
 }
 
-.review-empty { margin: 0; color: var(--color-text-secondary); }
+.review-empty { margin: 0; color: var(--ds-color-text-neutral-subtle-default); }
 
 /* "Bearbeiten" ist ein Button, kein Link: er springt nicht zu einer Adresse,
    sondern wechselt den View und öffnet die Karte. Aussehen wie ein Link, weil das
@@ -1562,15 +1695,13 @@ body {
 .link-btn {
   flex: none;
   padding: 0;
-  font: inherit;
-  font-size: var(--font-body-sm-size);
-  color: var(--color-text-link);
+  color: var(--ds-color-text-brand-bold-default);
   background: none;
   border: 0;
   text-decoration: underline;
   cursor: pointer;
 }
-.link-btn:hover { color: var(--color-text-link-hover); }
+.link-btn:hover { color: var(--ds-color-text-brand-bold-hovered); }
 
 /* ------------------------------------------------- Einwilligungs-Häkchen */
 
@@ -1590,16 +1721,15 @@ body {
    (.choice input:checked + span) hat dieselbe Spezifität, und die Marke soll
    gewinnen, nicht die Reihenfolge zweier gleich starker Regeln. */
 :root {
-  --choice-mark-offset: calc((var(--font-body-md-line) - var(--choice-mark-size)) / 2);
+  --ds-choice-mark-offset: calc((var(--ds-typography-body-md-default-font-size) * var(--ds-typography-body-md-default-line-height) - var(--ds-choice-mark-size)) / 2);
 }
 
 .choice.plain { display: block; }
 .choice.plain > input + span {
   display: block;
   min-height: 0;
-  padding: 0 0 0 calc(var(--choice-mark-size) + var(--spacing-2));
-  font-weight: var(--font-weight-regular);
-  color: var(--color-text-primary);
+  padding: 0 0 0 calc(var(--ds-choice-mark-size) + var(--ds-spacing-8));
+  color: var(--ds-color-text-neutral-bold-default);
   background: none;
   border-color: transparent;
   box-shadow: none;
@@ -1607,19 +1737,19 @@ body {
 .choice.plain > input + span::before {
   position: absolute;
   left: 0;
-  top: var(--choice-mark-offset);
+  top: var(--ds-choice-mark-offset);
 }
 /* Der Chip positioniert seinen Haken gegen das Label und zentriert ihn; hier
    sitzt er im Kästchen auf der ersten Zeile, also derselbe Versatz wie oben. */
 .choice.plain > input[type="checkbox"]:checked + span::after {
-  top: var(--choice-mark-offset);
-  left: var(--border-width-default);
+  top: var(--ds-choice-mark-offset);
+  left: var(--ds-border-width-1);
   transform: none;
 }
 /* Fehlt die Einwilligung, trägt das leere Kästchen den Fehlerrand — der Chip, der
    das sonst tut, ist hier nicht gezeichnet. */
 .field.invalid .choice.plain > input:not(:checked) + span::before {
-  border-color: var(--color-border-error);
+  border-color: var(--ds-color-border-danger-bold-default);
 }
 
 /* ------------------------------------------------------------- Referenz-ID */
@@ -1631,34 +1761,28 @@ body {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--spacing-3);
-  padding: var(--spacing-4);
-  background: var(--page-bg);
-  border: var(--border-width-default) dashed var(--color-border-default);
-  border-radius: var(--field-radius);
+  gap: var(--ds-spacing-12);
+  padding: var(--ds-spacing-16);
+  background: var(--ds-surface-page);
+  border: var(--ds-border-width-1) dashed var(--ds-color-border-neutral-bold-default);
+  border-radius: var(--ds-field-radius);
 }
 .ref-id {
   flex: 1 1 auto;
-  font-size: var(--font-heading-md-size);
-  line-height: var(--font-heading-md-line);
-  font-weight: var(--font-weight-bold);
-  color: var(--color-text-primary);
-  font-variant-numeric: tabular-nums;
+  color: var(--ds-color-text-neutral-bold-default);
   word-break: break-word;
 }
 /* Die Rückmeldung zum Kopieren hält ihre Zeile frei, auch wenn sie leer ist:
    sonst rutscht der Kasten darüber beim ersten Klick nach oben. */
 .ref-status {
-  min-height: var(--font-body-md-line);
+  min-height: calc(var(--ds-typography-body-md-default-font-size) * var(--ds-typography-body-md-default-line-height));
   margin: 0;
-  font-size: var(--font-body-sm-size);
-  color: var(--color-action-primary);
+  color: var(--ds-color-text-brand-bold-default);
 }
 
 /* Gesendet: die Leiste sagt nur noch, dass nichts mehr zu tun ist. */
 .save-state.locked {
-  color: var(--color-text-primary);
-  font-weight: var(--font-weight-medium);
+  color: var(--ds-color-text-neutral-bold-default);
 }
 
 /* ------------------------------------------------------------- responsive */
@@ -1666,9 +1790,9 @@ body {
 @media (max-width: 900px) {
   .app {
     grid-template-columns: minmax(0, 1fr);
-    gap: var(--spacing-5);
+    gap: var(--ds-spacing-20);
     /* no top padding: the nav bar below is full-bleed and brings its own */
-    padding: 0 var(--spacing-4) var(--spacing-12);
+    padding: 0 var(--ds-spacing-16) var(--ds-spacing-48);
   }
 
   /* The sidebar becomes a bar across the top. Sixteen links across a phone is most
@@ -1684,11 +1808,11 @@ body {
     /* the sidebar scrolls itself; the bar must not, or it would clip the panel */
     overflow: visible;
     flex-direction: row;
-    gap: var(--spacing-2);
-    margin: 0 calc(-1 * var(--spacing-4));
-    padding: var(--spacing-3) var(--spacing-4);
-    background: var(--page-bg);
-    border-bottom: var(--border-width-default) solid var(--color-border-default);
+    gap: var(--ds-spacing-8);
+    margin: 0 calc(-1 * var(--ds-spacing-16));
+    padding: var(--ds-spacing-12) var(--ds-spacing-16);
+    background: var(--ds-surface-page);
+    border-bottom: var(--ds-border-width-1) solid var(--ds-color-border-neutral-bold-default);
   }
   /* Die Schalter des Prototyps gehören nicht in eine Leiste, die nur den Weg zu
      einem Abschnitt zeigt — und der Beispieldaten-Knopf ist einer von ihnen. */
@@ -1697,29 +1821,26 @@ body {
   .nav-toggle {
     display: flex;
     align-items: center;
-    gap: var(--spacing-2);
-    min-height: var(--field-height);
-    padding: var(--spacing-2) var(--spacing-3);
-    font: inherit;
-    font-size: var(--font-body-md-size);
-    font-weight: var(--font-weight-medium);
-    color: var(--color-text-primary);
-    background: var(--page-bg);
-    border: var(--border-width-default) solid var(--color-border-default);
-    border-radius: var(--button-radius);
+    gap: var(--ds-spacing-8);
+    min-height: var(--ds-field-height);
+    padding: var(--ds-spacing-8) var(--ds-spacing-12);
+    color: var(--ds-color-text-neutral-bold-default);
+    background: var(--ds-surface-page);
+    border: var(--ds-border-width-1) solid var(--ds-color-border-neutral-bold-hovered);
+    border-radius: var(--ds-button-radius);
     cursor: pointer;
   }
-  .nav-toggle:hover { background: var(--color-background-hover); }
+  .nav-toggle:hover { background: var(--ds-color-background-neutral-subtle-default); }
   .nav-toggle:focus-visible {
-    outline: var(--focus-ring-width) solid var(--color-border-focus);
+    outline: var(--ds-focus-ring-width) solid var(--ds-color-border-brand-bold-default);
     outline-offset: 2px;
   }
   .nav-toggle[aria-expanded="true"] {
-    background: var(--color-action-primary-subtle);
-    border-color: var(--color-action-primary);
-    color: var(--color-action-primary);
+    background: var(--ds-color-background-brand-subtlest-default);
+    border-color: var(--ds-color-border-brand-bold-default);
+    color: var(--ds-color-text-brand-bold-default);
   }
-  .burger { width: var(--spacing-5); height: var(--spacing-5); flex: none; }
+  .burger { width: var(--ds-spacing-20); height: var(--ds-spacing-20); flex: none; }
 
   /* A panel over the form rather than a block above it: opening the menu must not
      move the page underneath, or the section you were reading jumps away as you
@@ -1728,16 +1849,16 @@ body {
     display: none;
     position: absolute;
     top: 100%;
-    left: var(--spacing-4);
-    right: var(--spacing-4);
+    left: var(--ds-spacing-16);
+    right: var(--ds-spacing-16);
     max-height: 70vh;
     overflow-y: auto;
     overscroll-behavior: contain;
-    padding: var(--spacing-2);
-    background: var(--color-background-raised);
-    border: var(--border-width-default) solid var(--color-border-default);
-    border-radius: var(--card-radius);
-    box-shadow: var(--shadow-lg);
+    padding: var(--ds-spacing-8);
+    background: var(--ds-surface-card);
+    border: var(--ds-border-width-1) solid var(--ds-color-border-neutral-bold-default);
+    border-radius: var(--ds-card-radius);
+    box-shadow: var(--ds-shadow-lg);
   }
   .nav-toggle[aria-expanded="true"] + .nav-links { display: block; }
 
@@ -1747,29 +1868,29 @@ body {
   :root[data-view="summary"] .nav,
   :root[data-view="sent"] .nav { display: none; }
 
-  .actionbar-inner { padding: var(--spacing-3) var(--spacing-4); }
+  .actionbar-inner { padding: var(--ds-spacing-12) var(--ds-spacing-16); }
 }
 
 @media (max-width: 640px) {
   .col-3, .col-4, .col-6, .col-8, .col-9 { grid-column: auto / span 12; }
-  .card-toggle { padding: var(--spacing-3) var(--spacing-4); }
-  .card-pad { padding: var(--spacing-4); }
+  .card-toggle { padding: var(--ds-spacing-12) var(--ds-spacing-16); }
+  .card-pad { padding: var(--ds-spacing-16); }
   .subsection .card-pad,
-  .subsection-static .card-pad { padding: 0 var(--spacing-4) var(--spacing-4); }
-  .subsections > .subsection-static + .subsection-static::before { margin: 0 var(--spacing-4); }
-  .subsection-title { padding: 0 var(--spacing-4); }
+  .subsection-static .card-pad { padding: 0 var(--ds-spacing-16) var(--ds-spacing-16); }
+  .subsections > .subsection-static + .subsection-static::before { margin: 0 var(--ds-spacing-16); }
+  .subsection-title { padding: 0 var(--ds-spacing-16); }
   .applicants.two { grid-template-columns: minmax(0, 1fr); }
   /* No room for two columns, so the amount stacks under its position. It stays on
      the row rather than collapsing away: the field is what a tap picks the position
      with, and it cannot be tapped if it is not there. Stacked, the two gaps have to
      differ or twelve evenly spaced boxes read as twelve items instead of six pairs —
      the position sits tight against its own amount, and the pairs stand apart. */
-  .amount-row { grid-template-columns: minmax(0, 1fr); gap: var(--spacing-1); }
-  .amount-list { gap: var(--spacing-4); }
+  .amount-row { grid-template-columns: minmax(0, 1fr); gap: var(--ds-spacing-4); }
+  .amount-list { gap: var(--ds-spacing-16); }
   /* The detail fields are already stacked here (.col-* go full width above), so the
      indent buys nothing and only costs field width. The rule stays: it is the only
      thing left saying these belong to the position above. */
-  .amount-detail > .reveal-inner > .pad { padding-left: var(--spacing-3); margin-left: 0; }
+  .amount-detail > .reveal-inner > .pad { padding-left: var(--ds-spacing-12); margin-left: 0; }
   .save-state { display: none; }
   /* Ausnahme von der Zeile darüber: nach dem Senden ist diese Meldung der ganze
      Inhalt der Leiste, und dass nichts mehr geändert werden kann, gehört auf jede
@@ -1779,17 +1900,76 @@ body {
   .actionbar-inner { flex-wrap: wrap; }
   .save-state.locked { display: flex; flex: 1 1 100%; }
   .btn { flex: 1; }
-  .card-static > .card-head { padding: var(--spacing-3) var(--spacing-4); }
+  .card-static > .card-head { padding: var(--ds-spacing-12) var(--ds-spacing-16); }
   /* Frage über Antwort statt daneben: zwei Spalten lassen für die Antwort keine
      Zeile übrig, und sie ist das, was gelesen wird. */
-  .review-list { grid-template-columns: minmax(0, 1fr); gap: var(--spacing-1); }
-  .review-list > dd { margin-bottom: var(--spacing-3); }
+  .review-list { grid-template-columns: minmax(0, 1fr); gap: var(--ds-spacing-4); }
+  .review-list > dd { margin-bottom: var(--ds-spacing-12); }
+
+  /* ---- mobile form surface: white page, no section container -------------------
+
+     On a phone the page itself is white and the section container goes. A white
+     card on a white ground draws nothing, and it brings two nested insets — the
+     card's 16 plus an applicant's 12 — that cost 28px on each side of a field
+     already short of room. Without it a field is inset by the shell gutter alone,
+     so it spans the viewport less 16px left and right, and every field on the
+     page shares one pair of edges.
+
+     The fill was the section's only boundary (see .card above), so a hairline
+     takes over between two sections: the same means already used between two
+     sub-sections. It sits --spacing-4 below the rule so the 16px above it is
+     matched by 4 + the toggle's own 12 below.
+
+     What keeps a fill is the one block that still needs a boundary — an
+     applicant's column. It goes full-bleed instead of inset, so its fields keep
+     the same 16px edges as the fields above it.
+
+     Form view only. The summary reads rather than fills, and it shares .card-pad
+     and .card-body-inner with the form. */
+
+  :root[data-view="form"] body { background-color: var(--ds-surface-card); }
+  :root[data-view="form"] .nav,
+  :root[data-view="form"] .nav-toggle,
+  :root[data-view="form"] .actionbar,
+  :root[data-view="form"] .btn.ghost { background: var(--ds-surface-card); }
+
+  :root[data-view="form"] .card > .card-head > .card-toggle,
+  :root[data-view="form"] .card > .card-body > .card-body-inner {
+    background: none;
+    border-radius: 0;
+  }
+  /* The rule above outweighs .card-toggle:hover, so the affordance is restated. */
+  :root[data-view="form"] .card > .card-head > .card-toggle:hover {
+    background: var(--ds-color-background-neutral-subtle-hovered);
+  }
+  :root[data-view="form"] .card[data-open="true"] > .card-body { margin-top: 0; }
+  :root[data-view="form"] .card + .card {
+    padding-top: var(--ds-spacing-4);
+    border-top: var(--ds-border-width-1) solid var(--ds-color-border-neutral-bold-default);
+  }
+
+  :root[data-view="form"] .card-toggle { padding: var(--ds-spacing-12) 0; }
+  :root[data-view="form"] .card-pad { padding: 0; }
+  :root[data-view="form"] .subsection .card-pad,
+  :root[data-view="form"] .subsection-static .card-pad { padding: 0 0 var(--ds-spacing-16); }
+  :root[data-view="form"] .subsections > .subsection-static + .subsection-static::before { margin: 0; }
+  :root[data-view="form"] .subsection-title { padding: 0; }
+
+  /* Randlos: das graue Feld reicht bis an beide Kanten, sein Inhalt bleibt bei
+     16px. Der negative Rand ist der Rinnstein des Shells aus dem 900er-Block. */
+  :root[data-view="form"] .applicants.two .applicant {
+    margin: 0 calc(-1 * var(--ds-spacing-16));
+    padding: var(--ds-spacing-20) var(--ds-spacing-16);
+    border-left: 0;
+    border-right: 0;
+    border-radius: 0;
+  }
 }
 
 /* ---------------------------------------------------- mobile preview frame */
 
 /* "Ansicht: Mobil" does not narrow the form in place. Both breakpoints above, and
-   the Mobile typography the export ships, answer to the viewport — a narrowed
+   the mobile typography ramp in tokens.ext.css, answer to the viewport — a narrowed
    column would keep every desktop value and show a squeezed desktop, not the
    mobile design. So the preview is this same page loaded into a phone-sized
    iframe: the frame IS a viewport, so the breakpoints fire for real. The sidebar
@@ -1810,30 +1990,30 @@ body {
 
   /* Nothing scrolls out here any more — the scrolling happens inside the frame —
      so the shell no longer needs the run-out the action bar used to sit over. */
-  [data-viewport="mobile"] .app { padding-bottom: var(--spacing-10); }
+  [data-viewport="mobile"] .app { padding-bottom: var(--ds-spacing-40); }
   [data-viewport="mobile"] .nav { max-height: none; }
 }
 
 .phone {
   position: sticky;
-  top: var(--spacing-10);
+  top: var(--ds-spacing-40);
   justify-self: center;
-  width: calc(var(--preview-width) + 2 * var(--preview-bezel));
+  width: calc(var(--ds-preview-width) + 2 * var(--ds-preview-bezel));
   /* the device height, unless the window is shorter than one — then the window wins,
      because a frame taller than the screen cannot be scrolled to the end of */
-  height: min(var(--preview-height), calc(100vh - 2 * var(--spacing-10)));
-  padding: var(--preview-bezel);
-  background: var(--color-text-primary);
-  border-radius: var(--preview-radius);
-  box-shadow: var(--shadow-lg);
+  height: min(var(--ds-preview-height), calc(100vh - 2 * var(--ds-spacing-40)));
+  padding: var(--ds-preview-bezel);
+  background: var(--ds-color-text-neutral-bold-default);
+  border-radius: var(--ds-preview-radius);
+  box-shadow: var(--ds-shadow-lg);
 }
 .phone iframe {
   display: block;
   width: 100%;
   height: 100%;
   border: 0;
-  border-radius: calc(var(--preview-radius) - var(--preview-bezel));
-  background: var(--color-background-page);
+  border-radius: calc(var(--ds-preview-radius) - var(--ds-preview-bezel));
+  background: var(--ds-surface-page);
 }
 
 @media (max-width: 900px) {

@@ -27,7 +27,14 @@
    primitive rather than at input.compact.radius so the two densities stay
    independent — a change to compact must not drag the default with it.
    Consequence: a change to input.default.radius in BETA-Foundations will no
-   longer land here. Delete this override to put the field back on the export. */
+   longer land here. Delete this override to put the field back on the export.
+   
+   field.font.* carries the type step of the field's own text. The export has
+   no per-density font size, but it does ship the two steps a field uses:
+   font.input.value (16/24) is the value at the default height, and
+   font.input.text-md (14/20) is the step below it. The default density takes
+   the value step; compact drops to text-md so the text shrinks with the box
+   instead of filling a 32px row meant for a smaller line. */
 /* set: base */
 :root {
   --field-height: var(--input-default-height);
@@ -35,6 +42,8 @@
   --field-padding-y: var(--input-default-padding-y);
   --field-gap: var(--input-default-gap);
   --field-radius: var(--radius-md);
+  --field-font-size: var(--font-input-value-size);
+  --field-font-line: var(--font-input-value-line);
   --field-gap-label: var(--spacing-1);
   --field-gap-stack: var(--spacing-5);
   --card-padding: var(--spacing-8);
@@ -80,7 +89,9 @@
 }
 
 /* Power-user density: the export's input.compact.* branch. 32px is the
-   smallest field here and still clears the 24px WCAG 2.5.8 target. */
+   smallest field here and still clears the 24px WCAG 2.5.8 target.
+   The 20px line of font.input.text-md plus 2x spacing.1 of padding is 28px,
+   so the text still sits inside the 32px row with a pixel of air either side. */
 /* set: compact */
 :root[data-density="compact"] {
   --field-height: var(--input-compact-height);
@@ -88,6 +99,8 @@
   --field-padding-y: var(--input-compact-padding-y);
   --field-gap: var(--input-compact-gap);
   --field-radius: var(--input-compact-radius);
+  --field-font-size: var(--font-input-text-md-size);
+  --field-font-line: var(--font-input-text-md-line);
   --field-gap-stack: var(--spacing-3);
   --card-padding: var(--spacing-5);
   --card-gap: var(--spacing-4);
