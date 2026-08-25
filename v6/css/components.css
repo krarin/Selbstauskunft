@@ -522,6 +522,15 @@ body { margin: 0; }
    padding box, so padding here would leave a 32px strip of the collapsed content
    visible. Hence the separate .card-pad, mirroring .reveal > .reveal-inner > .pad. */
 .card-body-inner {
+  /* Containing block for the absolutely positioned descendants that carry no offsets
+     of their own — .sr-only and the visually hidden .field > .help. Without it they
+     resolve against the initial containing block, which no ancestor clip can reach:
+     a collapsed card went on contributing the full height of its contents to the
+     page, so the document scrolled roughly 1300px past the last thing on it and the
+     sticky action bar slid off the top of an empty screen. Everything else in here
+     is already anchored to a .choice, .info-wrap, .select-wrap or .with-picker, so
+     this changes nothing that was positioned on purpose. */
+  position: relative;
   min-height: 0;
   overflow: hidden;
   background: var(--ds-surface-card);
@@ -1269,7 +1278,9 @@ body { margin: 0; }
   transition: grid-template-rows 0.18s ease, opacity 0.18s ease;
 }
 .reveal.open { grid-template-rows: 1fr; opacity: 1; }
-.reveal > .reveal-inner { overflow: hidden; min-height: 0; }
+/* position: relative for the same reason as .card-body-inner — a closed reveal has
+   to contain its own hidden helper text, or it keeps stretching the page. */
+.reveal > .reveal-inner { position: relative; overflow: hidden; min-height: 0; }
 .reveal > .reveal-inner > .pad { padding-top: var(--ds-field-gap-stack); }
 .reveal:not(.open) { visibility: hidden; }
 
