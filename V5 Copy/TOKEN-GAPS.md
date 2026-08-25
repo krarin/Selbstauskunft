@@ -392,6 +392,53 @@ or a `text.neutral.bold.pressed` that the bold prominence is currently missing
 **Blast radius:** one selector today, but the missing `text.*.pressed` state is
 systemic — no text token anywhere has a pressed state.
 
+---
+
+### ⚠️ G-27 — No dark neutral surface
+
+**Requested:** A tooltip on `grey.800` with white text — the one surface in this
+form that is darker than the page it floats over.
+
+**Blocked by:** Finlink Core's neutral *background* ramp is light-only and never
+inverts. `background.neutral.bold.default` is `grey.100`: "bold" in this ramp
+means a heavier grey, not a dark one, and `subtlest` → `subtle` → `bold` runs
+`grey.0` → `grey.100` → `grey.100`. Nothing in the ramp is darker than `grey.300`.
+
+The only semantics that resolve to `grey.800` at all are `icon.neutral.bold.default`
+and `icon.neutral.subtle.pressed` — both icon roles. Painting a surface with an
+icon token would put the wrong role on the wrong property, and would break the
+moment the icon ramp is re-themed.
+
+**Applied instead:** `--ds-surface-inverse` / `--ds-surface-inverse-border` /
+`--ds-surface-inverse-text` in `tokens.ext.css`, named into the existing
+`--ds-surface-*` family. Light points at `grey.900` on `grey.50`, both real Finlink
+primitives; the border matches the fill, so a dark box on a white card carries no
+edge but the box measures the same in both appearances. Dark points at `grey.700`
+with a `grey.400` edge — `grey.900` there sits between the `grey.950` page and the
+`grey.800` card and would read as a hole punched in it, so the token keeps its job
+(the surface a tooltip floats on) and steps up instead of down.
+
+**The ink is an extension too.** The contract has `text.neutral.inverse.default`
+(`grey.0`) and it would have passed — 13.16:1 on `grey.900`. `grey.50` is used
+instead as a deliberate choice: off-white is the softer of the two on a dark chip
+this small, and it still clears AAA. That is a preference, not a gap, and it is the
+only part of this entry that a fixed contract would not resolve.
+
+| Pair | Ratio | Needs |
+|---|---|---|
+| `surface-inverse-text` on `surface-inverse` (light, `grey.50` on `grey.900`) | **12.60:1** | 4.5 — AAA |
+| `surface-inverse-text` on `surface-inverse` (dark, `grey.50` on `grey.700`) | **6.93:1** | 4.5 — AAA |
+| `surface-inverse-border` on the dark card (`grey.400` on `grey.800`) | **3.80:1** | 3.0 (1.4.11) |
+
+**To resolve properly:** extend the neutral background ramp past `grey.300` — an
+`inverse` prominence alongside `subtlest`/`subtle`/`bold`, matching the `inverse`
+that `text`, `border` and `icon` already have. It is the missing quarter of a
+pattern the other three groups complete.
+
+**Blast radius:** one component today. But `background` is the only group of the
+four with no `inverse`, so anything else needing a dark chip, toast or popover on a
+light page hits the same wall.
+
 ## Resolved during the migration — no longer gaps
 
 | ID | Outcome |

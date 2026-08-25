@@ -74,6 +74,10 @@
     [/^Befristet bis|^Voraussichtliches Ende/, '12.2028'],
 
     [/Nettoeinkommen/,                      '4.200,00'],
+    [/^Wertpapiere/,                        '12.000,00'],
+    [/^Lebensversicherung/,                 '18.500,00'],
+    [/^Verfügbares Eigenkapital/,           '80.000,00'],
+    [/^Sonstige Versicherungsausgaben/,     '145,00'],
     [/Kaltmiete/,                           '980,00'],
     [/Sparguthaben/,                        '45.000,00'],
     [/^Eingesetztes Eigenkapital/,          '80.000,00'],
@@ -185,6 +189,32 @@
     return filled;
   }
 
+  /* Eine Position in einer Betragsliste ist ein Kästchen und steht in keiner
+     .choices-Gruppe, fiel also durch fillChoices() hindurch: Vermögen und Ausgaben
+     blieben leer, obwohl der Antrag beide erfragt. Angehakt wird nur, was hier
+     steht — dieselbe Zurückhaltung wie das "Nein" oben, denn jede Position ist eine
+     Aussage über den Fall und nicht bloß ein Feld. Der Betrag daneben wird durch das
+     Anhaken zur Pflicht und ist im nächsten Durchgang für fillInputs() sichtbar.
+     Bank- und Sparguthaben fehlt bewusst: die Position ist fest angehakt. */
+  const POSITIONS = [
+    'Wertpapiere / Aktien',
+    'Lebensversicherung (Rückkaufswert)',
+    'Verfügbares Eigenkapital',
+    'Sonstige Versicherungsausgaben',
+  ];
+
+  function fillPositions() {
+    let filled = 0;
+    $$('.amount-row', form).forEach((row) => {
+      const toggle = row.querySelector(':scope > .choice > input');
+      if (!toggle || toggle.checked || !asked(row)) return;
+      if (!POSITIONS.includes(chipText(toggle))) return;
+      toggle.click();
+      filled++;
+    });
+    return filled;
+  }
+
   function fillSelects() {
     let filled = 0;
     $$('.select', form).forEach((select) => {
@@ -249,7 +279,7 @@
      die tiefste Kette im Formular ist drei Ebenen tief. */
   function prefill() {
     for (let pass = 0; pass < 6; pass++) {
-      if (!(fillChoices() + fillSelects() + fillInputs())) break;
+      if (!(fillChoices() + fillPositions() + fillSelects() + fillInputs())) break;
     }
     fillSendStep();
     status.textContent = 'Beispieldaten eingefügt. Jetzt „Weiter zu Zusammenfassung“.';

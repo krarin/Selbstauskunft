@@ -291,6 +291,11 @@ body { margin: 0; }
   .choice > span,
   .note,
   .modal-text,
+  /* The bubble carries the entire help text — .field > .help is visually hidden, so
+     there is no second copy to fall back on. At body.sm it was the smallest type on
+     the page while the label above it had stepped to 16px; it reads like the .note
+     and .modal-text beside it here because that is the job it is doing. */
+  .info-bubble,
   .choice.plain > input + span {
     font-size: var(--ds-typography-body-lg-default-font-size);
     line-height: var(--ds-typography-body-lg-default-line-height);
@@ -1012,26 +1017,54 @@ body { margin: 0; }
 
 /* The ring has no fill to set it apart from the label any more, so it needs the gap
    the filled circle could do without — otherwise it collides with the required *. */
-.info-wrap { position: relative; display: inline-flex; vertical-align: middle; margin-left: var(--ds-spacing-4); }
+.info-wrap { display: inline-flex; vertical-align: middle; margin-left: var(--ds-spacing-4); }
+
+/* The bubble is measured against the label, not against the 16px icon inside it.
+   Centred on the icon it was free to run off whichever edge the icon happened to sit
+   near — and the icon sits at the END of the label, so on a narrow column that edge
+   was always the right one. Anchored to the label instead, the bubble starts where
+   the label starts and can never be wider than the field, which is inside the card,
+   which is inside the page: it cannot be clipped at any width without the field
+   itself being clipped first.
+   The wrap gives up its own positioning for this; whatever holds it becomes the
+   containing block. :has(> .info-wrap) rather than a list of hosts because the icon
+   is appended at runtime to whatever element carries the field's label — a <label>,
+   a .group-label, or a heading referenced by aria-labelledby. */
+:has(> .info-wrap) { position: relative; }
+
 .info-bubble {
   position: absolute;
   bottom: calc(100% + var(--ds-spacing-8));
-  left: 50%;
-  transform: translateX(-50%);
+  left: 0;
   z-index: 5;
   width: max-content;
-  max-width: var(--ds-layout-measure-tooltip);
+  /* 100% is the label, so the measure is a ceiling and the field is the real limit */
+  max-width: min(var(--ds-layout-measure-tooltip), 100%);
   padding: var(--ds-spacing-8) var(--ds-spacing-12);
-  color: var(--ds-color-text-neutral-bold-default);
-  background: var(--ds-surface-page);
-  border: var(--ds-border-width-1) solid var(--ds-color-border-neutral-bold-default);
+  /* G-27 — the one surface darker than the page it floats over. Finlink Core's
+     neutral background ramp is light-only, so both the fill and its ink are
+     extension tokens: grey.900 carrying grey.50 at 12.60:1. */
+  color: var(--ds-surface-inverse-text);
+  background: var(--ds-surface-inverse);
+  /* Matches the fill in light, so the box measures the same in both appearances
+     while showing an edge only where dark-on-dark needs one. */
+  border: var(--ds-border-width-1) solid var(--ds-surface-inverse-border);
   border-radius: var(--ds-field-radius);
-  box-shadow: var(--ds-shadow-md);
+  /* sm, not md: at this size and this near-black the shadow is only there to lift
+     the chip off the field behind it, and md's 16px spread reads as a smudge under
+     a box that already separates itself by being the darkest thing on the page. */
+  box-shadow: var(--ds-shadow-sm);
   opacity: 0;
   visibility: hidden;
   transition: opacity 0.12s;
 }
-.info-wrap:hover .info-bubble,
+
+/* Hover only where hovering is a thing. On a touch screen a tap leaves the emulated
+   hover stuck on until something else is tapped, which would hold the bubble open
+   against the button's own state and make the second tap look broken. */
+@media (hover: hover) {
+  .info-wrap:hover .info-bubble { opacity: 1; visibility: visible; }
+}
 .info-btn:focus-visible + .info-bubble,
 .info-btn[aria-expanded="true"] + .info-bubble { opacity: 1; visibility: visible; }
 
@@ -1391,6 +1424,12 @@ body { margin: 0; }
 /* The panels inside carry the gap between them; the last one's would push the list
    past the padding of whatever holds it. */
 .repeat-list > .subcard:last-child { margin-bottom: 0; }
+
+/* Which leaves the add button underneath standing flush against the last panel, so it
+   carries the gap itself — the same one the panels keep between them. Only once there
+   is a panel above it: while the list is empty the button is the first thing in the
+   reveal and has nothing to be separated from. */
+.repeat-list:not(:empty) + .add-btn { margin-top: var(--ds-spacing-16); }
 
 /* -------------------------------------------------------------- callouts */
 
@@ -1873,6 +1912,13 @@ body { margin: 0; }
 
 @media (max-width: 640px) {
   .col-3, .col-4, .col-6, .col-8, .col-9 { grid-column: auto / span 12; }
+  /* The row gap changes job at this width. Two and three to a row, fields are grouped
+     by sitting *beside* each other and the gap only has to part the bands; stacked, it
+     is the sole thing telling "next question" from "next part of this one" — against
+     40px bordered boxes, which are the loudest shape on the screen. So it steps up one
+     stop, to the same 24 the cards and sections are spaced by. The label keeps its 4px:
+     the tighter it stays to its own control, the more the wider gap reads as a break. */
+  .grid { row-gap: var(--ds-spacing-24); }
   .card-toggle { padding: var(--ds-spacing-12) var(--ds-spacing-16); }
   .card-pad { padding: var(--ds-spacing-16); }
   .subsection .card-pad,
@@ -1891,6 +1937,22 @@ body { margin: 0; }
      indent buys nothing and only costs field width. The rule stays: it is the only
      thing left saying these belong to the position above. */
   .amount-detail > .reveal-inner > .pad { padding-left: var(--ds-spacing-12); margin-left: 0; }
+  /* WCAG 2.5.8 is met on the desktop icon by an invisible 24px box round a 16px ring,
+     which is the minimum and asks the thumb to aim at something smaller than it can
+     see. Here the ring itself grows to the full 24px target — you hit what you look
+     at — and the invisible box takes it to 48x44, past 2.5.5 AAA.
+     The inset is deliberately lopsided. Sideways there is only label text, which is
+     not a target, so it spreads freely; below sits the field's own control, 4px away,
+     and any overlap there would take taps meant for the select. So it stops exactly
+     at that gap and buys the height above instead, where the 24px row gap leaves 8px
+     of clearance under the field before. */
+  .info-btn { width: var(--ds-spacing-24); height: var(--ds-spacing-24); }
+  .info-btn::after {
+    inset: calc(-1 * var(--ds-spacing-16))
+           calc(-1 * var(--ds-spacing-12))
+           calc(-1 * var(--ds-spacing-4));
+  }
+
   .save-state { display: none; }
   /* Ausnahme von der Zeile darüber: nach dem Senden ist diese Meldung der ganze
      Inhalt der Leiste, und dass nichts mehr geändert werden kann, gehört auf jede
@@ -1906,63 +1968,49 @@ body { margin: 0; }
   .review-list { grid-template-columns: minmax(0, 1fr); gap: var(--ds-spacing-4); }
   .review-list > dd { margin-bottom: var(--ds-spacing-12); }
 
-  /* ---- mobile form surface: white page, no section container -------------------
+  /* ---- mobile: eight-pixel gutters --------------------------------------------
 
-     On a phone the page itself is white and the section container goes. A white
-     card on a white ground draws nothing, and it brings two nested insets — the
-     card's 16 plus an applicant's 12 — that cost 28px on each side of a field
-     already short of room. Without it a field is inset by the shell gutter alone,
-     so it spans the viewport less 16px left and right, and every field on the
-     page shares one pair of edges.
+     The category card stays — it is the thing that tells one section from the
+     next, and a hairline between two headings does not do that job as well. What
+     the card costs at 390px is width, and it costs it twice: once for the shell
+     gutter the card sits in, once for the card's own padding.
 
-     The fill was the section's only boundary (see .card above), so a hairline
-     takes over between two sections: the same means already used between two
-     sub-sections. It sits --spacing-4 below the rule so the 16px above it is
-     matched by 4 + the toggle's own 12 below.
+     So every level of nesting insets by space/8 here instead of space/16. A field
+     in a card is then 16px from the screen edge rather than 32 — the same width it
+     would have with no card at all — and the card is still a card. The applicant
+     block inside it follows the same rule, so the one place with three levels of
+     nesting costs 24px rather than 44.
 
-     What keeps a fill is the one block that still needs a boundary — an
-     applicant's column. It goes full-bleed instead of inset, so its fields keep
-     the same 16px edges as the fields above it.
+     Form view only: the summary's cards carry read-back text rather than fields,
+     and keep the larger padding that suits a paragraph. */
 
-     Form view only. The summary reads rather than fills, and it shares .card-pad
-     and .card-body-inner with the form. */
-
-  :root[data-view="form"] body { background-color: var(--ds-surface-card); }
-  :root[data-view="form"] .nav,
-  :root[data-view="form"] .nav-toggle,
-  :root[data-view="form"] .actionbar,
-  :root[data-view="form"] .btn.ghost { background: var(--ds-surface-card); }
-
-  :root[data-view="form"] .card > .card-head > .card-toggle,
-  :root[data-view="form"] .card > .card-body > .card-body-inner {
-    background: none;
-    border-radius: 0;
+  :root[data-view="form"] .app {
+    padding-left: var(--ds-spacing-8);
+    padding-right: var(--ds-spacing-8);
   }
-  /* The rule above outweighs .card-toggle:hover, so the affordance is restated. */
-  :root[data-view="form"] .card > .card-head > .card-toggle:hover {
-    background: var(--ds-color-background-neutral-subtle-hovered);
+  /* the bar is full-bleed by negative margin, so it tracks the gutter it cancels */
+  :root[data-view="form"] .nav {
+    margin: 0 calc(-1 * var(--ds-spacing-8));
+    padding-left: var(--ds-spacing-8);
+    padding-right: var(--ds-spacing-8);
   }
-  :root[data-view="form"] .card[data-open="true"] > .card-body { margin-top: 0; }
-  :root[data-view="form"] .card + .card {
-    padding-top: var(--ds-spacing-4);
-    border-top: var(--ds-border-width-1) solid var(--ds-color-border-neutral-bold-default);
+  :root[data-view="form"] .nav-links {
+    left: var(--ds-spacing-8);
+    right: var(--ds-spacing-8);
   }
 
-  :root[data-view="form"] .card-toggle { padding: var(--ds-spacing-12) 0; }
-  :root[data-view="form"] .card-pad { padding: 0; }
+  :root[data-view="form"] .card-toggle { padding: var(--ds-spacing-12) var(--ds-spacing-8); }
+  :root[data-view="form"] .card-pad { padding: var(--ds-spacing-8); }
   :root[data-view="form"] .subsection .card-pad,
-  :root[data-view="form"] .subsection-static .card-pad { padding: 0 0 var(--ds-spacing-16); }
-  :root[data-view="form"] .subsections > .subsection-static + .subsection-static::before { margin: 0; }
-  :root[data-view="form"] .subsection-title { padding: 0; }
+  :root[data-view="form"] .subsection-static .card-pad { padding: 0 var(--ds-spacing-8) var(--ds-spacing-8); }
+  :root[data-view="form"] .subsections > .subsection-static + .subsection-static::before { margin: 0 var(--ds-spacing-8); }
+  :root[data-view="form"] .subsection-title { padding: 0 var(--ds-spacing-8); }
 
-  /* Randlos: das graue Feld reicht bis an beide Kanten, sein Inhalt bleibt bei
-     16px. Der negative Rand ist der Rinnstein des Shells aus dem 900er-Block. */
+  /* The recessed block keeps its fill, its hairline and its radius — it is still
+     what separates Antragsteller 1 from Antragsteller 2. Only its side inset comes
+     down to match everything else. */
   :root[data-view="form"] .applicants.two .applicant {
-    margin: 0 calc(-1 * var(--ds-spacing-16));
-    padding: var(--ds-spacing-20) var(--ds-spacing-16);
-    border-left: 0;
-    border-right: 0;
-    border-radius: 0;
+    padding: var(--ds-spacing-20) var(--ds-spacing-8);
   }
 }
 

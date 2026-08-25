@@ -80,7 +80,9 @@
         "",
         "Layout furniture is app-level and reasonably outside a foundations file:",
         "content width, sidebar width, column minimums, prose measures, and the",
-        "phone frame the Ansicht preview draws."
+        "phone frame the Ansicht preview draws.",
+        "",
+        "The tooltip is the one surface in this form that is darker than the page it floats over — G-27. Finlink Core's neutral background ramp is light-only: background.neutral.bold.default is grey.100, so \"bold\" there means a heavier grey, not an inverted one, and there is no dark neutral surface to alias. ds-surface-inverse names the missing step at grey.900. Its ink is grey.50 rather than the contract's text.neutral.inverse.default (grey.0): both clear AAA on grey.900 (12.60:1 and 13.16:1), and off-white is the softer of the two on a dark chip this small. That choice is what makes the ink an extension token too rather than a straight alias. The border matches the surface in light — a dark box on a white card needs no edge, and keeping the declaration keeps the box geometry identical across appearances."
       ],
       "selector": ":root",
       "tokens": {
@@ -88,6 +90,9 @@
         "ds-surface.card": "{color.background.neutral.subtlest.default}",
         "ds-surface.field": "{color.background.neutral.subtlest.default}",
         "ds-surface.overlay": "rgba(0, 0, 0, 0.5)",
+        "ds-surface.inverse": "{color.grey.900}",
+        "ds-surface.inverse-border": "{color.grey.900}",
+        "ds-surface.inverse-text": "{color.grey.50}",
         "ds-color.background.warning-strong.subtlest.default": "{color.orange.100}",
         "ds-color.border.warning-strong.bold.default": "{color.orange.500}",
         "ds-shadow.xs.y": "1px",
@@ -161,7 +166,9 @@
         "Two contrast fixes from the outgoing build are folded in rather than left",
         "to the contrast pass, because their light-mode counterparts differ:",
         "border.neutral.bold at grey.800 is the same colour as the grey.800 card",
-        "behind it, so the field would have no edge at all."
+        "behind it, so the field would have no edge at all.",
+        "",
+        "Inverse has no meaning here — everything is already dark, and grey.900 sits between the grey.950 page and the grey.800 card, so a grey.900 tooltip would read as a hole punched in the card rather than something floating above it. The token keeps its job (the surface a tooltip floats on) and steps up instead of down: grey.700, carrying the same grey.50 ink at 6.93:1. Since that is only 1.33:1 against the card behind it the edge has to be real — grey.400, 3.8:1, clearing 1.4.11 for a non-text boundary."
       ],
       "selector": ":root[data-appearance=\"dark\"]",
       "tokens": {
@@ -169,6 +176,9 @@
         "ds-surface.card": "{color.background.neutral.subtle.default}",
         "ds-surface.field": "{color.background.neutral.subtlest.default}",
         "ds-surface.overlay": "rgba(0, 0, 0, 0.7)",
+        "ds-surface.inverse": "{color.grey.700}",
+        "ds-surface.inverse-border": "{color.grey.400}",
+        "ds-surface.inverse-text": "{color.grey.50}",
         "ds-color.background.neutral.subtlest.default": "{color.grey.950}",
         "ds-color.background.neutral.subtlest.hovered": "{color.grey.800}",
         "ds-color.background.neutral.subtlest.pressed": "{color.grey.700}",

@@ -1664,11 +1664,18 @@ body {
 /* ------------------------------------------------------------- responsive */
 
 @media (max-width: 900px) {
+  /* The gutter is the one measure the full-bleed pieces below have to agree on —
+     the nav bleeds out by exactly this much, the menu panel and the action bar are
+     inset by it. Redeclared here rather than repeated five times, so narrowing the
+     margin is one number. 8px on a phone: the card fill is the boundary and a wide
+     margin only takes width off the fields inside it. */
+  :root { --layout-gutter: var(--spacing-2); }
+
   .app {
     grid-template-columns: minmax(0, 1fr);
     gap: var(--spacing-5);
     /* no top padding: the nav bar below is full-bleed and brings its own */
-    padding: 0 var(--spacing-4) var(--spacing-12);
+    padding: 0 var(--layout-gutter) var(--spacing-12);
   }
 
   /* The sidebar becomes a bar across the top. Sixteen links across a phone is most
@@ -1685,8 +1692,8 @@ body {
     overflow: visible;
     flex-direction: row;
     gap: var(--spacing-2);
-    margin: 0 calc(-1 * var(--spacing-4));
-    padding: var(--spacing-3) var(--spacing-4);
+    margin: 0 calc(-1 * var(--layout-gutter));
+    padding: var(--spacing-3) var(--layout-gutter);
     background: var(--page-bg);
     border-bottom: var(--border-width-default) solid var(--color-border-default);
   }
@@ -1728,8 +1735,8 @@ body {
     display: none;
     position: absolute;
     top: 100%;
-    left: var(--spacing-4);
-    right: var(--spacing-4);
+    left: var(--layout-gutter);
+    right: var(--layout-gutter);
     max-height: 70vh;
     overflow-y: auto;
     overscroll-behavior: contain;
@@ -1747,7 +1754,7 @@ body {
   :root[data-view="summary"] .nav,
   :root[data-view="sent"] .nav { display: none; }
 
-  .actionbar-inner { padding: var(--spacing-3) var(--spacing-4); }
+  .actionbar-inner { padding: var(--spacing-3) var(--layout-gutter); }
 }
 
 @media (max-width: 640px) {
@@ -1780,6 +1787,22 @@ body {
   .save-state.locked { display: flex; flex: 1 1 100%; }
   .btn { flex: 1; }
   .card-static > .card-head { padding: var(--spacing-3) var(--spacing-4); }
+  /* Die drei Schritte stehen auf dieser Ansicht als einziger Block ohne eigene
+     Fläche auf dem Seitengrau, direkt über zwei weißen Karten — auf Telefonbreite
+     liest sich das als loser Fließtext statt als Teil der Seite. Also bekommen sie
+     hier dieselbe Karte wie alles andere darunter. Nur die Liste der
+     Zusammenfassung: die im Gesendet-View steht bereits in einer Karte, und ein
+     zweiter Kartenhintergrund darin wäre Weiß auf Weiß.
+     Innenabstand ist --spacing-4 statt --card-padding, weil .card-pad auf dieser
+     Breite genau darauf heruntergesetzt ist — die Karte muss mit ihren Nachbarn
+     fluchten, nicht mit dem Desktop-Wert. */
+  #summary-view > .steps {
+    padding: var(--spacing-4);
+    margin-bottom: var(--section-gap);
+    background: var(--card-bg);
+    border-radius: var(--card-radius);
+  }
+
   /* Frage über Antwort statt daneben: zwei Spalten lassen für die Antwort keine
      Zeile übrig, und sie ist das, was gelesen wird. */
   .review-list { grid-template-columns: minmax(0, 1fr); gap: var(--spacing-1); }

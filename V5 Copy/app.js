@@ -154,6 +154,7 @@
       button.textContent = 'i';
       button.setAttribute('aria-label', `Erläuterung zu ${name}`);
       button.setAttribute('aria-describedby', help.id);
+      button.setAttribute('aria-expanded', 'false');
 
       const bubble = document.createElement('span');
       bubble.className = 'info-bubble';
@@ -1359,6 +1360,50 @@
     });
   }
 
+  /* The help text lives nowhere else: .field > .help is visually hidden and the bubble
+     is the only rendering of it, so a reader who cannot open the bubble cannot read
+     the help at all. Hover and focus-visible cover a mouse and a keyboard; neither
+     fires on a tap, which left every explanation in the form unreachable on a phone.
+     A click is therefore a real toggle, and aria-expanded — which the stylesheet
+     already watched for and nothing ever set — is what carries it.
+
+     Delegated from the document rather than wired per button: most of these icons are
+     built at runtime by hydrate(), and a cloned applicant brings a fresh set with it.
+
+     One open at a time. Two bubbles are both absolutely positioned over the fields
+     around them, so a second one opening on top of the first is unreadable. */
+  function wireInfoTips() {
+    const closeTips = (except) => {
+      $$('.info-btn[aria-expanded="true"]').forEach((button) => {
+        if (button !== except) button.setAttribute('aria-expanded', 'false');
+      });
+    };
+
+    // click, not pointerdown: the button must still answer the keyboard's Enter and
+    // Space, which arrive as clicks and would otherwise toggle nothing.
+    document.addEventListener('click', (event) => {
+      const button = event.target.closest('.info-btn');
+      if (!button) return;
+      const open = button.getAttribute('aria-expanded') === 'true';
+      closeTips(button);
+      button.setAttribute('aria-expanded', String(!open));
+    });
+
+    // Anything aimed past an open bubble means "close" — including a tap on the
+    // bubble itself, which is not a control and has nothing else to do with one.
+    document.addEventListener('pointerdown', (event) => {
+      if (!event.target.closest('.info-btn')) closeTips();
+    });
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key !== 'Escape') return;
+      const open = $('.info-btn[aria-expanded="true"]');
+      if (!open) return;
+      closeTips();
+      open.focus();   // Escape must not strand the focus on something now hidden
+    });
+  }
+
   /* --------------------------------------------------------------- toggles */
 
   const SETTINGS = ['appearance', 'density'];
@@ -1801,6 +1846,7 @@
   wireToggles();
   wireNav();
   wireNavToggle();
+  wireInfoTips();
   initEmbed();
 
   zweck.addEventListener('change', updateStart);
