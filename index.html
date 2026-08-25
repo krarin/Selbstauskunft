@@ -138,12 +138,30 @@
          Feld, das nicht gefragt wird, zählt auch nicht mehr als Pflichtfeld.</p>
     </a>
 
-    <div class="card placeholder">
+    <a class="card" href="v6/index.html">
       <div class="card-head">
         <span class="vtag">V6</span>
+        <h2>Auf Finlink Core umgestellt</h2>
+        <span class="date">August 2026</span>
+      </div>
+      <p>Dieselbe Strecke wie V5, aber auf einem anderen Token-Unterbau: Statt aus dem
+         Variablen-Export von <strong>BETA-Foundations</strong> wird das CSS jetzt aus dem
+         Token-Vertrag <strong>Finlink Core</strong> erzeugt, und <code>components.css</code>
+         darf ausschließlich öffentliche <code>--ds-*</code>-Tokens verwenden. Die Umstellung
+         war <em>verhaltensneutral</em> — es wurde nichts entfernt, was das Formular schon
+         konnte. Weil Finlink Core nur Hell kennt und weder Elevation, Dichte noch
+         responsive Typografie beschreibt, stehen genau diese vier Fähigkeiten in einer
+         zweiten, getrennten Datei und sind einzeln als Lücke dokumentiert:
+         <code>TOKEN-GAPS.md</code> führt jede Abweichung mit eigener ID, jede Markierung
+         im CSS hat dort einen Eintrag.</p>
+    </a>
+
+    <div class="card placeholder">
+      <div class="card-head">
+        <span class="vtag">V7</span>
         <h2>Nächste Design-Idee</h2>
       </div>
-      <p>Noch nicht angelegt — Ordner <code>v5</code> nach <code>v6</code> kopieren und die
+      <p>Noch nicht angelegt — Ordner <code>v6</code> nach <code>v7</code> kopieren und die
          auskommentierte Karten-Vorlage in <code>index.html</code> aktivieren.</p>
     </div>
 
