@@ -120,17 +120,26 @@
       </svg>
       Finanzierungsdetails
     </a>
-    </div>
 
     <hr class="nav-divider">
     <!-- Nur für den Prototyp: füllt den Antrag mit einem Beispielfall, damit der
          Weg zur Zusammenfassung nicht durch 60 Felder Tippen führt. Bewusst kein
          .seg-Knopf — der ist ein Umschalter, dies ist eine Handlung. Siehe
-         prefill.js. -->
+         prefill.js.
+
+         Steht innerhalb von .nav-links, nicht daneben: oben ist der Wrapper
+         display:contents, der Knopf bleibt also genau dort, wo er immer war. Unter
+         900px wird aus .nav-links die Klappliste hinter dem Burger — und damit ist
+         der Knopf auch auf dem Telefon erreichbar, statt mit .nav-tools ausgeblendet
+         zu werden. Er landet dabei nicht in der Leiste selbst, die weiterhin nur den
+         Weg zu einem Abschnitt zeigt, sondern in der Liste, die man dafür aufklappt.
+         Das gilt auch für die Mobil-Vorschau: der Rahmen lädt dieselbe Seite, führt
+         sein eigenes prefill.js aus und füllt damit sein eigenes Formular. -->
     <div class="eyebrow" id="lbl-demo">Prototyp</div>
     <div class="nav-tools">
       <button type="button" class="add-btn" id="prefill">Beispieldaten einfügen</button>
       <p class="nav-note" id="prefill-status" role="status" aria-live="polite"></p>
+    </div>
     </div>
 
 

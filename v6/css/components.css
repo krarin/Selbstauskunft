@@ -1656,7 +1656,7 @@ body { margin: 0; }
    weiterer Schritt eine Zeile Markup ist und keine Nummer zum Nachziehen. */
 .steps {
   display: grid;
-  gap: var(--ds-spacing-16);
+  gap: var(--ds-spacing-20);
   counter-reset: step;
   max-width: var(--ds-layout-measure-prose);
   margin: 0 0 var(--ds-spacing-32);
@@ -1664,6 +1664,25 @@ body { margin: 0; }
   list-style: none;
 }
 .card-pad > .steps { margin-bottom: 0; }
+
+/* Auf der Zusammenfassung standen die Schritte als einziger Block ohne eigene
+   Flaeche auf dem Seitengrau, direkt ueber zwei weissen Karten: grauer Text auf
+   Grau, waehrend alles darunter auf Weiss liegt. Sie bekommen dieselbe Karte wie
+   ihre Nachbarn, auf jeder Breite - der weisse Grund hebt den Kontrast von Titel
+   und Fliesstext und bindet den Block an die Seite. Nur diese Liste: die im
+   Gesendet-View steht bereits in einer Karte, ein zweiter Kartenhintergrund darin
+   waere Weiss auf Weiss.
+   Die Karte nimmt die volle Spaltenbreite wie ihre Nachbarn, das Zeilenmass
+   wandert dafuer auf den einzelnen Schritt - eine schmale Karte zwischen breiten
+   waere ein Bruch in der Kante, ein 68ch langer Fliesstext einer im Lesen. */
+#summary-view > .steps {
+  max-width: none;
+  padding: var(--ds-card-padding);
+  margin-bottom: var(--ds-section-gap);
+  background: var(--ds-surface-card);
+  border-radius: var(--ds-card-radius);
+}
+#summary-view > .steps > li { max-width: var(--ds-layout-measure-prose); }
 
 /* Die Nummer wird absolut gesetzt und der Text um sie herum eingerückt — nicht als
    Rasterspalte: der Inhalt eines Schrittes ist Titel plus Fließtext, und ein Raster
@@ -1690,8 +1709,12 @@ body { margin: 0; }
   background: var(--ds-color-background-brand-subtlest-default);
   border-radius: var(--ds-pill-radius);
 }
+/* Der Titel bekommt eine eigene Zeile Luft nach unten: ohne sie laufen Titel und
+   Fliesstext im gleichen Zeilenabstand weiter und der Schritt liest sich als ein
+   Absatz statt als Ueberschrift plus Erklaerung. */
 .step-title {
   display: block;
+  margin-bottom: var(--ds-spacing-4);
   color: var(--ds-color-text-neutral-bold-default);
 }
 
@@ -1866,7 +1889,15 @@ body { margin: 0; }
   }
   /* Die Schalter des Prototyps gehören nicht in eine Leiste, die nur den Weg zu
      einem Abschnitt zeigt — und der Beispieldaten-Knopf ist einer von ihnen. */
-  .nav .eyebrow, .nav-divider, .nav .seg, .nav-tools { display: none; }
+  /* Die Schalter des Prototyps gehören nicht in eine Leiste, die nur den Weg zu
+     einem Abschnitt zeigt. Der Beispieldaten-Knopf ist aber kein Schalter, sondern
+     eine Handlung, und ohne ihn führt der Weg zur Zusammenfassung auf dem Telefon
+     durch 60 Felder Tippen. Er steht deshalb im Markup innerhalb von .nav-links und
+     bleibt hier sichtbar: nicht in der Leiste, sondern in der Klappliste, die man
+     ohnehin öffnet, um irgendwohin zu kommen. Der Trenner darüber grenzt ihn von der
+     Abschnittsliste ab, #lbl-demo beschriftet ihn — beide stehen jetzt ebenfalls in
+     der Liste, also bleiben auch sie. */
+  .nav .eyebrow:not(#lbl-demo), .nav .seg { display: none; }
 
   .nav-toggle {
     display: flex;
@@ -1932,6 +1963,10 @@ body { margin: 0; }
   .grid { row-gap: var(--ds-spacing-24); }
   .card-toggle { padding: var(--ds-spacing-12) var(--ds-spacing-16); }
   .card-pad { padding: var(--ds-spacing-16); }
+  /* Die Schritte-Karte fluchtet mit ihren Nachbarn, also nimmt sie denselben
+     heruntergesetzten Innenabstand wie .card-pad hier - nicht den Desktop-Wert
+     aus --ds-card-padding. */
+  #summary-view > .steps { padding: var(--ds-spacing-16); }
   .subsection .card-pad,
   .subsection-static .card-pad { padding: 0 var(--ds-spacing-16) var(--ds-spacing-16); }
   .subsections > .subsection-static + .subsection-static::before { margin: 0 var(--ds-spacing-16); }

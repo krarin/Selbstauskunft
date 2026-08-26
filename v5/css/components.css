@@ -1471,7 +1471,7 @@ body {
    weiterer Schritt eine Zeile Markup ist und keine Nummer zum Nachziehen. */
 .steps {
   display: grid;
-  gap: var(--spacing-4);
+  gap: var(--spacing-5);
   counter-reset: step;
   max-width: var(--layout-measure-prose);
   margin: 0 0 var(--spacing-8);
@@ -1479,6 +1479,25 @@ body {
   list-style: none;
 }
 .card-pad > .steps { margin-bottom: 0; }
+
+/* Auf der Zusammenfassung standen die Schritte als einziger Block ohne eigene
+   Flaeche auf dem Seitengrau, direkt ueber zwei weissen Karten: grauer Text auf
+   Grau, waehrend alles darunter auf Weiss liegt. Sie bekommen dieselbe Karte wie
+   ihre Nachbarn, und zwar auf jeder Breite und nicht erst auf dem Telefon - der
+   weisse Grund hebt den Kontrast von Titel und Fliesstext und bindet den Block
+   an die Seite. Nur diese Liste: die im Gesendet-View steht bereits in einer
+   Karte, ein zweiter Kartenhintergrund darin waere Weiss auf Weiss.
+   Die Karte nimmt die volle Spaltenbreite wie ihre Nachbarn, das Zeilenmass
+   wandert dafuer auf den einzelnen Schritt - eine schmale Karte zwischen breiten
+   waere ein Bruch in der Kante, ein 68ch langer Fliesstext einer im Lesen. */
+#summary-view > .steps {
+  max-width: none;
+  padding: var(--card-padding);
+  margin-bottom: var(--section-gap);
+  background: var(--card-bg);
+  border-radius: var(--card-radius);
+}
+#summary-view > .steps > li { max-width: var(--layout-measure-prose); }
 
 /* Die Nummer wird absolut gesetzt und der Text um sie herum eingerückt — nicht als
    Rasterspalte: der Inhalt eines Schrittes ist Titel plus Fließtext, und ein Raster
@@ -1507,8 +1526,12 @@ body {
   background: var(--color-action-primary-subtle);
   border-radius: var(--pill-radius);
 }
+/* Der Titel bekommt eine eigene Zeile Luft nach unten: ohne sie laufen Titel und
+   Fliesstext im gleichen Zeilenabstand weiter und der Schritt liest sich als ein
+   Absatz statt als Ueberschrift plus Erklaerung. */
 .step-title {
   display: block;
+  margin-bottom: var(--spacing-1);
   font-weight: var(--font-weight-medium);
   color: var(--color-text-primary);
 }
@@ -1709,8 +1732,14 @@ body {
     border-bottom: var(--border-width-default) solid var(--color-border-default);
   }
   /* Die Schalter des Prototyps gehören nicht in eine Leiste, die nur den Weg zu
-     einem Abschnitt zeigt — und der Beispieldaten-Knopf ist einer von ihnen. */
-  .nav .eyebrow, .nav-divider, .nav .seg, .nav-tools { display: none; }
+     einem Abschnitt zeigt. Der Beispieldaten-Knopf ist aber kein Schalter, sondern
+     eine Handlung, und ohne ihn führt der Weg zur Zusammenfassung auf dem Telefon
+     durch 60 Felder Tippen. Er steht deshalb im Markup innerhalb von .nav-links und
+     bleibt hier sichtbar: nicht in der Leiste, sondern in der Klappliste, die man
+     ohnehin öffnet, um irgendwohin zu kommen. Der Trenner darüber grenzt ihn von der
+     Abschnittsliste ab, #lbl-demo beschriftet ihn — beide stehen jetzt ebenfalls in
+     der Liste, also bleiben auch sie. */
+  .nav .eyebrow:not(#lbl-demo), .nav .seg { display: none; }
 
   .nav-toggle {
     display: flex;
@@ -1798,21 +1827,11 @@ body {
   .save-state.locked { display: flex; flex: 1 1 100%; }
   .btn { flex: 1; }
   .card-static > .card-head { padding: var(--spacing-3) var(--spacing-4); }
-  /* Die drei Schritte stehen auf dieser Ansicht als einziger Block ohne eigene
-     Fläche auf dem Seitengrau, direkt über zwei weißen Karten — auf Telefonbreite
-     liest sich das als loser Fließtext statt als Teil der Seite. Also bekommen sie
-     hier dieselbe Karte wie alles andere darunter. Nur die Liste der
-     Zusammenfassung: die im Gesendet-View steht bereits in einer Karte, und ein
-     zweiter Kartenhintergrund darin wäre Weiß auf Weiß.
-     Innenabstand ist --spacing-4 statt --card-padding, weil .card-pad auf dieser
-     Breite genau darauf heruntergesetzt ist — die Karte muss mit ihren Nachbarn
-     fluchten, nicht mit dem Desktop-Wert. */
-  #summary-view > .steps {
-    padding: var(--spacing-4);
-    margin-bottom: var(--section-gap);
-    background: var(--card-bg);
-    border-radius: var(--card-radius);
-  }
+  /* Die Schritte-Karte gibt es jetzt auf jeder Breite (siehe oben); hier bleibt nur
+     der Innenabstand zu korrigieren. --spacing-4 statt --card-padding, weil
+     .card-pad auf dieser Breite genau darauf heruntergesetzt ist - die Karte muss
+     mit ihren Nachbarn fluchten, nicht mit dem Desktop-Wert. */
+  #summary-view > .steps { padding: var(--spacing-4); }
 
   /* Frage über Antwort statt daneben: zwei Spalten lassen für die Antwort keine
      Zeile übrig, und sie ist das, was gelesen wird. */
