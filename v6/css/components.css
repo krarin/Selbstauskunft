@@ -138,7 +138,6 @@ body { margin: 0; }
 .cal-days th,
 .cal-cell,
 .error-text,
-.info-bubble,
 .save-state,
 .link-btn,
 .review-list > dt,
@@ -188,6 +187,13 @@ body { margin: 0; }
 .with-unit .unit,
 .choice > span,
 .note,
+/* Die Sprechblase trägt den ganzen Hilfetext — .field > .help ist visuell versteckt,
+   es gibt also keine zweite Fassung daneben. Bei body.sm war sie die kleinste Schrift
+   der Seite, obwohl sie als einzige Stelle erklärt, wonach gefragt wird. Sie steht
+   deshalb hier, bei .note und .modal-text: dieselbe Aufgabe, dieselbe Rolle. Der
+   Mobil-Block weiter unten hebt genau diese Gruppe gemeinsam auf body.lg an — die
+   Blase war bisher die einzige darin, die unten nicht mitgestuft war. */
+.info-bubble,
 .modal-text,
 .choice.plain > input + span {
   font-family: var(--ds-font-family-sans);
@@ -291,10 +297,11 @@ body { margin: 0; }
   .choice > span,
   .note,
   .modal-text,
-  /* The bubble carries the entire help text — .field > .help is visually hidden, so
-     there is no second copy to fall back on. At body.sm it was the smallest type on
-     the page while the label above it had stepped to 16px; it reads like the .note
-     and .modal-text beside it here because that is the job it is doing. */
+  /* Die Blase steigt hier mit .note und .modal-text mit, aus demselben Grund wie
+     die beiden: sie ist ein Kasten voll Fließtext, und auf Telefonbreite hat das
+     Label darüber bereits auf 16px gestuft. Sie kommt jetzt von body.md wie ihre
+     Nachbarn — vorher stand sie eine Stufe tiefer und machte hier einen Sprung
+     über zwei. */
   .info-bubble,
   .choice.plain > input + span {
     font-size: var(--ds-typography-body-lg-default-font-size);
@@ -1587,9 +1594,29 @@ body { margin: 0; }
 }
 .modal-actions {
   display: flex;
+  /* Umbrechen statt ueberlaufen: die Knoepfe geben ihre Breite nicht mehr her (siehe
+     unten), also braucht die Zeile einen Ausweg, wenn eine Beschriftung einmal
+     laenger wird als der Dialog breit ist. */
+  flex-wrap: wrap;
   justify-content: flex-end;
   gap: var(--ds-spacing-12);
   margin-top: var(--ds-spacing-12);
+}
+/* Die zwei Knoepfe sind die ganze Interaktion eines Dialogs - kein Bedienelement in
+   einem Formular, sondern die Entscheidung selbst. Also stehen sie eine Stufe
+   darueber: 48px statt der 40px eines Feldes, was zugleich das komfortable Ziel aus
+   WCAG 2.5.5 ist.
+   flex: none ist die eigentliche Korrektur. Die Telefonregel .btn { flex: 1 } ist
+   fuer die Aktionsleiste gedacht, greift aber auch hier und macht aus den beiden
+   zwei gleich breite Haelften von 141px - "Selbstauskunft abschicken" braucht allein fuer den Text
+   deutlich mehr und wurde darin zweizeilig. Mit flex: none behaelt jeder Knopf seine
+   eigene Breite, und nowrap sorgt dafuer, dass eine Beschriftung nie umbricht: sie
+   ist die Zusage, was der Klick tut, und die liest man in einer Zeile. Reicht die
+   Breite nicht, stapeln die Knoepfe (Telefonbreite unten) statt den Text zu falten. */
+.modal-actions .btn {
+  flex: none;
+  min-height: var(--ds-sizing-12);
+  white-space: nowrap;
 }
 
 /* A dialog is display:none until it opens, so it cannot be transitioned from
@@ -1693,7 +1720,7 @@ body { margin: 0; }
   position: relative;
   padding-left: calc(var(--ds-spacing-24) + var(--ds-spacing-12));
   counter-increment: step;
-  color: var(--ds-color-text-neutral-subtle-default);
+  color: var(--ds-color-text-neutral-bold-default);
 }
 .steps > li::before {
   content: counter(step);
@@ -1703,6 +1730,14 @@ body { margin: 0; }
   display: flex;
   align-items: center;
   justify-content: center;
+  /* Der Zahlenkreis nimmt die Schriftgroesse aus body-sm-strong, aber nicht dessen
+     Zeilenabstand: der ist als 1.3333 notiert, ergibt bei 12px eine 15,9996px hohe
+     Zeilenbox, und dieser Bruchteil verschiebt beim Runden die Grundlinie um ein
+     ganzes Pixel nach oben - gemessen sassen 1/2/3 dadurch 1,3px ueber der
+     Kreismitte. Um eine einzelne zentrierte Ziffer herum ist Zeilenabstand ohnehin
+     bedeutungslos, also 1: die Zeilenbox wird glatt und die Ziffer sitzt mittig
+     (Restfehler 0,3px, weil sie auf ganze Pixel rastet). */
+  line-height: 1;
   width: var(--ds-spacing-24);
   height: var(--ds-spacing-24);
   color: var(--ds-color-text-brand-bold-default);
@@ -2008,6 +2043,13 @@ body { margin: 0; }
   .actionbar-inner { flex-wrap: wrap; }
   .save-state.locked { display: flex; flex: 1 1 100%; }
   .btn { flex: 1; }
+  /* Auf 390px bleiben "Abbrechen" und "Selbstauskunft abschicken" nebeneinander nicht
+     einzeilig - zusammen brauchen sie mehr als die 294px, die der Dialog hergibt. Also stapeln
+     sie und nehmen jeder die volle Breite: eine Zeile Text und ein deutlich
+     groesseres Ziel als zwei Haelften. Abbrechen bleibt oben, wie im Quelltext und
+     damit in der Tabreihenfolge - bei einer nicht umkehrbaren Aktion soll der
+     bestaetigende Knopf nicht der sein, der unter dem ruhenden Daumen liegt. */
+  .modal-actions { flex-direction: column; align-items: stretch; }
   .card-static > .card-head { padding: var(--ds-spacing-12) var(--ds-spacing-16); }
   /* Frage über Antwort statt daneben: zwei Spalten lassen für die Antwort keine
      Zeile übrig, und sie ist das, was gelesen wird. */

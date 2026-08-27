@@ -77,7 +77,7 @@
     [/^Wertpapiere/,                        '12.000,00'],
     [/^Lebensversicherung/,                 '18.500,00'],
     [/^Verfügbares Eigenkapital/,           '80.000,00'],
-    [/^Sonstige Versicherungsausgaben/,     '145,00'],
+    [/^Sofern Sie weitere finanzielle/,     '180,00'],
     [/Kaltmiete/,                           '980,00'],
     [/Sparguthaben/,                        '45.000,00'],
     [/^Eingesetztes Eigenkapital/,          '80.000,00'],
@@ -190,8 +190,8 @@
   }
 
   /* Eine Position in einer Betragsliste ist ein Kästchen und steht in keiner
-     .choices-Gruppe, fiel also durch fillChoices() hindurch: Vermögen und Ausgaben
-     blieben leer, obwohl der Antrag beide erfragt. Angehakt wird nur, was hier
+     .choices-Gruppe, fiel also durch fillChoices() hindurch: das Vermögen blieb
+     leer, obwohl der Antrag es erfragt. Angehakt wird nur, was hier
      steht — dieselbe Zurückhaltung wie das "Nein" oben, denn jede Position ist eine
      Aussage über den Fall und nicht bloß ein Feld. Der Betrag daneben wird durch das
      Anhaken zur Pflicht und ist im nächsten Durchgang für fillInputs() sichtbar.
@@ -200,7 +200,6 @@
     'Wertpapiere / Aktien',
     'Lebensversicherung (Rückkaufswert)',
     'Verfügbares Eigenkapital',
-    'Sonstige Versicherungsausgaben',
   ];
 
   function fillPositions() {

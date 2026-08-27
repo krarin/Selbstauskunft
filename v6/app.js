@@ -1736,14 +1736,14 @@
     consentField.classList.toggle('invalid', !ok);
     if (!ok) {
       messageFor(consentField, consent).textContent =
-        'Ohne diese Bestätigung dürfen wir die Angaben nicht an den Berater übermitteln';
+        'Ohne diese Bestätigung dürfen wir die Angaben nicht übermitteln';
     }
     return ok;
   }
 
   /* Who the confirmation email goes to, in words: the applicant's name if it is
-     known, otherwise the neutral noun. Used in the sentence on the summary, so it
-     has to read as part of it either way. */
+     known, otherwise both forms spelled out. Used in the sentence on the summary,
+     so it has to read as part of it either way. */
   function customerName() {
     const first = ($('#a1-vorname').value || '').trim();
     const last = ($('#a1-nachname').value || '').trim();
@@ -1752,7 +1752,7 @@
 
   function openSummary() {
     buildReview();
-    $('#consent-customer').textContent = customerName() || 'der Kunde';
+    $('#consent-customer').textContent = customerName() || 'Ihre Kundin oder Ihr Kunde';
     sendText.textContent = 'Noch nicht gesendet — Sie können weiterhin ändern';
     showView('summary');
   }
@@ -1796,13 +1796,13 @@
       return;
     }
 
-    const customer = customerName() || 'Der Kunde';
+    const customer = customerName() || 'Ihre Kundin oder Ihr Kunde';
     if (!await confirmAction({
-      title: 'Jetzt an den Berater senden?',
+      title: 'Jetzt an die Beraterin oder den Berater senden?',
       text: `Danach können Sie die Selbstauskunft nicht mehr öffnen und nichts mehr `
         + `ändern. ${customer} erhält eine E-Mail zur eigenen Bestätigung, und Ihre `
         + `Referenz-ID senden wir an ${mailMakler.value.trim()}.`,
-      action: 'Verbindlich senden',
+      action: 'Selbstauskunft abschicken',
       tone: 'primary',
     })) {
       sendText.textContent = 'Nicht gesendet — Sie können weiterhin ändern';
@@ -1811,7 +1811,7 @@
 
     const reference = referenceId();
     $('#ref-id').textContent = reference;
-    $('#sent-name').textContent = customerName() || 'Ihrem Kunden';
+    $('#sent-name').textContent = customerName() || 'Ihrer Kundin oder Ihrem Kunden';
     $('#sent-mail-makler').textContent = mailMakler.value.trim();
     $('#sent-mail-kunde').textContent = mailKunde.value.trim();
     $('#copy-status').textContent = '';

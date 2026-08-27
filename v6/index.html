@@ -713,11 +713,11 @@
                   </div></div></div>
                 </div>
 
-                <!-- Two positions nobody keeps a running total of are asked the way the rent
-                     is: yes or no first, the figure only once there is one to give. Ticking a
-                     row in a list quietly asserts you know the number; a plain question does
-                     not, and the answer "Nein" is worth recording either way — both feed the
-                     frei verfügbares Einkommen. -->
+                <!-- Three positions nobody keeps a running total of are asked the way the
+                     rent is: yes or no first, the figure only once there is one to give.
+                     Ticking a row in a list quietly asserts you know the number; a plain
+                     question does not, and the answer "Nein" is worth recording either way —
+                     all three feed the frei verfügbares Einkommen. -->
                 <div class="field col-12" role="group" aria-labelledby="lbl-x1-pkv"
                      aria-describedby="h-x1-pkv" data-show-when="Ja">
                   <span class="group-label" id="lbl-x1-pkv">Haben Sie eine private Krankenversicherung?</span>
@@ -733,6 +733,33 @@
                         <label for="x1-pkv-betrag">Wie hoch sind die monatlichen Kosten?</label>
                         <div class="with-unit">
                           <input class="input" id="x1-pkv-betrag" inputmode="decimal" required>
+                          <span class="unit">€</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div></div></div>
+                </div>
+
+                <!-- Neben der privaten Krankenversicherung, weil beide dieselbe Frage in
+                     zwei Richtungen stellen: der Beitrag belastet das monatliche Budget, die
+                     Police selbst sichert es ab. Für die Ausgabenseite zählt der Beitrag, und
+                     der wird deshalb genauso erfragt wie der der PKV. -->
+                <div class="field col-12" role="group" aria-labelledby="lbl-x1-bu"
+                     aria-describedby="h-x1-bu" data-show-when="Ja">
+                  <span class="group-label" id="lbl-x1-bu">Haben Sie eine Berufsunfähigkeitsversicherung?</span>
+                  <p class="help" id="h-x1-bu">Der monatliche Beitrag zählt zu Ihren Ausgaben. Die Versicherung
+                    zahlt ein Ersatzeinkommen, falls Sie Ihren Beruf aus gesundheitlichen Gründen nicht mehr
+                    ausüben können.</p>
+                  <div class="choices">
+                    <label class="choice"><input type="radio" name="x1-bu" value="Ja"><span>Ja</span></label>
+                    <label class="choice"><input type="radio" name="x1-bu" value="Nein"><span>Nein</span></label>
+                  </div>
+                  <div class="reveal"><div class="reveal-inner"><div class="pad">
+                    <div class="grid">
+                      <div class="field col-6">
+                        <label for="x1-bu-betrag">Wie hoch sind die monatlichen Kosten?</label>
+                        <div class="with-unit">
+                          <input class="input" id="x1-bu-betrag" inputmode="decimal" required>
                           <span class="unit">€</span>
                         </div>
                       </div>
@@ -762,41 +789,29 @@
                   </div></div></div>
                 </div>
 
-                <!-- What is left is an amount list, same shape as Vermögen: the position is
-                     picked first and only then asks for a figure. Kreditraten are deliberately
-                     absent: they are collected per loan under Verbindlichkeiten, and asking for
-                     a lump sum here as well would invite two numbers that disagree. -->
-                <div class="field col-12" role="group" aria-labelledby="lbl-x1-ausgaben"
-                     aria-describedby="h-x1-ausgaben">
-                  <span class="group-label" id="lbl-x1-ausgaben">Welche weiteren monatlichen Ausgaben haben Sie?</span>
-                  <p class="help" id="h-x1-ausgaben">Wählen Sie alle zutreffenden Positionen aus und geben Sie
-                    jeweils den monatlichen Betrag an.</p>
-                  <div class="amount-list">
-                    <div class="amount-row">
-                      <label class="choice">
-                        <input type="checkbox" id="x1-versicherung">
-                        <span>Sonstige Versicherungsausgaben</span>
-                      </label>
-                      <div class="field amount-cell">
-                        <div class="with-unit">
-                          <input class="input" id="x1-versicherung-betrag" inputmode="decimal" aria-label="Sonstige Versicherungsausgaben – Betrag" required>
-                          <span class="unit">€</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div class="amount-row">
-                      <label class="choice">
-                        <input type="checkbox" id="x1-sonstige">
-                        <span>Sonstige Ausgaben</span>
-                      </label>
-                      <div class="field amount-cell">
-                        <div class="with-unit">
-                          <input class="input" id="x1-sonstige-betrag" inputmode="decimal" aria-label="Sonstige Ausgaben – Betrag" required>
-                          <span class="unit">€</span>
-                        </div>
-                      </div>
-                    </div>
+                <!-- Alles Übrige ist eine Zahl, keine Liste: was hier noch fehlt, sind
+                     Verpflichtungen, die der Antragsteller selbst kennt, aber die niemand
+                     vorab benennen kann — eine Positionsliste müsste sie erraten und träfe
+                     doch nie alle. Die Frage nennt deshalb die Bedingung ("sofern Sie …")
+                     statt einer Auswahl und nimmt eine Summe entgegen.
+                     Der Hilfetext macht die andere Hälfte der Arbeit: er sagt, was hier
+                     NICHT hingehört. Lebenshaltung steckt schon in der Bankpauschale, und
+                     wer sie hier noch einmal einträgt, wird doppelt belastet.
+                     Kreditraten fehlen weiterhin bewusst: sie werden pro Darlehen unter
+                     Verbindlichkeiten erhoben, und eine Summe hier lüde zwei Zahlen ein,
+                     die einander widersprechen.
+                     col-6 wie jeder andere einzelne Betrag in diesem Abschnitt — das Label
+                     bricht dabei auf zwei Zeilen um, ein Feld über die ganze Kartenbreite
+                     für eine dreistellige Zahl sähe schlechter aus. -->
+                <div class="field col-6">
+                  <label for="x1-weitere">Sofern Sie weitere finanzielle Verpflichtungen haben:
+                    Wie hoch ist der monatliche Betrag?</label>
+                  <p class="help" id="h-x1-weitere">Ausgaben für Lebenshaltung, wie zum Beispiel Verpflegung,
+                    Kleidung, weitere Versicherungen oder Telefonkosten werden durch Bankpauschale
+                    berücksichtigt und sollten hier nicht gelistet werden.</p>
+                  <div class="with-unit">
+                    <input class="input" id="x1-weitere" inputmode="decimal">
+                    <span class="unit">€</span>
                   </div>
                 </div>
               </div>
@@ -1759,7 +1774,7 @@
   <main class="content" id="summary-view" aria-labelledby="h-summary" hidden>
     <h1 class="page-title" id="h-summary">Zusammenfassung</h1>
     <p class="lede">Bitte prüfen Sie die Angaben ein letztes Mal. Danach senden Sie die
-      Selbstauskunft an den Berater — das ist der letzte Schritt.</p>
+      Selbstauskunft an die Beraterin oder den Berater — das ist der letzte Schritt.</p>
 
     <!-- Die drei Schritte stehen vor der Prüfliste, nicht darunter: was nach dem
          Senden passiert, ist die Information, die man vor dem Klicken braucht. -->
@@ -1767,11 +1782,11 @@
       <li><span class="step-title">Angaben prüfen</span>
         Sie können jederzeit zurück in den Antrag und etwas ändern.</li>
       <li><span class="step-title">Einwilligung bestätigen und senden</span>
-        Sie bestätigen die Einwilligung des Kunden, wir senden ihm eine E-Mail zur
-        eigenen Bestätigung.</li>
+        Sie bestätigen die Einwilligung Ihrer Kundin oder Ihres Kunden, wir senden
+        eine E-Mail zur eigenen Bestätigung.</li>
       <li><span class="step-title">Referenz-ID erhalten</span>
-        Sie bekommen eine Referenz-ID — damit können Sie beim Berater oder beim Kunden
-        jederzeit nachfragen.</li>
+        Sie bekommen eine Referenz-ID — damit können Sie jederzeit zu diesem Vorgang
+        nachfragen.</li>
     </ol>
 
     <section class="card card-static" id="pruefen" aria-labelledby="h-pruefen">
@@ -1795,22 +1810,23 @@
             <div class="field" id="consent-field">
               <label class="choice plain" for="consent-broker">
                 <input type="checkbox" id="consent-broker">
-                <span>Mir liegt die Einwilligung des Kunden vor, diese Angaben an den
-                  Berater zu übermitteln. <span class="req" aria-hidden="true">*</span></span>
+                <span>Mir liegt die Einwilligung vor, diese Angaben an die Beraterin
+                  oder den Berater zu übermitteln. <span class="req" aria-hidden="true">*</span></span>
               </label>
             </div>
 
             <div class="note info" id="consent-mail-note">
-              <p class="note-title">Der Kunde bestätigt selbst per E-Mail</p>
-              <p>Sobald Sie senden, erhält <span id="consent-customer">der Kunde</span> eine
-                E-Mail mit einem Bestätigungslink. Erst wenn er darauf klickt, liegt dem
-                Berater die Einwilligung vor. Wir erinnern automatisch, falls die
-                Bestätigung ausbleibt — Sie müssen nichts weiter tun.</p>
+              <p class="note-title">Ihre Kundin oder Ihr Kunde bestätigt selbst per E-Mail</p>
+              <p>Sobald Sie senden, erhält <span id="consent-customer">Ihre Kundin oder
+                Ihr Kunde</span> eine E-Mail mit einem Bestätigungslink. Erst mit dem
+                Klick liegt der Beraterin oder dem Berater die Einwilligung vor. Wir
+                erinnern automatisch, falls die Bestätigung ausbleibt — Sie müssen
+                nichts weiter tun.</p>
             </div>
 
             <div class="grid mail-grid">
               <div class="field col-6">
-                <label for="mail-kunde">E-Mail-Adresse des Kunden <span class="req" aria-hidden="true">*</span></label>
+                <label for="mail-kunde">E-Mail-Adresse Kundin / Kunde <span class="req" aria-hidden="true">*</span></label>
                 <p class="help">An diese Adresse geht die Bitte um Bestätigung.</p>
                 <input class="input" id="mail-kunde" type="email" inputmode="email"
                        autocomplete="off" placeholder="name@beispiel.de" required>
@@ -1827,9 +1843,10 @@
                  Anfang der Seite, wo sie bis zum Klick wieder vergessen ist. -->
             <div class="note warn" id="final-note">
               <p class="note-title">Nach dem Senden ist keine Änderung mehr möglich</p>
-              <p>Die Selbstauskunft geht an den Berater und wird für Sie geschlossen: Sie
-                können sie danach nicht mehr öffnen und nichts mehr korrigieren. Bitte
-                prüfen Sie die Angaben oben, solange Sie noch zurück können.</p>
+              <p>Die Selbstauskunft geht an die Beraterin oder den Berater und wird für
+                Sie geschlossen: Sie können sie danach nicht mehr öffnen und nichts mehr
+                korrigieren. Bitte prüfen Sie die Angaben oben, solange Sie noch zurück
+                können.</p>
             </div>
 
           </div>
@@ -1841,16 +1858,16 @@
   <!-- ===================== GESENDET (Schritt 3) ===================== -->
   <main class="content" id="sent-view" aria-labelledby="h-sent" hidden>
     <h1 class="page-title" id="h-sent">Gesendet — vielen Dank</h1>
-    <p class="lede">Die Selbstauskunft von <span id="sent-name">Ihrem Kunden</span> liegt
-      jetzt beim Berater.</p>
+    <p class="lede">Die Selbstauskunft von <span id="sent-name">Ihrer Kundin oder Ihrem
+      Kunden</span> liegt jetzt bei der Beraterin oder dem Berater.</p>
 
     <section class="card card-static" id="referenz" aria-labelledby="h-referenz">
       <h2 class="card-head" id="h-referenz">Ihre Referenz-ID</h2>
       <div class="card-body">
         <div class="card-body-inner">
           <div class="card-pad flow">
-            <p class="help">Bitte speichern Sie diese ID. Mit ihr können Sie beim Berater
-              oder beim Kunden jederzeit zu diesem Vorgang nachfragen.</p>
+            <p class="help">Bitte speichern Sie diese ID. Mit ihr können Sie jederzeit zu
+              diesem Vorgang nachfragen.</p>
             <div class="refbox">
               <span class="ref-id" id="ref-id">—</span>
               <button type="button" class="btn ghost" id="copy-ref">Kopieren</button>
@@ -1872,12 +1889,12 @@
         <div class="card-body-inner">
           <div class="card-pad flow">
             <ol class="steps">
-              <li><span class="step-title">Der Kunde bestätigt</span>
-                <span id="sent-mail-kunde">Der Kunde</span> hat eine E-Mail mit
-                Bestätigungslink erhalten. Ein Klick genügt.</li>
-              <li><span class="step-title">Der Berater übernimmt</span>
-                Nach der Bestätigung sieht der Berater die vollständigen Angaben und
-                meldet sich bei Ihnen.</li>
+              <li><span class="step-title">Ihre Kundin oder Ihr Kunde bestätigt</span>
+                <span id="sent-mail-kunde">Die eingetragene Adresse</span> hat eine E-Mail
+                mit Bestätigungslink erhalten. Ein Klick genügt.</li>
+              <li><span class="step-title">Beraterin oder Berater übernimmt</span>
+                Nach der Bestätigung sieht die Beraterin oder der Berater die
+                vollständigen Angaben und meldet sich bei Ihnen.</li>
               <li><span class="step-title">Sie fragen mit der ID nach</span>
                 Für jede Rückfrage zu diesem Vorgang genügt die Referenz-ID oben.</li>
             </ol>
@@ -1885,7 +1902,7 @@
               <p class="note-title">Der Antrag ist geschlossen</p>
               <p>Sie haben keinen Zugriff mehr auf die gesendeten Angaben und können sie
                 nicht mehr bearbeiten. Falls etwas korrigiert werden muss, wenden Sie
-                sich mit der Referenz-ID an den Berater.</p>
+                sich mit der Referenz-ID an die Beraterin oder den Berater.</p>
             </div>
           </div>
         </div>
@@ -1903,7 +1920,6 @@
     <p class="save-state" id="save-state" role="status" aria-live="polite">
       <span class="dot" aria-hidden="true"></span> <span id="save-text">Als Entwurf gespeichert</span>
     </p>
-    <button type="button" class="btn ghost">Abbrechen</button>
     <button type="button" class="btn primary" id="submit">Weiter zu Zusammenfassung</button>
   </div>
 </div>
@@ -1914,7 +1930,7 @@
       <span id="send-text">Noch nicht gesendet — Sie können weiterhin ändern</span>
     </p>
     <button type="button" class="btn ghost" id="back-to-form">Zurück zum Antrag</button>
-    <button type="button" class="btn primary" id="send">Verbindlich senden</button>
+    <button type="button" class="btn primary" id="send">Selbstauskunft abschicken</button>
   </div>
 </div>
 

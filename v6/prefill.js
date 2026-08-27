@@ -74,6 +74,7 @@
     [/^Befristet bis|^Voraussichtliches Ende/, '12.2028'],
 
     [/Nettoeinkommen/,                      '4.200,00'],
+    [/^Sofern Sie weitere finanzielle/,     '180,00'],
     [/Kaltmiete/,                           '980,00'],
     [/Sparguthaben/,                        '45.000,00'],
     [/^Eingesetztes Eigenkapital/,          '80.000,00'],
