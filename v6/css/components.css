@@ -1183,13 +1183,6 @@ body { margin: 0; }
   background-size: 100% 100%;
 }
 
-.choices.grid-choices {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(var(--ds-layout-col-min-choice), 1fr));
-}
-.choices.grid-choices .choice,
-.choices.grid-choices .choice > span { width: 100%; }
-
 /* -------------------------------------------------------- amount list */
 
 /* A list of optional positions, each with the figure beside it (Vermögen, and the

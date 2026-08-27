@@ -1010,6 +1010,15 @@
       const listed = matchesAny(inverted ? list.slice(1) : list, art);
       el.hidden = inverted ? listed : !listed;
     });
+    /* Objektadresse hangs off the Wohnort answer, but the Wohnort question is one of
+       the fields an art can take away — a Grundstück is not asked it. So the block has
+       two ways to open, the answer and the art, and both are re-read here: switching
+       away from Grundstück has to hand the block back to whatever the answer says,
+       not leave it standing open. */
+    const wohnort = $('input[name="i-wohnort"]:checked');
+    openReveal($('#c-objektadresse'),
+      art === 'Grundstück' || (!!wohnort && wohnort.value === 'Nein'));
+
     /* The sidebar says which art is being described, the same way the Antragsteller
        entry picks up the first name — see refreshTitles. The section heading keeps
        its own name: the nav is the place a reader is scanning for where they are. */

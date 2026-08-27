@@ -1416,13 +1416,37 @@
         <section class="subsection-static" id="immobilie" aria-labelledby="h-immo">
           <h3 class="subsection-title" id="h-immo">Immobilie</h3>
           <div class="card-pad">
-          <h3 class="subhead">Objektadresse</h3>
-          <div class="grid">
-            <div class="field col-3"><label for="i-strasse">Straße <span class="req" aria-hidden="true">*</span></label><input class="input" id="i-strasse" type="text" required></div>
-            <div class="field col-3"><label for="i-hausnr">Nr. <span class="req" aria-hidden="true">*</span></label><input class="input" id="i-hausnr" type="text" required></div>
-            <div class="field col-3"><label for="i-plz">PLZ <span class="req" aria-hidden="true">*</span></label><input class="input" id="i-plz" type="text" inputmode="numeric" required></div>
-            <div class="field col-3"><label for="i-ort">Ort <span class="req" aria-hidden="true">*</span></label><input class="input" id="i-ort" type="text" required></div>
+          <!-- The first thing asked about the object is whether it becomes the
+               applicant's own address, and it is asked first because it decides whether
+               the address is asked at all: "Ja" means the object stands at the address
+               already given under Antragsteller, and typing it a second time is work
+               the form can spare. Only "Nein" opens Objektadresse.
+
+               Pflichtfeld precisely because it gates four Pflichtfelder — left
+               unanswered, the address block stays shut and the object would go in with
+               no address at all. Not asked for a Grundstück, where it has no meaning:
+               nobody lives on an empty plot, so that art is asked its address outright
+               and syncImmobilienart opens the block for it. Related to "Wie möchten Sie die Immobilie nutzen?" in
+               the Start section but not the same question: Nutzung splits eigengenutzt
+               from vermietet, this one says whether they move in themselves. -->
+          <div class="field" role="group" aria-labelledby="lbl-i-wohnort" id="i-wohnort-toggle"
+               data-art="!Grundstück" data-controls="#c-objektadresse" data-show-when="Nein" data-required>
+            <span class="group-label" id="lbl-i-wohnort">Ist das zu finanzierende Objekt Ihr Wohnort? <span class="req" aria-hidden="true">*</span></span>
+            <div class="choices">
+              <label class="choice"><input type="radio" name="i-wohnort" value="Ja"><span>Ja</span></label>
+              <label class="choice"><input type="radio" name="i-wohnort" value="Nein"><span>Nein</span></label>
+            </div>
           </div>
+
+          <div class="reveal" id="c-objektadresse"><div class="reveal-inner"><div class="pad">
+            <h3 class="subhead">Objektadresse</h3>
+            <div class="grid">
+              <div class="field col-3"><label for="i-strasse">Straße <span class="req" aria-hidden="true">*</span></label><input class="input" id="i-strasse" type="text" required></div>
+              <div class="field col-3"><label for="i-hausnr">Nr. <span class="req" aria-hidden="true">*</span></label><input class="input" id="i-hausnr" type="text" required></div>
+              <div class="field col-3"><label for="i-plz">PLZ <span class="req" aria-hidden="true">*</span></label><input class="input" id="i-plz" type="text" inputmode="numeric" required></div>
+              <div class="field col-3"><label for="i-ort">Ort <span class="req" aria-hidden="true">*</span></label><input class="input" id="i-ort" type="text" required></div>
+            </div>
+          </div></div></div>
 
           <!-- Objektdaten is where the Immobilienart shows itself: a Grundstück has no
                building on it yet, so everything that describes one — Baujahr, KfW-Klasse,
@@ -1438,14 +1462,24 @@
             <!-- The year says how old the building is, this says whether that still
                  describes it: a 1960s flat modernised in 2015 is a different object to
                  the bank than one that was never touched. Beside the Baujahr, because it
-                 is the same question asked twice. No follow-up — the fact is the answer,
-                 and which year the work was done in is not asked for. -->
-            <div class="field col-9" role="group" aria-labelledby="lbl-i-modern" data-art="!Grundstück">
+                 is the same question asked twice. "Ja" then asks for the year: work done
+                 in 2007 and work done in 2024 are not the same fact, and the second
+                 Baujahr is what the bank actually values. -->
+            <div class="field col-9" role="group" aria-labelledby="lbl-i-modern" data-art="!Grundstück"
+                 data-controls="#c-modern-jahr" data-show-when="Ja">
               <span class="group-label" id="lbl-i-modern">Wurde die Immobilie in den letzten 20 Jahren modernisiert?</span>
               <div class="choices">
                 <label class="choice"><input type="radio" name="i-modernisiert" value="Ja"><span>Ja</span></label>
                 <label class="choice"><input type="radio" name="i-modernisiert" value="Nein"><span>Nein</span></label>
               </div>
+              <div class="reveal" id="c-modern-jahr"><div class="reveal-inner"><div class="pad">
+                <div class="grid">
+                  <div class="field col-4">
+                    <label for="i-modern-jahr">Jahr der Modernisierung</label>
+                    <input class="input" id="i-modern-jahr" type="text" placeholder="jjjj" inputmode="numeric">
+                  </div>
+                </div>
+              </div></div></div>
             </div>
             <div class="field col-6" data-art="!Grundstück">
               <label for="i-kfw">
@@ -1468,10 +1502,49 @@
               <label for="i-grund">Grundstücksfläche <span class="req" aria-hidden="true">*</span></label>
               <div class="with-unit"><input class="input" id="i-grund" inputmode="decimal" required><span class="unit">m²</span></div>
             </div>
+          </div>
+
+          <!-- Only for the arts whose unit count is genuinely unknown. A
+               Einfamilienhaus or Doppelhaushälfte has one flat by definition and a
+               Zweifamilienhaus two — asking there reads as a question about the wrong
+               building. What is left is the flat in a block of unknown size, the
+               Mehrfamilienhaus, and the mixed-use house. -->
+          <div class="field col-12" role="group" aria-labelledby="lbl-wohnungen"
+               data-art="Eigentumswohnung|Mehrfamilienhaus|Wohn- und Geschäftshaus"
+               data-controls="#c-wohnungen" data-show-when="Ja" style="margin-top:0">
+            <span class="group-label" id="lbl-wohnungen">Kennen Sie die Gesamtanzahl der Wohnungen im Gebäude?</span>
+            <div class="choices">
+              <label class="choice"><input type="radio" name="wohnungen-bekannt" value="Ja"><span>Ja</span></label>
+              <label class="choice"><input type="radio" name="wohnungen-bekannt" value="Nein"><span>Nein</span></label>
+            </div>
+            <div class="reveal" id="c-wohnungen"><div class="reveal-inner"><div class="pad">
+              <div class="grid">
+                <div class="field col-3">
+                  <label for="i-wohnungen">Anzahl Wohnungen im Gebäude <span class="req" aria-hidden="true">*</span></label>
+                  <input class="input num" id="i-wohnungen" inputmode="numeric" required>
+                </div>
+              </div>
+            </div></div></div>
+          </div>
+
+          <div class="grid">
             <div class="field col-3" data-art="!Grundstück">
               <label for="i-wohn">Wohnfläche</label>
               <p class="help" id="h-i-wohn">Gesamte nachweisbare Fläche aller Räume.</p>
               <div class="with-unit"><input class="input" id="i-wohn" inputmode="decimal" aria-describedby="h-i-wohn"><span class="unit">m²</span></div>
+            </div>
+            <!-- The mixed-use house is the one art whose building is not all flats, so
+                 it is the one art asked what the rest of it is: how many commercial
+                 units, and how much floor they take. Beside Wohnfläche, because the two
+                 areas are read off the same plan and only make sense together. Neither
+                 is a Pflichtfeld — the split is often not known to the buyer yet. -->
+            <div class="field col-3" data-art="Wohn- und Geschäftshaus">
+              <label for="i-gewerbeeinheiten">Gewerbeeinheiten</label>
+              <input class="input num" id="i-gewerbeeinheiten" inputmode="numeric">
+            </div>
+            <div class="field col-3" data-art="Wohn- und Geschäftshaus">
+              <label for="i-gewerbe">Gewerbefläche</label>
+              <div class="with-unit"><input class="input" id="i-gewerbe" inputmode="decimal"><span class="unit">m²</span></div>
             </div>
             <div class="field col-3" data-art="!Grundstück"><label for="i-zimmer">Zimmer</label><input class="input num" id="i-zimmer" inputmode="numeric"></div>
             <div class="field col-3" data-art="!Grundstück">
@@ -1493,29 +1566,8 @@
                 </select>
               </span>
             </div>
-            <div class="field col-4">
-              <label for="i-energie">Endenergiebedarf</label>
-              <p class="help" id="h-i-energie">Laut Energieausweis.</p>
-              <div class="with-unit"><input class="input" id="i-energie" inputmode="decimal" aria-describedby="h-i-energie"><span class="unit">kWh/m²</span></div>
-            </div>
           </div>
 
-          <div class="field col-12" role="group" aria-labelledby="lbl-wohnungen" data-art="!Grundstück"
-               data-controls="#c-wohnungen" data-show-when="Ja" style="margin-top:var(--ds-field-gap-stack)">
-            <span class="group-label" id="lbl-wohnungen">Kennen Sie die Gesamtanzahl der Wohnungen im Gebäude?</span>
-            <div class="choices">
-              <label class="choice"><input type="radio" name="wohnungen-bekannt" value="Ja"><span>Ja</span></label>
-              <label class="choice"><input type="radio" name="wohnungen-bekannt" value="Nein"><span>Nein</span></label>
-            </div>
-            <div class="reveal" id="c-wohnungen"><div class="reveal-inner"><div class="pad">
-              <div class="grid">
-                <div class="field col-3">
-                  <label for="i-wohnungen">Anzahl Wohnungen im Gebäude <span class="req" aria-hidden="true">*</span></label>
-                  <input class="input num" id="i-wohnungen" inputmode="numeric" required>
-                </div>
-              </div>
-            </div></div></div>
-          </div>
 
           <h3 class="subhead" data-art="!Grundstück">Bauweise</h3>
           <div class="field col-12" role="group" aria-labelledby="lbl-massiv" data-art="!Grundstück"
@@ -1543,16 +1595,20 @@
           </div>
 
           <h3 class="subhead">Erbbaurecht</h3>
-          <div class="grid">
-            <div class="field col-6">
-              <label for="i-erbbau">Besteht ein Erbbaurecht für die Immobilie?</label>
-              <p class="help" id="h-i-erbbau">Ein Erbbaurecht ist ein im Grundbuch eingetragenes Recht, meist gegen
-                Zahlung eines Erbbauzinses, auf fremdem Grundstück ein Bauwerk zu errichten.</p>
-              <span class="select-wrap">
-                <select class="select" id="i-erbbau" aria-describedby="h-i-erbbau" data-controls="#c-erbbau" data-show-when="Ja">
-                  <option value="">Bitte wählen</option><option>Ja</option><option>Nein</option><option>Weiß nicht</option>
-                </select>
-              </span>
+          <!-- Chips statt eines Dropdowns: "Weiß nicht" ist hier eine echte Antwort, und
+               ein Dropdown versteckt alle drei hinter einem Klick. Dieselbe .choices-Reihe
+               wie die anderen 27 Auswahlgruppen des Formulars — die Chips sind so breit
+               wie ihre Beschriftung und brechen um, wenn die Zeile nicht reicht; auf
+               Telefonbreite passen alle drei noch nebeneinander. Nur "Ja" fragt weiter. -->
+          <div class="field" role="group" aria-labelledby="lbl-i-erbbau" aria-describedby="h-i-erbbau"
+               data-controls="#c-erbbau" data-show-when="Ja">
+            <span class="group-label" id="lbl-i-erbbau">Besteht ein Erbbaurecht für die Immobilie?</span>
+            <p class="help" id="h-i-erbbau">Ein Erbbaurecht ist ein im Grundbuch eingetragenes Recht, meist gegen
+              Zahlung eines Erbbauzinses, auf fremdem Grundstück ein Bauwerk zu errichten.</p>
+            <div class="choices">
+              <label class="choice"><input type="radio" name="i-erbbau" value="Ja"><span>Ja</span></label>
+              <label class="choice"><input type="radio" name="i-erbbau" value="Nein"><span>Nein</span></label>
+              <label class="choice"><input type="radio" name="i-erbbau" value="Weiß nicht"><span>Weiß nicht</span></label>
             </div>
           </div>
           <div class="reveal" id="c-erbbau"><div class="reveal-inner"><div class="pad">
@@ -1589,6 +1645,17 @@
               <div id="stellplaetze"></div>
               <button type="button" class="add-btn" id="add-stellplatz">+ Stellplatz hinzufügen</button>
             </div></div></div>
+          </div>
+
+          <!-- Last field of the section, after the Stellplätze: it is read off the
+               Energieausweis rather than off the object. Which is also why a Grundstück
+               is not asked for it — an empty plot has no Energieausweis to read it off. -->
+          <div class="grid" style="margin-top:var(--ds-field-gap-stack)">
+            <div class="field col-4" data-art="!Grundstück">
+              <label for="i-energie">Endenergiebedarf</label>
+              <p class="help" id="h-i-energie">Laut Energieausweis.</p>
+              <div class="with-unit"><input class="input" id="i-energie" inputmode="decimal" aria-describedby="h-i-energie"><span class="unit">kWh/m²</span></div>
+            </div>
           </div>
           </div>
         </section>
@@ -1929,8 +1996,8 @@
     <p class="save-state" id="send-state" role="status" aria-live="polite">
       <span id="send-text">Noch nicht gesendet — Sie können weiterhin ändern</span>
     </p>
-    <button type="button" class="btn ghost" id="back-to-form">Zurück zum Antrag</button>
-    <button type="button" class="btn primary" id="send">Selbstauskunft abschicken</button>
+    <button type="button" class="btn ghost" id="back-to-form">Zum Antrag</button>
+    <button type="button" class="btn primary" id="send">Abschicken</button>
   </div>
 </div>
 
