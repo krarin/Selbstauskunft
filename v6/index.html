@@ -20,8 +20,26 @@
 <body>
 <a class="skip-link" href="#main">Zum Formular springen</a>
 
+<!-- Auf Überprüfen und Absenden ist die Seitenspalte nur noch der Schalterkasten des
+     Prototyps: die Abschnittsliste zeigt auf Karten, die dort nicht mehr stehen, und
+     ist mit ihnen weggegangen. Ein 232px breiter Streifen, der nichts zur Seite
+     beiträgt, schiebt die Karten aus der Mitte — also ist er dort zu, und dieser Knopf
+     holt ihn zurück. Nur auf diesen zwei Ansichten und nur über 900px: im Formular ist
+     die Liste echte Navigation und bleibt stehen, und darunter ist die Spalte auf
+     beiden Ansichten längst ganz weg. -->
+<button type="button" class="tools-toggle" id="tools-toggle" aria-expanded="false" aria-controls="nav">
+  <svg class="sliders" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"
+       stroke-linecap="round" aria-hidden="true">
+    <path d="M3.25 6.75h1.5M9.25 6.75h7.5"/>
+    <circle cx="7" cy="6.75" r="2.25"/>
+    <path d="M3.25 13.25h7.5M15.25 13.25h1.5"/>
+    <circle cx="13" cy="13.25" r="2.25"/>
+  </svg>
+  Darstellung
+</button>
+
 <div class="app">
-  <nav class="nav" aria-label="Abschnitte">
+  <nav class="nav" id="nav" aria-label="Abschnitte">
     <!-- Below 900px the list collapses behind this button; above it, .nav-links is
          display:contents and the links are direct flex children of .nav again, so
          the sidebar is laid out exactly as it would be without the wrapper. -->

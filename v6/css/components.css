@@ -175,7 +175,8 @@ body { margin: 0; }
 .btn,
 .step-title,
 .review-list > dd,
-.nav-toggle {
+.nav-toggle,
+.tools-toggle {
   font-family: var(--ds-font-family-sans);
   font-size: var(--ds-typography-body-md-medium-font-size);
   line-height: var(--ds-typography-body-md-medium-line-height);
@@ -327,6 +328,35 @@ body { margin: 0; }
   transform: translateY(-200%);
 }
 .skip-link:focus { transform: none; }
+
+/* Der Knopf, der den Schalterkasten holt. Er liegt fest in der oberen linken Ecke,
+   auf einer Höhe mit dem Seitentitel, und ist standardmäßig weg: sichtbar wird er nur
+   auf Überprüfen und Absenden über 900px (Regeln am Ende der Datei). Die Chrome
+   entspricht .nav-toggle unter 900px — derselbe Knopf in derselben Rolle, nur an der
+   anderen Bildschirmgröße. */
+.tools-toggle {
+  display: none;
+  position: fixed;
+  left: var(--ds-layout-gutter);
+  top: var(--ds-spacing-40);
+  z-index: 6;
+  align-items: center;
+  gap: var(--ds-spacing-8);
+  min-height: var(--ds-field-height);
+  padding: 0 var(--ds-spacing-16);
+  color: var(--ds-color-text-neutral-bold-default);
+  background: var(--ds-surface-card);
+  border: var(--ds-border-width-1) solid var(--ds-color-border-neutral-bold-hovered);
+  border-radius: var(--ds-button-radius);
+  cursor: pointer;
+}
+.tools-toggle:hover { background: var(--ds-color-background-neutral-subtle-default); }
+.tools-toggle[aria-expanded="true"] {
+  color: var(--ds-color-text-brand-bold-default);
+  background: var(--ds-color-background-brand-subtlest-default);
+  border-color: var(--ds-color-border-brand-bold-default);
+}
+.sliders { flex: none; width: var(--ds-spacing-20); height: var(--ds-spacing-20); }
 
 /* The shell is anchored left, not centred: the sidebar stays at the viewport edge
    (one gutter in) at every width, and the form column takes the room that frees up.
@@ -773,7 +803,8 @@ body { margin: 0; }
 .cal-nav:focus-visible,
 .cal-zoom:focus-visible,
 .cal-cell:focus-visible,
-.link-btn:focus-visible {
+.link-btn:focus-visible,
+.tools-toggle:focus-visible {
   outline: var(--ds-border-width-2) solid var(--ds-color-border-brand-bold-default);
   outline-offset: var(--ds-border-width-1);
 }
@@ -2147,4 +2178,57 @@ body { margin: 0; }
 
 @media (max-width: 900px) {
   .phone { display: none; }
+}
+
+/* ------------------------------------- Überprüfen und Absenden: mittige Karten
+
+   Auf diesen zwei Ansichten trägt die Seitenspalte nichts mehr: die Abschnittsliste
+   und der Beispieldaten-Knopf sind mit dem Formular gegangen (siehe weiter oben), es
+   bleiben die drei Schalter des Prototyps. Ein 232px breiter Streifen dafür schiebt
+   die Karten aus der Mitte der Seite, und gelesen wird hier, nicht geschaltet.
+
+   Nur über 900px. Darunter ist .nav auf beiden Ansichten ohnehin display:none und das
+   Raster längst einspaltig — die Regeln hier würden das mit höherer Spezifität
+   zurückdrehen, wenn sie ungeschützt stünden. */
+@media (min-width: 901px) {
+
+  /* Eine Spur statt zwei, und justify-content stellt sie in die Mitte des Rasters.
+     Der Rand links und rechts ist damit gleich groß: der Innenabstand der Schale plus
+     die Hälfte von allem, was die Spur bis --ds-layout-content-max nicht braucht. */
+  :root[data-view="summary"] .app,
+  :root[data-view="sent"] .app {
+    grid-template-columns: minmax(0, var(--ds-layout-content-max));
+    justify-content: center;
+    /* Ein Band für den Knopf über dem Seitentitel. Neben ihm geht nicht: der Rand ist
+       bei 1440 gut 120px breit und schrumpft mit dem Fenster auf null, ein beschrifteter
+       Knopf würde dort ab etwa 1300px in den Titel laufen. Also eine Knopfhöhe plus
+       Abstand oben drauf, und die Spalte beginnt darunter. */
+    padding-top: calc(var(--ds-spacing-40) + var(--ds-field-height) + var(--ds-spacing-16));
+  }
+
+  /* Die Spalte ist hier kein Raster-Kind mehr, sondern eine Tafel über der Seite. Das
+     ist der Preis dafür, dass die Karten mittig stehen, ob sie offen ist oder nicht —
+     als Raster-Kind würde sie sie beim Öffnen wieder verschieben. Weil sie damit über
+     den Inhalt fällt, braucht sie eine eigene Fläche, Rundung und einen Schatten;
+     sonst stünde grauer Text auf grauem Text.
+     Sie behält ihre eigene Scrollhöhe aus der Grundregel und verliert nur das sticky,
+     das ein fixed nicht mehr braucht. */
+  :root[data-view="summary"] .nav,
+  :root[data-view="sent"] .nav {
+    position: fixed;
+    left: var(--ds-layout-gutter);
+    top: calc(var(--ds-spacing-40) + var(--ds-field-height) + var(--ds-spacing-8));
+    z-index: 6;
+    display: none;
+    width: var(--ds-layout-nav-width);
+    padding: var(--ds-spacing-16);
+    background: var(--ds-surface-card);
+    border-radius: var(--ds-card-radius);
+    box-shadow: var(--ds-shadow-md);
+  }
+  :root[data-tools="open"][data-view="summary"] .nav,
+  :root[data-tools="open"][data-view="sent"] .nav { display: flex; }
+
+  :root[data-view="summary"] .tools-toggle,
+  :root[data-view="sent"] .tools-toggle { display: inline-flex; }
 }

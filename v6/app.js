@@ -1369,6 +1369,40 @@
     });
   }
 
+  /* Der Schalterkasten auf Überprüfen und Absenden. Dort trägt die Seitenspalte nur
+     noch die drei Schalter des Prototyps, also ist sie zu und die Karten stehen mittig;
+     dieser Knopf holt sie als Tafel über der Seite zurück. Weil sie über dem Inhalt
+     liegt, muss sie sich auch schließen lassen, ohne den Knopf wieder zu treffen —
+     Klick daneben und Escape, wie beim Abschnittsmenü darüber.
+     Der Zustand bleibt in data-tools stehen, wenn man in den Antrag zurückgeht: dort
+     greift keine der Regeln, und wer den Kasten offen hatte, findet ihn beim nächsten
+     Blick auf die Zusammenfassung wieder offen. */
+  const toolsToggle = $('#tools-toggle');
+
+  const setToolsOpen = (open) => {
+    toolsToggle.setAttribute('aria-expanded', String(open));
+    if (open) document.documentElement.setAttribute('data-tools', 'open');
+    else document.documentElement.removeAttribute('data-tools');
+  };
+
+  function wireToolsToggle() {
+    toolsToggle.addEventListener('click', () =>
+      setToolsOpen(toolsToggle.getAttribute('aria-expanded') !== 'true'));
+
+    // Der Knopf ist selbst nicht Teil der Tafel, also muss er hier ausgenommen werden:
+    // pointerdown läuft vor click, und ohne die Ausnahme würde der Schließer den Kasten
+    // zumachen, bevor der Klick ihn wieder aufmacht — der Knopf könnte nie schließen.
+    document.addEventListener('pointerdown', (event) => {
+      if (!event.target.closest('.nav') && !event.target.closest('.tools-toggle')) setToolsOpen(false);
+    });
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key !== 'Escape' || toolsToggle.getAttribute('aria-expanded') !== 'true') return;
+      setToolsOpen(false);
+      toolsToggle.focus();
+    });
+  }
+
   /* The help text lives nowhere else: .field > .help is visually hidden and the bubble
      is the only rendering of it, so a reader who cannot open the bubble cannot read
      the help at all. Hover and focus-visible cover a mouse and a keyboard; neither
@@ -1855,6 +1889,7 @@
   wireToggles();
   wireNav();
   wireNavToggle();
+  wireToolsToggle();
   wireInfoTips();
   initEmbed();
 
