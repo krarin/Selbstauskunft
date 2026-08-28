@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="de" data-appearance="grey" data-density="comfortable" data-viewport="desktop">
+<html lang="de" data-appearance="grey" data-density="comfortable" data-viewport="desktop" data-brand="teal">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -180,6 +180,22 @@
     <div class="seg" role="group" aria-labelledby="lbl-appearance">
       <button type="button" data-appearance="grey" aria-pressed="true">Default</button>
       <button type="button" data-appearance="dark" aria-pressed="false">Dunkel</button>
+    </div>
+
+    <!-- Nur für den Prototyp: die Markenfarbe durchtauschen, um zu sehen, wie die
+         Screens unter einer anderen Marke aussehen. Der Schalter setzt data-brand auf
+         <html>, und getauscht werden ausschließlich die sieben Primitive der Rampe —
+         nicht die semantischen Rollen. Knöpfe, Links, Fokusringe, gewählte Chips, der
+         Kontrast-Pass und der Dunkelmodus folgen deshalb von selbst; keine Komponente
+         weiß von diesem Schalter. Die Rampen stehen in components.css unter
+         „Markenrampen“. Wie die übrigen Schalter gilt er für Desktop und Mobil-Vorschau
+         gleichzeitig — data-brand steht in SETTINGS und reist per postMessage mit. -->
+    <div class="eyebrow" id="lbl-brand">Marke</div>
+    <div class="seg" role="group" aria-labelledby="lbl-brand">
+      <button type="button" data-brand="teal"  aria-pressed="true">Teal</button>
+      <button type="button" data-brand="coral" aria-pressed="false">Koralle</button>
+      <button type="button" data-brand="blue"  aria-pressed="false">Blau</button>
+      <button type="button" data-brand="steel" aria-pressed="false">Stahl</button>
     </div>
   </nav>
 

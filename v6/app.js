@@ -1449,7 +1449,7 @@
 
   /* --------------------------------------------------------------- toggles */
 
-  const SETTINGS = ['appearance', 'density'];
+  const SETTINGS = ['appearance', 'density', 'brand'];
 
   function wireToggles() {
     $$('.seg').forEach((group) => {

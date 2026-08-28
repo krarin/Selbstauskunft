@@ -2232,3 +2232,82 @@ body { margin: 0; }
   :root[data-view="summary"] .tools-toggle,
   :root[data-view="sent"] .tools-toggle { display: inline-flex; }
 }
+
+
+/* ------------------------------------------------------------ Markenrampen */
+
+/* NUR FÜR DEN PROTOTYP. Der Schalter „Marke“ in der Seitenleiste setzt data-brand
+   auf <html>; hier stehen die Rampen, die er einwechselt.
+
+   Getauscht werden ausschliesslich die PRIMITIVE der Teal-Rampe, nie eine
+   semantische Rolle. Jede Rolle in tokens.css zeigt auf einen dieser sieben
+   Schritte — background/brand/bold auf 500, subtlest auf 100, border/brand/bold
+   auf 500, focus-ring auf 500, und der Dunkelmodus auf 600/400/950. Wird das
+   Primitiv ausgetauscht, folgt alles davon von selbst, einschliesslich des
+   Kontrast-Passes in tokens.a11y.css, der background/brand/bold auf den
+   700-Schritt umbiegt. Keine Komponente und keine Rolle weiss von diesem Schalter.
+
+   Die Rampen sind nach derselben Regel gebaut wie die Teal-Rampe des Kontrakts:
+   100-400 sind Aufhellungen des Seed-Werts (90/80/60/20 % Weiss), 600 und 700 sind
+   Abdunklungen. Die Abdunklung ist NICHT fest, sondern der erste Schritt, der als
+   Grund fuer weisse Schrift 4.5:1 erreicht - dieselbe Regel, die der Kontrast-Pass
+   auf Teal anwendet. Deshalb liegt Korallen-700 tiefer als Teal-700: der Seed ist
+   zu hell, um ihn nur leicht abzudunkeln.
+
+   Die 950-Stufe ist der Grund fuer background/brand/subtlest im Dunkelmodus.
+
+   Gemessene Verhaeltnisse stehen an jeder Rampe. Was NICHT geloest ist: die
+   500-Stufe traegt als Rahmen- und Icon-Rolle unter 3:1, wenn der Seed hell ist
+   (Koralle 2.91:1, WCAG 1.4.11 will 3.0) - dieselbe Klasse von Luecke wie G-01 fuer
+   Teal. Ein Prototyp-Schalter loest das nicht; er macht es sichtbar. */
+
+/* Koralle — Seed #FD6564.  700 #C04D4C: 4.76:1 auf Weiss, 4.31:1 auf der eigenen 100.
+   600 #C04D4C: gleich 700 — kein sichtbarer Hover, wie bei Teal (G-24) */
+:root[data-brand="coral"] {
+  --_ds-color-teal-100: #FFF0F0;
+  --_ds-color-teal-200: #FFE0E0;
+  --_ds-color-teal-300: #FEC1C1;
+  --_ds-color-teal-400: #FD8483;
+  --_ds-color-teal-500: #FD6564;
+  --_ds-color-teal-600: #C04D4C;
+  --_ds-color-teal-700: #C04D4C;
+  --_ds-ext-color-teal-950: #562222;
+}
+
+/* Blau — Seed #003EB4.  700 #003291: 11.26:1 auf Weiss, 9.50:1 auf der eigenen 100.
+   600 #0038A2: 10.06:1 auf Weiss, sichtbarer Hover */
+:root[data-brand="blue"] {
+  --_ds-color-teal-100: #E6ECF8;
+  --_ds-color-teal-200: #CCD8F0;
+  --_ds-color-teal-300: #99B2E1;
+  --_ds-color-teal-400: #3365C3;
+  --_ds-color-teal-500: #003EB4;
+  --_ds-color-teal-600: #0038A2;
+  --_ds-color-teal-700: #003291;
+  --_ds-ext-color-teal-950: #00153D;
+}
+
+/* Stahl — Seed #20558F.  700 #1A4473: 9.91:1 auf Weiss, 8.50:1 auf der eigenen 100.
+   600 #1D4C81: 8.74:1 auf Weiss, sichtbarer Hover */
+:root[data-brand="steel"] {
+  --_ds-color-teal-100: #E9EEF4;
+  --_ds-color-teal-200: #D2DDE9;
+  --_ds-color-teal-300: #A6BBD2;
+  --_ds-color-teal-400: #4D77A5;
+  --_ds-color-teal-500: #20558F;
+  --_ds-color-teal-600: #1D4C81;
+  --_ds-color-teal-700: #1A4473;
+  --_ds-ext-color-teal-950: #0B1D31;
+}
+
+/* Der Kontrast-Pass klemmt background/brand/bold auf default UND hovered denselben
+   700-Schritt, weil Teals Rampe bei 700 endet (G-24). Fuer die drei Prototyp-Marken
+   gibt es einen dunkleren Schritt, der 4.5:1 haelt, also bekommen sie ihren Hover
+   zurueck. Nur hell: der Dunkelmodus hat in tokens.ext.css seine eigene, bewusst
+   umgekehrte Zuordnung (bold=600, hover=500), die hier nicht ueberschrieben wird. */
+:root[data-brand="coral"]:not([data-appearance="dark"]),
+:root[data-brand="blue"]:not([data-appearance="dark"]),
+:root[data-brand="steel"]:not([data-appearance="dark"]) {
+  --ds-color-background-brand-bold-hovered: var(--_ds-color-teal-600);
+}
+
