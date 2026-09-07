@@ -1493,8 +1493,15 @@
       frame = document.createElement('iframe');
       frame.title = 'Mobile Vorschau';
       // the settings ride along on the URL too, so the first paint inside the
-      // frame is already in the right theme instead of flashing light first
-      frame.src = `index.html?${new URLSearchParams({ embed: '1', ...settings() })}`;
+      // frame is already in the right theme instead of flashing light first.
+      // The parameters of the page itself ride along first: the advisor comes off
+      // the magic link, and without them the preview would show the placeholder
+      // person next to the real one.
+      frame.src = `index.html?${new URLSearchParams({
+        ...Object.fromEntries(new URLSearchParams(location.search)),
+        embed: '1',
+        ...settings(),
+      })}`;
       phone.append(frame);
       $('.app').append(phone);
       return;
@@ -1515,6 +1522,54 @@
     window.addEventListener('message', (event) => {
       if (event.data && event.data.v5) apply(event.data.v5);
     });
+  }
+
+  /* ------------------------------------------- Beraterin oder Berater */
+
+  /* Der Magic Link bringt die Person mit, die ihn verschickt hat; die Karte über
+     dem Seitentitel zeigt sie. Was die Adresse nicht mitbringt, bleibt so stehen,
+     wie es im Quelltext steht — ohne Parameter ist der Prototyp sonst eine leere
+     Karte, und die zeigt nichts.
+
+     Das Foto wird erst eingeblendet, wenn es wirklich geladen ist. Bis dahin — und
+     bei einem toten Link für immer — stehen die Initialen im Kreis, statt dass ein
+     kaputtes Bildsymbol die Stelle besetzt, an der ein Gesicht sein sollte. Die
+     Initialen kommen aus dem Namen, damit sie beim Wechsel der Person mitgehen. */
+  function initAdvisor() {
+    const params = new URLSearchParams(location.search);
+    const text = (sel, value) => { if (value) $(sel).textContent = value; };
+
+    const name = params.get('berater');
+    text('#advisor-name', name);
+    text('#advisor-role', params.get('rolle'));
+    text('#advisor-address', params.get('adresse'));
+
+    if (name) {
+      $('#advisor-initials').textContent = name
+        .split(/\s+/).filter(Boolean).slice(0, 2)
+        .map((part) => part[0].toUpperCase()).join('');
+    }
+
+    // Ein Telefonlink verträgt keine Leerzeichen, die gelesene Nummer braucht sie.
+    const phone = params.get('telefon');
+    if (phone) {
+      const link = $('#advisor-phone');
+      link.textContent = phone;
+      link.href = `tel:${phone.replace(/[^+\d]/g, '')}`;
+    }
+
+    const mail = params.get('mail');
+    if (mail) {
+      const link = $('#advisor-mail');
+      link.textContent = mail;
+      link.href = `mailto:${mail}`;
+    }
+
+    const src = params.get('foto');
+    if (!src) return;
+    const photo = $('#advisor-photo');
+    photo.addEventListener('load', () => { photo.hidden = false; });
+    photo.src = src;
   }
 
   /* ------------------------------------------------------- Absenden-Strecke */
@@ -1891,6 +1946,7 @@
   wireNavToggle();
   wireToolsToggle();
   wireInfoTips();
+  initAdvisor();
   initEmbed();
 
   zweck.addEventListener('change', updateStart);

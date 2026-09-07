@@ -76,7 +76,9 @@
    content width, sidebar width, column minimums, prose measures, and the
    phone frame the Ansicht preview draws.
    
-   The tooltip is the one surface in this form that is darker than the page it floats over — G-27. Finlink Core's neutral background ramp is light-only: background.neutral.bold.default is grey.100, so "bold" there means a heavier grey, not an inverted one, and there is no dark neutral surface to alias. ds-surface-inverse names the missing step at grey.900. Its ink is grey.50 rather than the contract's text.neutral.inverse.default (grey.0): both clear AAA on grey.900 (12.60:1 and 13.16:1), and off-white is the softer of the two on a dark chip this small. That choice is what makes the ink an extension token too rather than a straight alias. The border matches the surface in light — a dark box on a white card needs no edge, and keeping the declaration keeps the box geometry identical across appearances. */
+   The tooltip is the one surface in this form that is darker than the page it floats over — G-27. Finlink Core's neutral background ramp is light-only: background.neutral.bold.default is grey.100, so "bold" there means a heavier grey, not an inverted one, and there is no dark neutral surface to alias. ds-surface-inverse names the missing step at grey.900. Its ink is grey.50 rather than the contract's text.neutral.inverse.default (grey.0): both clear AAA on grey.900 (12.60:1 and 13.16:1), and off-white is the softer of the two on a dark chip this small. That choice is what makes the ink an extension token too rather than a straight alias. The border matches the surface in light — a dark box on a white card needs no edge, and keeping the declaration keeps the box geometry identical across appearances.
+   
+   Der Beraterblock im Seitenkopf bringt zwei Maße mit, die es sonst nirgends gibt: das runde Porträt und das gefüllte Icon in einer Kontaktzeile. Beide liegen auf echten Finlink-Stufen (spacing.64 und spacing.16) — sie stehen hier nur, damit die Dichte sie mitschalten kann, wie bei Feld und Karte auch. Der Abstand zwischen Porträtspalte und Kontaktspalte und der Abstand der Kontaktzeilen untereinander folgen derselben Regel. */
 /* set: base */
 :root {
   --ds-surface-page: var(--ds-color-background-neutral-subtle-default);
@@ -116,6 +118,10 @@
   --ds-card-padding: var(--ds-spacing-32);
   --ds-card-gap: var(--ds-spacing-24);
   --ds-card-radius: var(--ds-radius-lg);
+  --ds-advisor-avatar-size: var(--ds-spacing-64);
+  --ds-advisor-icon-size: var(--ds-spacing-16);
+  --ds-advisor-gap: var(--ds-spacing-24);
+  --ds-advisor-row-gap: var(--ds-spacing-12);
   --ds-section-gap: var(--ds-spacing-24);
   --ds-button-radius: var(--ds-radius-lg);
   --ds-pill-radius: var(--ds-radius-full);
@@ -128,10 +134,12 @@
   --ds-layout-col-min-applicant: 420px;
   --ds-layout-col-min-choice: 220px;
   --ds-layout-col-position: 340px;
-  --ds-layout-col-amount: 200px;
+  --ds-layout-col-amount: var(--ds-layout-measure-amount);
   --ds-layout-measure-prose: 68ch;
+  --ds-layout-measure-amount: 170px;
   --ds-layout-measure-tooltip: 32ch;
   --ds-layout-measure-modal: 52ch;
+  --ds-layout-measure-review-term: 43ch;
   --ds-preview-width: 390px;
   --ds-preview-height: 844px;
   --ds-preview-bezel: var(--ds-spacing-8);
@@ -238,6 +246,9 @@
   --ds-field-font-weight: var(--ds-typography-body-md-medium-font-weight);
   --ds-card-padding: var(--ds-spacing-20);
   --ds-card-gap: var(--ds-spacing-16);
+  --ds-advisor-avatar-size: var(--ds-spacing-48);
+  --ds-advisor-gap: var(--ds-spacing-16);
+  --ds-advisor-row-gap: var(--ds-spacing-8);
   --ds-section-gap: var(--ds-spacing-16);
 }
 

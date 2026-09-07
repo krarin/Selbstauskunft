@@ -200,10 +200,74 @@
   </nav>
 
   <main class="content" id="main">
-    <h1 class="page-title">Selbstauskunft</h1>
-    <p class="lede">Bitte füllen Sie die folgenden Angaben vollständig aus. Ihre Eingaben
-      werden automatisch als Entwurf gespeichert. Pflichtfelder sind mit
-      <span class="req" aria-hidden="true">*</span> markiert.</p>
+
+    <!-- Seitenkopf: links, worum es geht, rechts, wer den Link geschickt hat. Eine
+         Zeile, weil die Person die Frage "warum liegt das hier vor mir" beantwortet
+         und nicht das Formular anfuehrt — vor der Ueberschrift stehend haette sie
+         genau das getan.
+         Der Magic Link traegt die Person mit sich; app.js liest sie aus der Adresse
+         (initAdvisor) und schreibt sie hier hinein. Was im Quelltext steht, ist der
+         Stand ohne Parameter.
+         Das Portraet ist ein <img> ohne src, solange keins mitkommt; sichtbar sind
+         dann die Initialen darunter. Einen alt-Text bekommt es nicht: der Name steht
+         unmittelbar darunter, und ein zweites Mal vorgelesen zu werden hilft
+         niemandem. -->
+    <div class="page-head">
+      <div class="page-intro">
+        <h1 class="page-title">Selbstauskunft</h1>
+        <p class="lede">Bitte füllen Sie die folgenden Angaben vollständig aus. Ihre Eingaben
+          werden automatisch als Entwurf gespeichert. Pflichtfelder sind mit
+          <span class="req" aria-hidden="true">*</span> markiert.</p>
+      </div>
+
+      <aside class="advisor" aria-labelledby="advisor-name">
+        <div class="advisor-person">
+          <span class="advisor-photo">
+            <span class="advisor-initials" id="advisor-initials" aria-hidden="true">JJ</span>
+            <img id="advisor-photo" alt="" hidden>
+          </span>
+          <div class="advisor-identity">
+            <p class="advisor-name" id="advisor-name">Jan Joisten</p>
+            <p class="advisor-role" id="advisor-role">Finanzierungsexperte</p>
+          </div>
+        </div>
+
+        <!-- Das dt traegt nur das Icon, also braucht jede Zeile ein Wort dazu, das
+             nicht auf dem Schirm steht. Ohne das liest ein Screenreader drei leere
+             Begriffe mit drei Werten vor.
+             Die drei Icons sind die Exporte aus icons/ — gefuellt, im 12er-Raster —
+             Pfad fuer Pfad unveraendert uebernommen. Weggelassen ist nur die Klammer
+             aus clipPath, die bei allen dreien nichts abschneidet; ersetzt ist nur
+             die eingebrannte #003EB4 durch currentColor, damit die Farbe vom dt
+             kommt und damit aus icon/brand/bold — das folgt dem Markenschalter. -->
+        <dl class="advisor-contact">
+          <div class="advisor-row">
+            <dt><span class="sr-only">Telefon</span>
+              <svg class="advisor-icon" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true">
+                <path d="M9.61499 7.63L8.34499 7.485C8.03999 7.45 7.73999 7.555 7.52499 7.77L6.60499 8.69C5.18999 7.97 4.02999 6.815 3.30999 5.395L4.23499 4.47C4.44999 4.255 4.55499 3.955 4.51999 3.65L4.37499 2.39C4.31499 1.885 3.88999 1.505 3.37999 1.505H2.51499C1.94999 1.505 1.47999 1.975 1.51499 2.54C1.77999 6.81 5.19499 10.22 9.45999 10.485C10.025 10.52 10.495 10.05 10.495 9.485V8.62C10.5 8.115 10.12 7.69 9.61499 7.63Z"/>
+              </svg>
+            </dt>
+            <dd><a id="advisor-phone" href="tel:+491756834679">+49 175 683 4679</a></dd>
+          </div>
+          <div class="advisor-row">
+            <dt><span class="sr-only">E-Mail</span>
+              <svg class="advisor-icon" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true">
+                <path d="M10 2H2C1.45 2 1.005 2.45 1.005 3L1 9C1 9.55 1.45 10 2 10H10C10.55 10 11 9.55 11 9V3C11 2.45 10.55 2 10 2ZM9.8 4.125L6.265 6.335C6.105 6.435 5.895 6.435 5.735 6.335L2.2 4.125C2.075 4.045 2 3.91 2 3.765C2 3.43 2.365 3.23 2.65 3.405L6 5.5L9.35 3.405C9.635 3.23 10 3.43 10 3.765C10 3.91 9.925 4.045 9.8 4.125Z"/>
+              </svg>
+            </dt>
+            <dd><a id="advisor-mail" href="mailto:jan.joisten@finlink.de">jan.joisten@finlink.de</a></dd>
+          </div>
+          <div class="advisor-row">
+            <dt><span class="sr-only">Adresse</span>
+              <svg class="advisor-icon" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true">
+                <path d="M6 1C3.9 1 2 2.61 2 5.1C2 6.69 3.225 8.56 5.67 10.715C5.86 10.88 6.145 10.88 6.335 10.715C8.775 8.56 10 6.69 10 5.1C10 2.61 8.1 1 6 1ZM6 6C5.45 6 5 5.55 5 5C5 4.45 5.45 4 6 4C6.55 4 7 4.45 7 5C7 5.55 6.55 6 6 6Z"/>
+              </svg>
+            </dt>
+            <dd id="advisor-address">Musterstraße 12, 12305 Berlin</dd>
+          </div>
+        </dl>
+      </aside>
+    </div>
 
     <!-- ===================== 1 · FINANZBEDARF ===================== -->
     <section class="card" id="start" aria-labelledby="h-start" data-open="true">

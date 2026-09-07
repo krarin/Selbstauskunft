@@ -96,6 +96,10 @@ body { margin: 0; }
 .subsection > .card-head .card-title,
 .subsection-title,
 .modal-title,
+/* Die Initialen sind kein Text, den man liest, sondern die Fuellung eines
+   64px-Kreises. Heading.sm ist die kleinste Rolle, die darin noch als Zeichen
+   und nicht als Fussnote wirkt. */
+.advisor-initials,
 .review-title {
   font-family: var(--ds-font-family-sans);
   font-size: var(--ds-typography-heading-sm-font-size);
@@ -114,6 +118,17 @@ body { margin: 0; }
 }
 
 .cal-cell[aria-pressed="true"],
+/* „Bearbeiten“ steht als einzige Handlung neben einer Gruppenueberschrift und
+   muss sich gegen sie behaupten — bei body.sm.default war es die leiseste Schrift
+   in einer Zeile, in der es das einzige Bedienelement ist. Groesse bleibt,
+   Gewicht steigt: dieselbe Rolle eine Stufe fester. */
+.link-btn,
+/* Namensschild unter dem Portraet: eine Stufe UNTER den Kontaktzeilen daneben.
+   Der Name sagt, von wem der Link kommt; angesteuert wird die Telefonnummer. Das
+   Gewicht traegt den Unterschied zur Rolle darunter, nicht die Groesse — kleiner
+   als body.sm hat Finlink Core nicht (G-22 ist dieselbe Kante von der anderen
+   Seite). */
+.advisor-name,
 .steps > li::before {
   font-family: var(--ds-font-family-sans);
   font-size: var(--ds-typography-body-sm-strong-font-size);
@@ -134,12 +149,12 @@ body { margin: 0; }
 
 .seg button,
 .nav-note,
+.advisor-role,
 .help,
 .cal-days th,
 .cal-cell,
 .error-text,
 .save-state,
-.link-btn,
 .review-list > dt,
 .ref-status {
   font-family: var(--ds-font-family-sans);
@@ -196,6 +211,10 @@ body { margin: 0; }
    Blase war bisher die einzige darin, die unten nicht mitgestuft war. */
 .info-bubble,
 .modal-text,
+/* Die Kontaktzeilen sind Fliesstext wie .note — sie steigen unten im Mobilblock
+   mit derselben Gruppe auf body.lg. Sie sind damit die groesste Schrift im
+   Beraterblock: gelesen wird hier die Nummer, nicht das Namensschild daneben. */
+.advisor-row > dd,
 .choice.plain > input + span {
   font-family: var(--ds-font-family-sans);
   font-size: var(--ds-typography-body-md-default-font-size);
@@ -298,6 +317,7 @@ body { margin: 0; }
   .choice > span,
   .note,
   .modal-text,
+  .advisor-row > dd,
   /* Die Blase steigt hier mit .note und .modal-text mit, aus demselben Grund wie
      die beiden: sie ist ein Kasten voll Fließtext, und auf Telefonbreite hat das
      Label darüber bereits auf 16px gestuft. Sie kommt jetzt von body.md wie ihre
@@ -480,18 +500,174 @@ body { margin: 0; }
 /* ---------------------------------------------------------------- headings */
 
 .page-title {
-  margin: 0 0 var(--ds-spacing-8);
+  margin: 0 0 var(--ds-spacing-12);
   color: var(--ds-color-text-neutral-bold-default);
+}
+
+/* Die Oberkante des Portraets soll auf der Oberkante von „Selbstauskunft“ liegen.
+   flex-start allein reicht dafuer nicht: der Kasten einer Zeile beginnt oberhalb
+   der Versalhoehe — halbe Durchschusshaelfte plus der Abstand zwischen Oberlaenge
+   und Versalhoehe, bei Roboto in dieser Groesse zusammen rund 6px. Optisch haengt
+   die Ueberschrift dann unter dem Bild.
+   text-box-trim schneidet genau diesen Streifen weg, statt ihn mit einem
+   geschaetzten negativen Rand auszugleichen — der waere ein fester Pixelwert, der
+   bei jedem Wechsel der Schrift oder der Rolle falsch wird. Wo die Eigenschaft
+   fehlt (Firefox, Safari vor 18.2), bleibt der alte Versatz stehen: die Zeile
+   sitzt sechs Pixel tiefer, nichts bricht. */
+.page-head > .page-intro > .page-title {
+  text-box-trim: trim-start;
+  text-box-edge: cap alphabetic;
 }
 /* Beim Schrittwechsel bekommt die Überschrift den Fokus, damit ein Screenreader
    den neuen Schritt vorliest — markiert wird sie dabei nicht: sie ist kein
    Bedienelement, und ein Rahmen um sie würde nach etwas zum Anklicken aussehen. */
 .page-title:focus { outline: none; }
 
+/* Der Abstand nach unten gehoert der Lede ueberall dort, wo sie fuer sich steht —
+   auf „Zusammenfassung“ und auf „Gesendet“, die keinen Seitenkopf haben und deren
+   Lede sonst direkt an der Karte darunter klebt. Nur im Seitenkopf faellt er weg:
+   dort ist die Lede nicht das letzte Element, und den Abstand zum Formular setzt
+   .page-head fuer beide Spalten gemeinsam. */
 .lede {
   margin: 0 0 var(--ds-spacing-32);
   max-width: var(--ds-layout-measure-prose);
   color: var(--ds-color-text-neutral-subtle-default);
+}
+.page-head .lede { margin-bottom: 0; }
+
+/* Titel und Beraterin oder Berater teilen sich eine Zeile: links, worum es geht,
+   rechts, wer den Link geschickt hat. Der Abstand nach unten sass frueher an
+   .lede und gehoert jetzt der Zeile — sonst haette die rechte Spalte ihn nicht.
+   Beide Spalten beginnen oben, damit die Oberkante des Portraets auf der
+   Oberkante von „Selbstauskunft“ liegt. Die rechte Spalte ist dabei die hoehere
+   — sie darf unten ueberstehen; was zaehlt, ist die gemeinsame Kante oben.
+   Die Beraterspalte gibt nichts ab (flex: none) — schmaler wird die Adresse
+   zweizeilig. Zusammengedrueckt wird die Textspalte, die dafuer ohnehin ihr
+   Zeilenmass hat. */
+.page-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--ds-spacing-40);
+  margin-bottom: var(--ds-spacing-32);
+}
+.page-intro { min-width: 0; }
+
+/* ------------------------------------------------- Beraterin oder Berater
+
+   Portraet, Name und Rolle in einer Spalte, die Kontaktwege in der naechsten,
+   dazwischen eine Haarlinie. Keine eigene Flaeche und kein Rahmen: der Block
+   steht im Seitenkopf neben der Ueberschrift, nicht als Karte davor, und eine
+   weisse Kachel neben blankem Titeltext haette ihn zu einem eigenen Abschnitt
+   gemacht. Die Haarlinie ist die ganze Gliederung, die er braucht.
+
+   align-items bleibt stretch, damit die Trennlinie ueber die volle Hoehe des
+   Blocks laeuft; senkrecht mittig gesetzt wird stattdessen der Inhalt der beiden
+   Spalten. */
+.advisor {
+  display: flex;
+  flex: none;
+  align-items: stretch;
+  gap: var(--ds-advisor-gap);
+}
+
+.advisor-person {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--ds-spacing-8);
+  text-align: center;
+}
+
+/* Der Kreis ist die Vertretung fuer das Foto und zugleich sein Rahmen: kommt
+   eins mit, deckt das <img> die Initialen darunter ab; kommt keins, bleiben die
+   Initialen stehen. Deshalb liegen beide im selben Grid-Feld statt nebeneinander
+   — so gibt es keinen Sprung in der Hoehe, wenn das Bild spaeter eintrifft.
+   Der Rand liegt auf border/neutral/subtle: ein Foto ist ein Rechteck mit
+   beliebigen Raendern, und ohne die Haarlinie franst der Kreis auf einem hellen
+   Bild in die Seite aus. Auf den Initialen faellt sie nicht auf, weil deren
+   Fuellung ohnehin abhebt. */
+.advisor-photo {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: var(--ds-advisor-avatar-size);
+  height: var(--ds-advisor-avatar-size);
+  overflow: hidden;
+  color: var(--ds-color-text-brand-bold-default);
+  background: var(--ds-color-background-brand-subtlest-default);
+  border: var(--ds-border-width-1) solid var(--ds-color-border-neutral-subtle-default);
+  border-radius: var(--ds-radius-full);
+}
+.advisor-photo > * { grid-area: 1 / 1; }
+.advisor-photo > img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.advisor-name {
+  margin: 0;
+  color: var(--ds-color-text-neutral-bold-default);
+}
+/* Grey.500 auf der Seitenflaeche sind 4.61:1 — die hellste Textrolle, die 1.4.3
+   noch haelt, und genau die richtige Stufe fuer eine Zeile, die den Namen
+   erklaert statt selbst gelesen zu werden. */
+.advisor-role {
+  margin: 0;
+  color: var(--ds-color-text-neutral-subtlest-default);
+}
+.advisor-identity { min-width: 0; }
+
+/* Die Haarlinie gehoert der Kontaktspalte, nicht der Portraetspalte: gestapelt
+   (unter 640px) wird aus derselben Deklaration die Linie darueber. Sie nimmt
+   border/neutral/bold — dieselbe Stufe wie der Strich ueber einem .subhead und
+   die Kante der Aktionsleiste. Die subtle-Stufe waere im Dunkelmodus unsichtbar:
+   dort ist sie grey.800, und das ist genau die Flaeche der Karte. */
+.advisor-contact {
+  display: grid;
+  align-content: center;
+  gap: var(--ds-advisor-row-gap);
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  padding-inline-start: var(--ds-advisor-gap);
+  border-inline-start: var(--ds-border-width-1) solid
+    var(--ds-color-border-neutral-bold-default);
+}
+
+/* Feste Icon-Spalte statt flex-gap: so fluchten Adresse, Telefon und E-Mail an
+   derselben Kante, auch wenn die Adresse zweizeilig umbricht. */
+.advisor-row {
+  display: grid;
+  grid-template-columns: var(--ds-advisor-icon-size) minmax(0, 1fr);
+  align-items: start;
+  gap: var(--ds-spacing-8);
+}
+/* Das Icon ist kleiner als die Zeile daneben, also wird es auf deren erste Zeile
+   zentriert statt an ihre Oberkante gesetzt: die Hoehe des dt ist die Zeilenhoehe
+   des dd, und das Icon sitzt darin mittig. Bei der zweizeiligen Adresse bleibt es
+   dadurch auf der ersten Zeile stehen. */
+.advisor-row > dt {
+  display: flex;
+  align-items: center;
+  min-height: calc(var(--ds-typography-body-md-default-font-size)
+    * var(--ds-typography-body-md-default-line-height));
+  color: var(--ds-color-icon-brand-bold-default);
+}
+.advisor-row > dd {
+  margin: 0;
+  color: var(--ds-color-text-neutral-subtle-default);
+}
+/* Die Icons sind im 12er-Raster gezeichnet und werden in die Token-Box skaliert
+   — sie sind Vektor, das kostet nichts. Die Farbe kommt von currentColor am
+   <dt>, das heisst: icon/brand/bold folgt dem Markenschalter genauso wie die
+   Knoepfe und die Links daneben. */
+.advisor-icon {
+  flex: none;
+  width: var(--ds-advisor-icon-size);
+  height: var(--ds-advisor-icon-size);
 }
 
 /* A section is a collapsible card. The grey fill is the only boundary — no border,
@@ -853,6 +1029,26 @@ body { margin: 0; }
   min-height: calc(var(--ds-field-height) * 2);
   padding: var(--ds-field-padding-y) var(--ds-field-padding-x);
   resize: vertical;
+}
+
+/* Ein Zahlenfeld ist nicht so breit wie die Frage darüber. "980,00 €" stand in einem
+   505px-Kasten, weil die Rasterspalte so breit war — die Ziffern rechts angeschlagen
+   und links davon 400px Leere. Gekappt wird deshalb das Bedienelement und nicht die
+   Spalte: das Label behält die ganze Breite und bricht weiter normal um, und der
+   Kasten wird so breit wie ein Ja/Nein-Paar, das in diesem Formular überall daneben
+   oder darunter steht (gemessen 170px, über 23 Paare gleich).
+
+   Am Bedienelement statt an den .col-*-Klassen, weil dieselbe Klasse je nach
+   Verschachtelung etwas anderes ergibt: col-6 sind oben in der Karte 505px und in
+   einem Reveal-Pad 244px. Eine Regel fasst alle 56 Zahlenfelder gleich breit; 56
+   geänderte Spannweiten täten es nicht.
+
+   Nur über 900px. Auf Telefonbreite ist jedes Feld absichtlich volle Spaltenbreite —
+   das ist die Fläche für den Daumen, und die Figma-Mobilframes sind auf diesen Stand
+   gebaut. */
+@media (min-width: 901px) {
+  .with-unit,
+  .input.num { max-width: var(--ds-layout-measure-amount); }
 }
 
 /* value + unit suffix (€, m², kWh/m²) */
@@ -1805,10 +2001,29 @@ body { margin: 0; }
 }
 .review-head + .review-context { margin-top: 0; }
 
+/* Die Fragespalte hat ein Mass, keinen Anteil. Als 2fr war sie auf einem breiten
+   Schirm deutlich breiter als die laengste Frage darin, und zwischen Frage und
+   Antwort stand eine leere Rinne, die mit der Karte mitwuchs — der Abstand war
+   dann nicht mehr der gesetzte, sondern der uebrig gebliebene. Jetzt ist der
+   Spaltenabstand wieder der einzige Abstand, und der steht als Token daneben.
+
+   Ein gemeinsames Mass und NICHT fit-content(): die Zusammenfassung ist ein
+   Dutzend solcher Listen untereinander, und mit max-content bemisst jede ihre
+   Spalte an ihrer eigenen laengsten Frage — die Antworten faengen dann in jeder
+   Gruppe an einer anderen Stelle an und die Seite franst nach unten aus.
+
+   43ch (~338px) ist an den echten Fragen gemessen: 76 der 77 passen einzeilig,
+   die zweitlaengste liegt bei 331px. Die eine Ausreisserin — „Sofern Sie weitere
+   finanzielle Verpflichtungen haben: …“, 496px — bricht auf zwei Zeilen um. Das
+   ist die Absicht: eine Frage umbrechen zu lassen ist billiger, als die Spalte
+   fuer alle 77 um 160px aufzuziehen.
+
+   minmax statt einer nackten Breite, damit die Spalte zwischen 640 und 900px
+   nachgeben kann, wo die Karte schmal wird, die Liste aber noch zweispaltig ist. */
 .review-list {
   display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
-  gap: var(--ds-spacing-8) var(--ds-spacing-16);
+  grid-template-columns: minmax(0, var(--ds-layout-measure-review-term)) minmax(0, 1fr);
+  gap: var(--ds-spacing-8) var(--ds-spacing-24);
   margin: 0;
 }
 .review-list > dt {
@@ -1920,6 +2135,16 @@ body { margin: 0; }
 /* ------------------------------------------------------------- responsive */
 
 @media (max-width: 900px) {
+  /* Nebeneinander braucht der Kopf die Breite fuer zwei Spalten Text. Ab hier gibt
+     es sie nicht mehr, also stapelt er: erst worum es geht, dann von wem. Der
+     Beraterblock selbst bleibt bis 640px, wie er ist — Portraetspalte, Haarlinie,
+     Kontaktspalte. */
+  .page-head {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--ds-spacing-24);
+  }
+
   .app {
     grid-template-columns: minmax(0, 1fr);
     gap: var(--ds-spacing-20);
@@ -2022,6 +2247,28 @@ body { margin: 0; }
   .grid { row-gap: var(--ds-spacing-24); }
   .card-toggle { padding: var(--ds-spacing-12) var(--ds-spacing-16); }
   .card-pad { padding: var(--ds-spacing-16); }
+
+  /* Gestapelt bleibt die Portraetzeile waagerecht — Bild links, Name und Rolle
+     rechts daneben: zentriert unter einem Kreis braucht der Name eine eigene
+     Zeile Hoehe und laesst die halbe Breite leer. Die Kontaktwege ruecken
+     darunter, und aus der senkrechten Trennlinie wird die waagerechte. */
+  .advisor {
+    flex-direction: column;
+    gap: var(--ds-spacing-16);
+  }
+  .advisor-person {
+    flex-direction: row;
+    align-items: center;
+    gap: var(--ds-spacing-16);
+    text-align: left;
+  }
+  .advisor-contact {
+    padding-inline-start: 0;
+    padding-block-start: var(--ds-spacing-16);
+    border-inline-start: 0;
+    border-block-start: var(--ds-border-width-1) solid
+      var(--ds-color-border-neutral-bold-default);
+  }
   /* Die Schritte-Karte fluchtet mit ihren Nachbarn, also nimmt sie denselben
      heruntergesetzten Innenabstand wie .card-pad hier - nicht den Desktop-Wert
      aus --ds-card-padding. */
