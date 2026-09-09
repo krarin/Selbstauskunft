@@ -129,6 +129,9 @@ body { margin: 0; }
    als body.sm hat Finlink Core nicht (G-22 ist dieselbe Kante von der anderen
    Seite). */
 .advisor-name,
+/* Dieselben Initialen, aber in einem 40px-Kreis statt in einem 64er: heading.sm
+   fuellt den kleinen Kreis von Rand zu Rand. */
+.advisor-avatar .advisor-initials,
 .steps > li::before {
   font-family: var(--ds-font-family-sans);
   font-size: var(--ds-typography-body-sm-strong-font-size);
@@ -156,7 +159,8 @@ body { margin: 0; }
 .error-text,
 .save-state,
 .review-list > dt,
-.ref-status {
+.ref-status,
+.advisor-status {
   font-family: var(--ds-font-family-sans);
   font-size: var(--ds-typography-body-sm-default-font-size);
   line-height: var(--ds-typography-body-sm-default-line-height);
@@ -211,10 +215,14 @@ body { margin: 0; }
    Blase war bisher die einzige darin, die unten nicht mitgestuft war. */
 .info-bubble,
 .modal-text,
-/* Die Kontaktzeilen sind Fliesstext wie .note — sie steigen unten im Mobilblock
-   mit derselben Gruppe auf body.lg. Sie sind damit die groesste Schrift im
-   Beraterblock: gelesen wird hier die Nummer, nicht das Namensschild daneben. */
+/* Die Kontaktzeilen und die Zeilen im Kontaktmenue der Leiste sind Fliesstext wie
+   .note und damit die groesste Schrift der Beraterkarte: gelesen wird hier die
+   Nummer, nicht das Namensschild darueber. Sie stufen unter 640px nicht mit der
+   Gruppe hoch — die Karte im Seitenkopf ist dort nicht auf dem Schirm, und im
+   Menue der Leiste muessen drei Zeilen unter ein Portraet passen, das am
+   Bildschirmrand klebt. */
 .advisor-row > dd,
+.advisor-action,
 .choice.plain > input + span {
   font-family: var(--ds-font-family-sans);
   font-size: var(--ds-typography-body-md-default-font-size);
@@ -317,7 +325,6 @@ body { margin: 0; }
   .choice > span,
   .note,
   .modal-text,
-  .advisor-row > dd,
   /* Die Blase steigt hier mit .note und .modal-text mit, aus demselben Grund wie
      die beiden: sie ist ein Kasten voll Fließtext, und auf Telefonbreite hat das
      Label darüber bereits auf 16px gestuft. Sie kommt jetzt von body.md wie ihre
@@ -450,6 +457,11 @@ body { margin: 0; }
 
 .nav .object-nav { display: none; }
 .nav .object-nav.show { display: block; }
+/* Zwei Bedingungen an einem Eintrag: .show sagt, ob das Objekt überhaupt gefragt ist,
+   hidden — von syncImmobilienart über data-art gesetzt — ob die Immobilienart diesen
+   Abschnitt hat. Ohne diese Zeile gewinnt display:block gegen hidden, und der Eintrag
+   führte zu einem Abschnitt, den es beim Grundstück nicht gibt. */
+.nav .object-nav.show[hidden] { display: none; }
 
 /* The wrapper only exists so the list has something to collapse into below 900px.
    Up here it is not a box at all, so the links stay direct children of the nav's
@@ -620,11 +632,11 @@ body { margin: 0; }
 }
 .advisor-identity { min-width: 0; }
 
-/* Die Haarlinie gehoert der Kontaktspalte, nicht der Portraetspalte: gestapelt
-   (unter 640px) wird aus derselben Deklaration die Linie darueber. Sie nimmt
-   border/neutral/bold — dieselbe Stufe wie der Strich ueber einem .subhead und
-   die Kante der Aktionsleiste. Die subtle-Stufe waere im Dunkelmodus unsichtbar:
-   dort ist sie grey.800, und das ist genau die Flaeche der Karte. */
+/* Die Haarlinie gehoert der Kontaktspalte, nicht der Portraetspalte, und teilt
+   die beiden senkrecht. Sie nimmt border/neutral/bold — dieselbe Stufe wie der
+   Strich ueber einem .subhead und die Kante der Aktionsleiste. Die
+   subtle-Stufe waere im Dunkelmodus unsichtbar: dort ist sie grey.800, und das
+   ist genau die Flaeche der Karte. */
 .advisor-contact {
   display: grid;
   align-content: center;
@@ -637,38 +649,173 @@ body { margin: 0; }
     var(--ds-color-border-neutral-bold-default);
 }
 
+/* Das dt traegt nur das unsichtbare Wort (.sr-only), die ganze Zeile steckt im
+   Link darin: was man anklickt, soll das sein, was man liest. */
+.advisor-row > dd { margin: 0; }
+
 /* Feste Icon-Spalte statt flex-gap: so fluchten Adresse, Telefon und E-Mail an
    derselben Kante, auch wenn die Adresse zweizeilig umbricht. */
-.advisor-row {
+.advisor-link {
   display: grid;
   grid-template-columns: var(--ds-advisor-icon-size) minmax(0, 1fr);
   align-items: start;
   gap: var(--ds-spacing-8);
 }
 /* Das Icon ist kleiner als die Zeile daneben, also wird es auf deren erste Zeile
-   zentriert statt an ihre Oberkante gesetzt: die Hoehe des dt ist die Zeilenhoehe
-   des dd, und das Icon sitzt darin mittig. Bei der zweizeiligen Adresse bleibt es
-   dadurch auf der ersten Zeile stehen. */
-.advisor-row > dt {
+   zentriert statt an ihre Oberkante gesetzt: die Box ist so hoch wie eine Zeile
+   des Werts, und das Icon sitzt darin mittig. Bei der zweizeiligen Adresse bleibt
+   es dadurch auf der ersten Zeile stehen. */
+.advisor-icon-box {
   display: flex;
   align-items: center;
   min-height: calc(var(--ds-typography-body-md-default-font-size)
     * var(--ds-typography-body-md-default-line-height));
   color: var(--ds-color-icon-brand-bold-default);
 }
-.advisor-row > dd {
-  margin: 0;
-  color: var(--ds-color-text-neutral-subtle-default);
-}
 /* Die Icons sind im 12er-Raster gezeichnet und werden in die Token-Box skaliert
-   — sie sind Vektor, das kostet nichts. Die Farbe kommt von currentColor am
-   <dt>, das heisst: icon/brand/bold folgt dem Markenschalter genauso wie die
+   — sie sind Vektor, das kostet nichts. Die Farbe kommt von currentColor an der
+   Icon-Box, das heisst: icon/brand/bold folgt dem Markenschalter genauso wie die
    Knoepfe und die Links daneben. */
 .advisor-icon {
   flex: none;
   width: var(--ds-advisor-icon-size);
   height: var(--ds-advisor-icon-size);
 }
+
+/* Die Adresse ist ein Link geworden, weil die Nadel auf dem Telefon eines von drei
+   Tippzielen ist und etwas tun muss. Auf dem Desktop soll sie aber bleiben, was sie
+   war — Text, nicht der dritte tuerkise Link in einer Spalte mit zwei anderen. Sie
+   traegt deshalb im Ruhezustand die Textfarbe und keine Unterstreichung, und zeigt
+   erst beim Ueberfahren oder im Fokus, dass sie eine ist. Auf dem Telefon greift die
+   Regel ins Leere: dort steht ohnehin nur das Icon. */
+/* Beides muss am <a> selbst stehen: text-decoration vererbt sich an die Kinder und
+   laesst sich von dort nicht zuruecknehmen, und die Linkfarbe kommt von :where(a).
+   Das Icon bleibt trotzdem tuerkis — .advisor-icon-box setzt seine Farbe selbst. */
+#advisor-address {
+  color: var(--ds-color-text-neutral-subtle-default);
+  text-decoration: none;
+}
+#advisor-address:hover,
+#advisor-address:focus-visible {
+  color: var(--ds-color-text-brand-bold-default);
+  text-decoration: underline;
+}
+
+/* ------------------------------------ Kontaktmenue in der Mobil-Leiste
+
+   Unter 640px ist die Beraterkarte aus dem Seitenkopf verschwunden und steht
+   stattdessen hinter dem Portraet rechts in der Abschnitte-Leiste. Der Grund
+   dafuer, dass es die Leiste ist und keine zweite Karte im Formular: die Leiste
+   klebt oben. Der Weg zu einem Anruf ist damit auf jedem Schritt derselbe eine
+   Tipp — auch auf Zusammenfassung und Gesendet, wo die Abschnittsliste laengst
+   weg ist und nur noch das Portraet in der Leiste steht.
+
+   Der Block gehoert der Leiste und nicht dem Seitenkopf, also ist er ueberall
+   sonst nicht da: ueber 900px ist .nav wieder die Spalte links, und ein Portraet
+   in ihrem Kopf waere ein zweites neben dem in der Karte. */
+.advisor-menu {
+  display: none;
+  position: relative;
+  /* schiebt sich in der Leiste an das rechte Ende, egal was links davon steht */
+  margin-inline-start: auto;
+}
+
+/* Der Knopf ist groesser als der Kreis darin: spacing/4 Innenabstand ringsum
+   machen aus 40px Portraet ein 48px Tippziel — WCAG 2.5.5 (AAA) verlangt 44 —,
+   und derselbe Wert negativ als Aussenabstand nimmt ihn aus dem Layout wieder
+   heraus. Die Leiste bleibt dadurch so hoch, wie der Abschnitte-Knopf sie macht,
+   und die Trefferflaeche ist trotzdem groesser als das, was man sieht. */
+.advisor-avatar {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: var(--ds-advisor-nav-avatar-size);
+  height: var(--ds-advisor-nav-avatar-size);
+  padding: var(--ds-spacing-4);
+  margin: calc(-1 * var(--ds-spacing-4));
+  box-sizing: content-box;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+/* Der Kreis selbst ist das, was die Karte im Seitenkopf auch zeigt — dieselbe
+   Fuellung, dieselbe Haarlinie, dasselbe Paar aus Initialen und Foto im selben
+   Rasterfeld, damit nichts springt, wenn das Bild spaeter eintrifft. */
+.advisor-avatar > .advisor-photo {
+  width: 100%;
+  height: 100%;
+}
+.advisor-avatar[aria-expanded="true"] > .advisor-photo {
+  border-color: var(--ds-color-border-brand-bold-default);
+}
+
+/* Dieselbe Tafel wie die Abschnittsliste nebenan: sie faellt aus derselben
+   Leiste, also traegt sie dieselbe Flaeche, Kante, Rundung und denselben
+   Schatten. Rechtsbuendig unter dem Portraet statt ueber die volle Breite — sie
+   hat drei Zeilen zu zeigen, keine sechzehn. Der z-index liegt eine Stufe ueber
+   der Leiste (5), sonst deckt die klebende Leiste des naechsten Abschnitts sie
+   beim Scrollen zu. */
+.advisor-pop {
+  display: none;
+  position: absolute;
+  top: calc(100% + var(--ds-spacing-12));
+  right: 0;
+  z-index: 6;
+  width: max-content;
+  max-width: min(var(--ds-advisor-menu-width),
+    calc(100vw - 2 * var(--ds-spacing-16)));
+  padding: var(--ds-spacing-8);
+  background: var(--ds-surface-card);
+  border: var(--ds-border-width-1) solid var(--ds-color-border-neutral-bold-default);
+  border-radius: var(--ds-card-radius);
+  box-shadow: var(--ds-shadow-lg);
+}
+.advisor-avatar[aria-expanded="true"] + .advisor-pop { display: grid; }
+
+/* Jede Zeile ist eine Handlung und keine Angabe: anrufen, E-Mail kopieren,
+   Anschrift kopieren. Deshalb sind es Bedienelemente in voller Zeilenbreite mit
+   einem Tippziel von 48px und nicht drei Textzeilen, von denen eine zufaellig
+   ein Link ist. Der Wert steht sichtbar darin — er ist das, was man sucht; das
+   Verb dazu steht unsichtbar davor (.sr-only), damit die Zeile vorgelesen sagt,
+   was ein Tipp darauf tut. */
+.advisor-action {
+  display: grid;
+  grid-template-columns: var(--ds-advisor-icon-size) minmax(0, 1fr);
+  align-items: center;
+  gap: var(--ds-spacing-12);
+  width: 100%;
+  min-height: var(--ds-advisor-tap-target);
+  padding: var(--ds-spacing-8) var(--ds-spacing-12);
+  color: var(--ds-color-text-neutral-bold-default);
+  text-align: left;
+  text-decoration: none;
+  background: none;
+  border: 0;
+  border-radius: var(--ds-field-radius);
+  cursor: pointer;
+}
+.advisor-action:hover { background: var(--ds-color-background-neutral-subtle-hovered); }
+/* Die Anschrift ist die einzige, die umbrechen darf — sie ist der laengste Wert
+   und der einzige, der eine sinnvolle Bruchstelle hat. Nummer und E-Mail stehen
+   in einer Zeile und werden notfalls beschnitten, statt eine Adresse mitten im
+   Namensteil zu zerreissen. */
+.advisor-action > .advisor-value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#advisor-nav-address > .advisor-value { white-space: normal; }
+
+/* Die Rueckmeldung zum Kopieren steht erst da, wenn kopiert wurde: eine leere
+   Zeile in einer Tafel mit drei Zeilen waere ein Viertel ihrer Hoehe fuer
+   nichts. Dass die Tafel dabei um eine Zeile waechst, ist in Ordnung — sie
+   haengt frei unter dem Portraet und schiebt nichts weg. */
+.advisor-status {
+  margin: var(--ds-spacing-4) 0 0;
+  padding: 0 var(--ds-spacing-12);
+  color: var(--ds-color-text-brand-bold-default);
+}
+.advisor-status:empty { display: none; }
 
 /* A section is a collapsible card. The grey fill is the only boundary — no border,
    because --color-border-default has to be dark enough for input borders to clear
@@ -810,7 +957,11 @@ body { margin: 0; }
    which part you are in. The rule between two parts is inset by the
    card's own padding, so it separates two parts of one block rather than reading as
    the seam between two cards. */
-.subsections > .subsection-static + .subsection-static::before {
+/* Nicht mehr an .subsections als direkten Elternteil gebunden: die beiden Teile des
+   Objektabschnitts — „Immobilie“ und „Immobilienmerkmale“ — stehen zusammen in einem
+   .object-section-Reveal, und die Linie gehört zwischen zwei aufeinanderfolgende
+   Teile, ganz gleich wer sie hält. */
+.subsection-static + .subsection-static::before {
   content: "";
   display: block;
   height: var(--ds-border-width-1);
@@ -980,6 +1131,8 @@ body { margin: 0; }
 .cal-zoom:focus-visible,
 .cal-cell:focus-visible,
 .link-btn:focus-visible,
+.advisor-avatar:focus-visible,
+.advisor-action:focus-visible,
 .tools-toggle:focus-visible {
   outline: var(--ds-border-width-2) solid var(--ds-color-border-brand-bold-default);
   outline-offset: var(--ds-border-width-1);
@@ -1302,6 +1455,15 @@ body { margin: 0; }
   transition: opacity 0.12s;
 }
 
+/* Zwei Erläuterungen im Formular — Ausstattung und Zustand — sind keine Sätze, sondern
+   Listen: eine Einleitung und dann je eine Zeile pro Stufe. Sie stehen als Absätze im
+   Hilfetext, und die Blase übernimmt sie als solche, damit sie nicht als eine Wand aus
+   Text ankommen. Der erklärte Begriff steht fett voran: gesucht wird die eigene
+   Antwort, nicht der ganze Text. */
+.info-bubble > p { margin: 0; }
+.info-bubble > p + p { margin-top: var(--ds-spacing-8); }
+.info-bubble strong { font-weight: var(--ds-typography-body-md-strong-font-weight); }
+
 /* Hover only where hovering is a thing. On a touch screen a tap leaves the emulated
    hover stuck on until something else is tapped, which would hold the bubble open
    against the button's own state and make the second tap look broken. */
@@ -1314,6 +1476,17 @@ body { margin: 0; }
 /* ----------------------------------------------------- segmented choices */
 
 .choices { display: flex; flex-wrap: wrap; gap: var(--ds-spacing-8); }
+
+/* Ein Feldpaar, von dem eines ausgefüllt sein muss (Erreichbarkeit: E-Mail oder
+   Telefon). Die Gruppe ist selbst ein .field und erbt dessen 4px zwischen Label und
+   Inhalt — das reicht für ein Label über einem Eingabefeld, nicht für eines über
+   zwei weiteren Labels: „Erreichbarkeit“ klebte sonst an „E-Mail-Adresse“ und die
+   beiden lasen sich als eine zweizeilige Beschriftung. Der Abstand geht deshalb auf
+   die Stufe, die .choices für dieselbe Aufgabe nimmt. */
+.field[data-one-of] > .grid { margin-top: var(--ds-spacing-4); }
+/* Die Meldung gehört dem Paar, nicht einem der beiden Felder — sie steht unter
+   beiden und braucht denselben Abstand nach oben wie das Raster darüber. */
+.field[data-one-of] > .error-text { margin-top: var(--ds-spacing-8); }
 
 .choice { position: relative; display: inline-flex; }
 .choice input {
@@ -1671,38 +1844,87 @@ body { margin: 0; }
 
 /* -------------------------------------------------------------- callouts */
 
+/* fl-message aus AI-Components-Finlink (Datei cccBoenOfRzhjLIvMsYmiX, Node
+   130:452). Vorher war das hier ein eigener Entwurf: 1px Rahmen ringsum, 4px
+   Akzentkante links, 4px Radius, kein Icon. Die Bibliothek macht es anders und
+   das ist jetzt maßgeblich — nur Fläche, keine Kante, keine Rundung, links ein
+   gefülltes Icon in der starken Farbe der Tonlage.
+
+   Geometrie und Typografie kommen 1:1 aus dem Component: 8px links, 16px rechts,
+   10px oben und unten, 8px Abstand zum Icon, Text in body.md.default auf
+   text/primary. Die Ausrichtung ist flex-start, nicht center — bei mehrzeiligem
+   Text soll das Icon an der ersten Zeile stehen und nicht in die Mitte des
+   Absatzes rutschen.
+
+   NICHT übernommen: die Dismiss-Variante und die Align-Varianten. In diesem
+   Formular ist keine Meldung wegklickbar (sie erklären Pflichtangaben und den
+   Versand, es gibt nichts zu schließen) und keine ist zentriert. Der
+   notification-Ton fehlt aus demselben Grund — kein Anwendungsfall. */
 .note {
-  padding: var(--ds-spacing-12) var(--ds-spacing-16);
+  display: flex;
+  align-items: flex-start;
+  gap: var(--ds-message-gap);
+  padding: var(--ds-message-padding-y) var(--ds-message-padding-end)
+           var(--ds-message-padding-y) var(--ds-message-padding-start);
   color: var(--ds-color-text-neutral-bold-default);
   background: var(--ds-color-background-warning-subtlest-default);
-  border: var(--ds-border-width-1) solid var(--ds-color-border-warning-bold-default);
-  border-left-width: var(--ds-spacing-4);
-  border-radius: var(--ds-field-radius);
 }
 
-/* A note may carry a headline and more than one paragraph: a callout that stops
-   someone before an irreversible step has to say what it is about before it
-   explains itself. The paragraphs own their spacing here, so the plain one-line
-   note above stays exactly as it was. */
-.note > p { margin: 0; }
-.note > p + p { margin-top: var(--ds-spacing-8); }
+/* EXCEPTION: ein Dateipfad ist kein Gestaltungswert und kann kein Token sein.
+   Die vier SVG sind die Exporte der kanonischen Icons aus dem Component
+   (libs/client/common/icon-assets/base/), unverändert übernommen.
 
-/* Tone modifiers. The fill is always the *-subtle step and the text stays
-   --color-text-primary: every subtle token flips to its own 950 in the dark
-   scheme, so one text colour holds in all three appearances. The tone is never
-   the only signal — each note carries a headline that says the same thing. */
+   Als Maske und nicht als <img>: die Bibliothek schreibt „Fill is overridden per
+   message variant (the SVG uses currentColor)“, und ein <img> lässt sich nicht
+   einfärben. Über die Maske trägt background-color die Farbe, also ein Token —
+   damit folgt das Icon dem Dunkelmodus, statt einen eingebrannten Hex-Wert auf
+   eine dunkle Fläche zu legen. Und die Meldungen brauchen dafür kein zusätzliches
+   Element im Markup. */
+.note::before {
+  content: "";
+  flex: none;
+  width: var(--ds-message-icon-size);
+  height: var(--ds-message-icon-size);
+  background-color: var(--ds-color-icon-warning-strong-default);
+  -webkit-mask: var(--ds-message-icon) center / contain no-repeat;
+  mask: var(--ds-message-icon) center / contain no-repeat;
+}
+.note { --ds-message-icon: url("../icons/warning.svg"); }
+
+/* Eine Meldung mit Überschrift und mehreren Absätzen braucht eine eigene Spalte
+   neben dem Icon — sonst stellt der Flexcontainer Überschrift und Absatz
+   nebeneinander. Die einzeilige <p class="note"> kommt ohne aus: dort ist der
+   Text das Element selbst. */
+.note-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ds-spacing-8);
+  min-width: 0;
+}
+.note p { margin: 0; }
+
+/* Tonlagen. Die Fläche ist immer die *-subtlest-Stufe und der Text bleibt
+   text/neutral/bold: jedes subtle-Token kippt im Dunkelmodus auf seine eigene
+   950, also trägt eine Textfarbe alle drei Erscheinungsbilder (11.4:1 bis 12.3:1
+   im hellen). Die Tonlage ist nie das einzige Signal — jede Meldung mit Gewicht
+   trägt eine Überschrift, die dasselbe sagt. */
 .note.info {
   background: var(--ds-color-background-info-subtlest-default);
-  border-color: var(--ds-color-border-info-bold-default);
+  --ds-message-icon: url("../icons/info.svg");
 }
+.note.info::before { background-color: var(--ds-color-icon-info-strong-default); }
+
 .note.success {
   background: var(--ds-color-background-success-subtlest-default);
-  border-color: var(--ds-color-border-success-bold-default);
+  --ds-message-icon: url("../icons/success.svg");
 }
-.note.warn {
-  background: var(--ds-color-background-warning-strong-subtlest-default);
-  border-color: var(--ds-color-border-warning-strong-bold-default);
+.note.success::before { background-color: var(--ds-color-icon-success-strong-default); }
+
+.note.danger {
+  background: var(--ds-color-background-danger-subtlest-default);
+  --ds-message-icon: url("../icons/danger.svg");
 }
+.note.danger::before { background-color: var(--ds-color-icon-danger-strong-default); }
 
 /* -------------------------------------------------------------- action bar */
 
@@ -2229,7 +2451,9 @@ body { margin: 0; }
 
   /* Auf den letzten zwei Schritten hat die Leiste nichts mehr zu zeigen — die
      Abschnittsliste ist weg und die Schalter sind hier ohnehin ausgeblendet —,
-     also bleibt kein leerer Streifen über der Seite stehen. */
+     also bleibt kein leerer Streifen über der Seite stehen. Unter 640px holt der
+     Block weiter unten sie zurück: dort trägt sie das Portrait, und das gehört
+     auf jeden Schritt. */
   :root[data-view="summary"] .nav,
   :root[data-view="sent"] .nav { display: none; }
 
@@ -2248,34 +2472,30 @@ body { margin: 0; }
   .card-toggle { padding: var(--ds-spacing-12) var(--ds-spacing-16); }
   .card-pad { padding: var(--ds-spacing-16); }
 
-  /* Gestapelt bleibt die Portraetzeile waagerecht — Bild links, Name und Rolle
-     rechts daneben: zentriert unter einem Kreis braucht der Name eine eigene
-     Zeile Hoehe und laesst die halbe Breite leer. Die Kontaktwege ruecken
-     darunter, und aus der senkrechten Trennlinie wird die waagerechte. */
-  .advisor {
-    flex-direction: column;
-    gap: var(--ds-spacing-16);
-  }
-  .advisor-person {
-    flex-direction: row;
-    align-items: center;
-    gap: var(--ds-spacing-16);
-    text-align: left;
-  }
-  .advisor-contact {
-    padding-inline-start: 0;
-    padding-block-start: var(--ds-spacing-16);
-    border-inline-start: 0;
-    border-block-start: var(--ds-border-width-1) solid
-      var(--ds-color-border-neutral-bold-default);
-  }
+  /* Auf dem Telefon steht die Beraterkarte nicht mehr im Seitenkopf. Sie ist dort
+     eine halbe erste Bildschirmhoehe, bevor das Formular anfaengt — und sie steht
+     genau an der Stelle, an der jemand mit dem Ausfuellen beginnen will. Statt
+     ihrer sitzt das Portraet rechts in der Leiste (siehe .advisor-menu weiter
+     unten): immer sichtbar, weil die Leiste klebt, und einen Tipp von denselben
+     drei Kontaktwegen entfernt. */
+  .advisor { display: none; }
+  .advisor-menu { display: block; }
+
+  /* Die Leiste bleibt auf Zusammenfassung und Gesendet stehen, obwohl die
+     Abschnittsliste und ihr Knopf dort weg sind: übrig ist genau das Portrait,
+     und der Weg zu einem Anruf soll auf dem letzten Schritt derselbe sein wie auf
+     dem ersten. Leer ist der Streifen damit nie — über 640px, wo es das Portrait
+     nicht gibt, wäre er es, und dort bleibt die Regel darüber stehen. */
+  :root[data-view="summary"] .nav,
+  :root[data-view="sent"] .nav { display: flex; }
+
   /* Die Schritte-Karte fluchtet mit ihren Nachbarn, also nimmt sie denselben
      heruntergesetzten Innenabstand wie .card-pad hier - nicht den Desktop-Wert
      aus --ds-card-padding. */
   #summary-view > .steps { padding: var(--ds-spacing-16); }
   .subsection .card-pad,
   .subsection-static .card-pad { padding: 0 var(--ds-spacing-16) var(--ds-spacing-16); }
-  .subsections > .subsection-static + .subsection-static::before { margin: 0 var(--ds-spacing-16); }
+  .subsection-static + .subsection-static::before { margin: 0 var(--ds-spacing-16); }
   .subsection-title { padding: 0 var(--ds-spacing-16); }
   .applicants.two { grid-template-columns: minmax(0, 1fr); }
   /* No room for two columns, so the amount stacks under its position. It stays on
@@ -2362,7 +2582,7 @@ body { margin: 0; }
   :root[data-view="form"] .card-pad { padding: var(--ds-spacing-8); }
   :root[data-view="form"] .subsection .card-pad,
   :root[data-view="form"] .subsection-static .card-pad { padding: 0 var(--ds-spacing-8) var(--ds-spacing-8); }
-  :root[data-view="form"] .subsections > .subsection-static + .subsection-static::before { margin: 0 var(--ds-spacing-8); }
+  :root[data-view="form"] .subsection-static + .subsection-static::before { margin: 0 var(--ds-spacing-8); }
   :root[data-view="form"] .subsection-title { padding: 0 var(--ds-spacing-8); }
 
   /* The recessed block keeps its fill, its hairline and its radius — it is still

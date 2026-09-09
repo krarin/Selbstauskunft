@@ -34,7 +34,9 @@
         "Values carry over from BETA-Foundations (ep87XnexxCF05Q8p1T0G9L). Where the",
         "two systems share an index they disagree — BETA red.500 is #FF5656, Finlink",
         "red.500 is #E64D4D — which is exactly why these are namespaced apart.",
-        "The real fix is a Dark mode on the Finlink Core Semantics collection."
+        "The real fix is a Dark mode on the Finlink Core Semantics collection.",
+        "",
+        "Dazu die drei -strong-Stufen der Feedback-Rollen aus AI-Components-Finlink (fl-message, 130:452). Finlink Core kennt zu blue, green und yellow nur 100 und 500; die 500er sind als Glyphenfarbe auf der eigenen 100er-Fläche nicht lesbar (gemessen: blau 3.44:1, grün 2.25:1, gelb 1.39:1 — 1.4.11 will 3.0). Die Bibliothek löst das mit eigenen dunklen Stufen bei rund 5.5:1. Die Werte sind aus den Icon-Exporten des Components übernommen, nicht erfunden. red.800 #B33B3B stand hier schon und ist genau die Stufe, die fl-message für danger benutzt."
       ],
       "selector": ":root",
       "tokens": {
@@ -42,13 +44,16 @@
         "_ds-ext-color.blue.200": "#E6EEFB",
         "_ds-ext-color.blue.300": "#9BAEE4",
         "_ds-ext-color.blue.950": "#01132B",
+        "_ds-ext-color.blue.700": "#0857C3",
         "_ds-ext-color.red.400": "#FF7D7D",
         "_ds-ext-color.red.800": "#B33B3B",
         "_ds-ext-color.red.950": "#661F1F",
         "_ds-ext-color.green.400": "#42D283",
         "_ds-ext-color.green.950": "#08301C",
+        "_ds-ext-color.green.700": "#137341",
         "_ds-ext-color.yellow.400": "#F6D184",
         "_ds-ext-color.yellow.950": "#43351A",
+        "_ds-ext-color.yellow.800": "#755D2C",
         "_ds-ext-color.orange.400": "#FFB040",
         "_ds-ext-color.orange.950": "#472905"
       }
@@ -84,7 +89,9 @@
         "",
         "The tooltip is the one surface in this form that is darker than the page it floats over — G-27. Finlink Core's neutral background ramp is light-only: background.neutral.bold.default is grey.100, so \"bold\" there means a heavier grey, not an inverted one, and there is no dark neutral surface to alias. ds-surface-inverse names the missing step at grey.900. Its ink is grey.50 rather than the contract's text.neutral.inverse.default (grey.0): both clear AAA on grey.900 (12.60:1 and 13.16:1), and off-white is the softer of the two on a dark chip this small. That choice is what makes the ink an extension token too rather than a straight alias. The border matches the surface in light — a dark box on a white card needs no edge, and keeping the declaration keeps the box geometry identical across appearances.",
         "",
-        "Der Beraterblock im Seitenkopf bringt zwei Maße mit, die es sonst nirgends gibt: das runde Porträt und das gefüllte Icon in einer Kontaktzeile. Beide liegen auf echten Finlink-Stufen (spacing.64 und spacing.16) — sie stehen hier nur, damit die Dichte sie mitschalten kann, wie bei Feld und Karte auch. Der Abstand zwischen Porträtspalte und Kontaktspalte und der Abstand der Kontaktzeilen untereinander folgen derselben Regel."
+        "Der Beraterblock im Seitenkopf bringt zwei Maße mit, die es sonst nirgends gibt: das runde Porträt und das gefüllte Icon in einer Kontaktzeile. Beide liegen auf echten Finlink-Stufen (spacing.64 und spacing.16) — sie stehen hier nur, damit die Dichte sie mitschalten kann, wie bei Feld und Karte auch. Der Abstand zwischen Porträtspalte und Kontaktspalte und der Abstand der Kontaktzeilen untereinander folgen derselben Regel. Dazu das Mindestmass eines Tippziels: die Kontaktzeile ist auf dem Telefon das, was angetippt wird, und 48px ist die Kante, die WCAG 2.5.5 (AAA, 44px) mit Reserve nimmt — das Icon darin bleibt klein, die Trefferflaeche nicht. Zwei weitere Masse gehoeren dem Kontaktmenue, das auf dem Telefon hinter dem Portraet in der Leiste steckt. Seine Breite ist der einzige rohe Wert der Gruppe: sie ist aus dem Inhalt gerechnet, nicht aus der Leiter — 300px ist die Obergrenze, bei der die Anschrift einzeilig bleibt; schmaler wird das Menue von selbst, wenn der Bildschirm es verlangt. Das Portraet darin ist ein eigenes Mass und nicht das der Karte im Seitenkopf: es steht neben dem Abschnitte-Knopf und richtet sich nach dessen Hoehe (spacing.40 = --ds-field-height), waehrend das der Karte mit der Dichte auf 48 faellt.",
+        "",
+        "fl-message (AI-Components-Finlink, 130:452) bringt eine eigene Geometrie mit: 8px links, 16px rechts, 10px oben und unten, 8px zwischen Icon und Text. Die 10px liegen NICHT auf Finlinks Abstandsleiter — in der Bibliothek auch nicht, sie stehen dort als roher Wert im Component. Sie stehen deshalb hier als Zahl, wie ds-field.height im Compact-Set, statt auf 8 oder 12 gerundet zu werden: der Kasten soll aussehen wie der aus der Bibliothek."
       ],
       "selector": ":root",
       "tokens": {
@@ -129,6 +136,9 @@
         "ds-advisor.icon-size": "var(--ds-spacing-16)",
         "ds-advisor.gap": "var(--ds-spacing-24)",
         "ds-advisor.row-gap": "var(--ds-spacing-12)",
+        "ds-advisor.tap-target": "var(--ds-spacing-48)",
+        "ds-advisor.menu-width": "300px",
+        "ds-advisor.nav-avatar-size": "var(--ds-spacing-40)",
         "ds-section.gap": "var(--ds-spacing-24)",
         "ds-button.radius": "var(--ds-radius-lg)",
         "ds-pill.radius": "var(--ds-radius-full)",
@@ -150,7 +160,16 @@
         "ds-preview.width": "390px",
         "ds-preview.height": "844px",
         "ds-preview.bezel": "var(--ds-spacing-8)",
-        "ds-preview.radius": "var(--ds-radius-xl)"
+        "ds-preview.radius": "var(--ds-radius-xl)",
+        "ds-color-icon.info.strong.default": "var(--_ds-ext-color-blue-700)",
+        "ds-color-icon.success.strong.default": "var(--_ds-ext-color-green-700)",
+        "ds-color-icon.warning.strong.default": "var(--_ds-ext-color-yellow-800)",
+        "ds-color-icon.danger.strong.default": "var(--_ds-ext-color-red-800)",
+        "ds-message.padding-y": "10px",
+        "ds-message.padding-start": "var(--ds-spacing-8)",
+        "ds-message.padding-end": "var(--ds-spacing-16)",
+        "ds-message.gap": "var(--ds-spacing-8)",
+        "ds-message.icon-size": "var(--ds-spacing-20)"
       }
     },
     "appearance-grey": {
@@ -234,7 +253,11 @@
         "ds-shadow.md.color": "rgba(0, 0, 0, 0.28)",
         "ds-shadow.lg.color": "rgba(0, 0, 0, 0.36)",
         "ds-color.background.warning-strong.subtlest.default": "var(--_ds-ext-color-orange-950)",
-        "ds-color.border.warning-strong.bold.default": "var(--_ds-ext-color-orange-400)"
+        "ds-color.border.warning-strong.bold.default": "var(--_ds-ext-color-orange-400)",
+        "ds-color-icon.info.strong.default": "var(--_ds-ext-color-blue-300)",
+        "ds-color-icon.success.strong.default": "var(--_ds-ext-color-green-400)",
+        "ds-color-icon.warning.strong.default": "var(--_ds-ext-color-yellow-400)",
+        "ds-color-icon.danger.strong.default": "var(--_ds-ext-color-red-400)"
       }
     },
     "compact": {

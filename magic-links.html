@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="de" data-appearance="grey">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Magic Links · FinLink</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<!-- Token layers aus V6 — dieselben generierten Dateien, die die Selbstauskunft
+     benutzt (css/tokens.css wird von v6/build-tokens.py aus tokens/ erzeugt).
+     Diese Seite hängt sie nur ein und definiert keinen einzigen Farbwert selbst;
+     alles Seitenspezifische steht unten als --ml-* und ist reine Layout-Möblierung,
+     kein Token. Reihenfolge nicht ändern: a11y muss nach ext kommen. -->
+<link rel="stylesheet" href="v6/css/tokens.css">
+<link rel="stylesheet" href="v6/css/tokens.ext.css">
+<link rel="stylesheet" href="v6/css/tokens.a11y.css">
+
+<style>
+/* ============================================================
+   Seitenmöblierung — Maße dieser Ansicht, aus dem Screenshot
+   abgemessen. Kein --ds-*: das sind Maße der B2B-Hülle, nicht
+   des Foundations-Vertrags.
+   ============================================================ */
+:root{
+  --ml-topbar-height: 56px;
+  --ml-rail-width: 120px;
+  --ml-rail-width-compact: 56px;
+  --ml-subnav-width: 280px;
+  --ml-card-max: 960px;
+  --ml-icon: 20px;
+}
+
+*{box-sizing:border-box;}
+
+/* Die Inhaltsfläche der B2B-Oberfläche ist weiß, nicht grau — die Karte trägt
+   ihre Kante selbst. Darum hier neutral.subtlest statt ds-surface-page. */
+body{
+  margin:0;
+  background-color:var(--ds-color-background-neutral-subtlest-default);
+  color:var(--ds-color-text-neutral-bold-default);
+}
+
+/* Sichtbarer Fokus überall aus einer Quelle — die Fokus-Tokens aus ext (G-01/G-23). */
+a:focus-visible, button:focus-visible{
+  outline:var(--ds-border-width-2) solid var(--ds-color-border-brand-bold-default);
+  outline-offset:2px;
+  border-radius:var(--ds-radius-base);
+}
+
+.skip-link{
+  position:absolute; left:var(--ds-spacing-8); top:calc(var(--ds-spacing-8) * -8);
+  z-index:100;
+  padding:var(--ds-spacing-8) var(--ds-spacing-16);
+  background:var(--ds-color-background-brand-bold-default);
+  color:var(--ds-color-text-neutral-inverse-default);
+  border-radius:var(--ds-radius-base);
+  font-size:var(--ds-typography-body-md-medium-font-size);
+  font-weight:var(--ds-typography-body-md-medium-font-weight);
+  text-decoration:none;
+}
+.skip-link:focus{top:var(--ds-spacing-8);}
+
+/* ============================================================
+   Kopfzeile
+   ============================================================ */
+.topbar{
+  position:sticky; top:0; z-index:20;
+  height:var(--ml-topbar-height);
+  display:flex; align-items:center;
+  gap:var(--ds-spacing-16);
+  padding:0 var(--ds-spacing-20) 0 var(--ds-spacing-16);
+  background:var(--ds-color-background-neutral-subtlest-default);
+  border-bottom:var(--ds-border-width-1) solid var(--ds-color-border-neutral-subtle-default);
+}
+
+.brand{display:flex; align-items:center; gap:var(--ds-spacing-8); text-decoration:none;}
+.brand-mark{width:24px; height:24px; flex:none; border-radius:var(--ds-radius-base);}
+.brand-name{
+  font-size:var(--ds-typography-heading-sm-font-size);
+  line-height:var(--ds-typography-heading-sm-line-height);
+  font-weight:var(--ds-typography-heading-sm-font-weight);
+  letter-spacing:var(--_ds-font-letterspacing-normal-tight);
+  color:var(--ds-color-text-neutral-bold-default);
+}
+
+.topbar-tools{margin-left:auto; display:flex; align-items:center; gap:var(--ds-spacing-4);}
+
+.icon-btn{
+  width:32px; height:32px; flex:none;
+  display:inline-flex; align-items:center; justify-content:center;
+  border:none; background:none; padding:0; cursor:pointer;
+  border-radius:var(--ds-radius-base);
+  color:var(--ds-color-icon-neutral-subtle-default);
+}
+.icon-btn:hover{background:var(--ds-color-background-neutral-subtle-default); color:var(--ds-color-icon-neutral-bold-default);}
+.icon-btn svg{width:var(--ml-icon); height:var(--ml-icon);}
+/* Der Funken ist der einzige eingefärbte Knopf in der Kopfzeile. text.brand.bold
+   statt icon.brand.bold: teal.500 misst nur 2.98:1 auf Weiß und verfehlt 1.4.11,
+   der a11y-Layer hebt text.brand.bold auf teal.700 (5.32:1). */
+.icon-btn.is-brand{color:var(--ds-color-text-brand-bold-default);}
+
+.lang{
+  display:inline-flex; align-items:center; gap:var(--ds-spacing-4);
+  border:none; background:none; cursor:pointer;
+  padding:var(--ds-spacing-4) var(--ds-spacing-8);
+  border-radius:var(--ds-radius-base);
+  color:var(--ds-color-text-neutral-subtle-default);
+  font-family:var(--ds-font-family-sans);
+  font-size:var(--ds-typography-body-md-medium-font-size);
+  font-weight:var(--ds-typography-body-md-medium-font-weight);
+}
+.lang:hover{background:var(--ds-color-background-neutral-subtle-default);}
+.lang svg{width:var(--ml-icon); height:var(--ml-icon); color:var(--ds-color-icon-neutral-subtle-default);}
+
+.account{
+  display:inline-flex; align-items:center; gap:var(--ds-spacing-8);
+  border:none; background:none; cursor:pointer; text-align:left;
+  padding:var(--ds-spacing-4) var(--ds-spacing-8);
+  margin-left:var(--ds-spacing-8);
+  border-radius:var(--ds-radius-base);
+  font-family:var(--ds-font-family-sans);
+}
+.account:hover{background:var(--ds-color-background-neutral-subtle-default);}
+.avatar{
+  width:32px; height:32px; flex:none;
+  border-radius:var(--ds-radius-full);
+  background:var(--ds-color-background-brand-subtle-default);
+  color:var(--ds-color-text-brand-bold-default);
+  display:inline-flex; align-items:center; justify-content:center;
+  font-size:var(--ds-typography-body-sm-strong-font-size);
+  font-weight:var(--ds-typography-body-sm-strong-font-weight);
+  letter-spacing:0;
+}
+.account-name{
+  display:block;
+  font-size:var(--ds-typography-body-sm-strong-font-size);
+  line-height:var(--ds-typography-body-sm-strong-line-height);
+  font-weight:var(--ds-typography-body-sm-strong-font-weight);
+  color:var(--ds-color-text-neutral-bold-default);
+}
+.account-role{
+  display:block;
+  font-size:var(--ds-typography-body-sm-default-font-size);
+  line-height:var(--ds-typography-body-sm-default-line-height);
+  color:var(--ds-color-text-neutral-subtlest-default);
+}
+.account svg{width:var(--ml-icon); height:var(--ml-icon); color:var(--ds-color-icon-neutral-subtle-default);}
+
+/* ============================================================
+   Hülle + Schienen-Navigation
+   ============================================================ */
+.shell{
+  display:flex; align-items:stretch;
+  min-height:calc(100vh - var(--ml-topbar-height));
+  /* Die Schiene ist sticky und damit nur so hoch wie das Fenster; bei kurzem
+     Inhalt bliebe unter ihr ein weißer Streifen. Die Hülle trägt dieselbe
+     Fläche darum ein zweites Mal, hart abgeschnitten an der Schienenkante. */
+  background:linear-gradient(to right,
+    var(--ds-surface-inverse) 0 var(--ml-rail-width),
+    transparent var(--ml-rail-width));
+}
+
+.rail{
+  width:var(--ml-rail-width); flex:none;
+  background:var(--ds-surface-inverse);
+  color:var(--ds-surface-inverse-text);
+  padding:var(--ds-spacing-8) 0 var(--ds-spacing-32);
+  position:sticky; top:var(--ml-topbar-height);
+  align-self:flex-start;
+  height:calc(100vh - var(--ml-topbar-height));
+  overflow-y:auto;
+}
+
+.rail a{
+  position:relative;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:var(--ds-spacing-8);
+  padding:var(--ds-spacing-16) var(--ds-spacing-4);
+  text-decoration:none;
+  color:var(--ds-surface-inverse-text);
+  text-align:center;
+}
+.rail a:hover{background:rgba(255,255,255,.08);}
+.rail a[aria-current="page"]{background:rgba(255,255,255,.12);}
+.rail a[aria-current="page"]::before{
+  content:""; position:absolute; left:0; top:var(--ds-spacing-8); bottom:var(--ds-spacing-8);
+  width:var(--ds-border-width-2);
+  background:var(--ds-color-border-brand-bold-default);
+}
+/* 20px = sizing/5, damit das Icon auf einer echten Stufe liegt — dieselbe
+   Größe wie in Figma (Icon / *). */
+.rail svg{width:var(--ml-icon); height:var(--ml-icon);}
+.rail-label{
+  font-size:var(--ds-typography-body-sm-default-font-size);
+  line-height:var(--ds-typography-body-sm-default-line-height);
+  font-weight:var(--ds-typography-body-sm-default-font-weight);
+  letter-spacing:var(--ds-typography-body-sm-default-letter-spacing);
+}
+.rail a:focus-visible{outline-color:var(--ds-color-border-neutral-inverse-default);}
+
+/* Zähler auf dem Icon. danger.bold.default statt der reinen Ramp-Mitte: der
+   a11y-Layer hebt es auf red.600, damit die weiße Ziffer 6.28:1 trägt. */
+.rail-badge{
+  position:absolute; top:var(--ds-spacing-8); left:50%; margin-left:var(--ds-spacing-4);
+  min-width:var(--ds-sizing-5); height:var(--ds-sizing-5);
+  padding:0 var(--ds-spacing-4);
+  display:inline-flex; align-items:center; justify-content:center;
+  border-radius:var(--ds-radius-full);
+  background:var(--ds-color-background-danger-bold-default);
+  color:var(--ds-color-text-neutral-inverse-default);
+  font-size:var(--ds-typography-body-sm-default-font-size);
+  line-height:1;
+  font-weight:var(--ds-typography-body-sm-default-font-weight);
+}
+
+/* ============================================================
+   Seite
+   ============================================================ */
+.main{
+  flex:1 1 auto; min-width:0;
+  padding:var(--ds-spacing-24) var(--ds-spacing-32) var(--ds-spacing-64);
+}
+h1{
+  margin:0 0 var(--ds-spacing-24);
+  font-size:var(--ds-typography-heading-lg-font-size);
+  line-height:var(--ds-typography-heading-lg-line-height);
+  letter-spacing:var(--ds-typography-heading-lg-letter-spacing);
+  font-weight:var(--ds-typography-heading-lg-font-weight);
+  color:var(--ds-color-text-neutral-bold-default);
+}
+
+.page{display:flex; align-items:flex-start; gap:var(--ds-spacing-32);}
+
+.subnav{
+  width:var(--ml-subnav-width); flex:none;
+  display:flex; flex-direction:column; gap:var(--ds-spacing-4);
+}
+.subnav a{
+  display:block;
+  padding:var(--ds-spacing-8) var(--ds-spacing-12);
+  border-radius:var(--ds-radius-base);
+  text-decoration:none;
+  color:var(--ds-color-text-neutral-subtle-default);
+  font-size:var(--ds-typography-body-md-default-font-size);
+  line-height:var(--ds-typography-body-md-default-line-height);
+  letter-spacing:var(--ds-typography-body-md-default-letter-spacing);
+}
+.subnav a:hover{background:var(--ds-color-background-neutral-subtle-default);}
+.subnav a[aria-current="page"]{
+  background:var(--ds-color-background-neutral-subtle-default);
+  color:var(--ds-color-text-neutral-bold-default);
+  font-weight:var(--ds-typography-body-md-medium-font-weight);
+}
+
+.card{
+  flex:1 1 auto; min-width:0; max-width:var(--ml-card-max);
+  background:var(--ds-surface-card);
+  border:var(--ds-border-width-1) solid var(--ds-color-border-neutral-subtle-default);
+  border-radius:var(--ds-card-radius);
+}
+/* Jeder Block trägt seinen eigenen Innenabstand, die Trennlinie läuft dafür
+   über die volle Kartenbreite — so wie im Screenshot. */
+.card-block{padding:var(--ds-spacing-24);}
+.card-block + .card-block{border-top:var(--ds-border-width-1) solid var(--ds-color-border-neutral-subtle-default);}
+
+.card h2{
+  margin:0 0 var(--ds-spacing-8);
+  font-size:var(--ds-typography-heading-sm-font-size);
+  line-height:var(--ds-typography-heading-sm-line-height);
+  font-weight:var(--ds-typography-heading-sm-font-weight);
+  color:var(--ds-color-text-neutral-bold-default);
+}
+.card p{
+  margin:0;
+  max-width:var(--ds-layout-measure-prose);
+  font-size:var(--ds-typography-body-md-default-font-size);
+  line-height:var(--ds-typography-body-md-default-line-height);
+  letter-spacing:var(--ds-typography-body-md-default-letter-spacing);
+  color:var(--ds-color-text-neutral-subtle-default);
+}
+.card p a{
+  color:var(--ds-color-text-neutral-bold-default);
+  font-weight:var(--ds-typography-body-md-strong-font-weight);
+  text-decoration:var(--_ds-font-textdecoration-underline);
+}
+.card p a:hover{color:var(--ds-color-text-brand-bold-default);}
+
+.card p.link-label{
+  margin:0 0 var(--ds-spacing-8);
+  font-size:var(--ds-typography-body-md-strong-font-size);
+  line-height:var(--ds-typography-body-md-strong-line-height);
+  letter-spacing:var(--ds-typography-body-md-strong-letter-spacing);
+  font-weight:var(--ds-typography-body-md-strong-font-weight);
+  color:var(--ds-color-text-neutral-bold-default);
+}
+.card-block p + .url{margin-top:var(--ds-spacing-16);}
+
+/* Der Link selbst: keine Eingabe, sondern ein Feld, das nur zum Lesen und
+   Kopieren da ist — darum grau gefüllt und ohne Kante. */
+.url{
+  display:inline-block; max-width:100%;
+  padding:var(--ds-spacing-8) var(--ds-spacing-12);
+  background:var(--ds-color-background-neutral-subtle-default);
+  border-radius:var(--ds-field-radius);
+  color:var(--ds-color-text-neutral-subtle-default);
+  font-size:var(--ds-typography-body-md-default-font-size);
+  line-height:var(--ds-typography-body-md-default-line-height);
+  overflow-x:auto; white-space:nowrap;
+}
+
+.share{
+  display:flex; align-items:center; gap:var(--ds-spacing-12);
+  margin-top:var(--ds-spacing-20);
+}
+.share-label{
+  font-size:var(--ds-typography-body-md-default-font-size);
+  color:var(--ds-color-text-neutral-subtle-default);
+}
+.copy{
+  width:32px; height:32px;
+  display:inline-flex; align-items:center; justify-content:center;
+  border:none; background:none; padding:0; cursor:pointer;
+  border-radius:var(--ds-radius-base);
+  color:var(--ds-color-text-brand-bold-default);
+}
+.copy:hover{background:var(--ds-color-background-brand-subtlest-default);}
+.copy svg{width:var(--ml-icon); height:var(--ml-icon);}
+.copy-done{
+  font-size:var(--ds-typography-body-sm-medium-font-size);
+  font-weight:var(--ds-typography-body-sm-medium-font-weight);
+  color:var(--ds-color-text-brand-bold-default);
+}
+
+/* ============================================================
+   Schmalere Fenster
+   ============================================================ */
+@media (max-width:1080px){
+  .page{flex-direction:column; gap:var(--ds-spacing-20);}
+  .subnav{
+    width:100%; flex-direction:row; flex-wrap:wrap;
+    border-bottom:var(--ds-border-width-1) solid var(--ds-color-border-neutral-subtle-default);
+    padding-bottom:var(--ds-spacing-8);
+  }
+  .card{width:100%; max-width:none;}
+}
+@media (max-width:860px){
+  .rail{width:var(--ml-rail-width-compact);}
+  .shell{background:linear-gradient(to right,
+    var(--ds-surface-inverse) 0 var(--ml-rail-width-compact),
+    transparent var(--ml-rail-width-compact));}
+  .rail-label{position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap;}
+  .rail a{padding:var(--ds-spacing-12) var(--ds-spacing-4);}
+  .rail-badge{margin-left:var(--ds-spacing-0); left:auto; right:var(--ds-spacing-4);}
+  .main{padding:var(--ds-spacing-20) var(--ds-spacing-16) var(--ds-spacing-48);}
+}
+@media (max-width:600px){
+  .account-text{position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap;}
+  .card-block{padding:var(--ds-spacing-16);}
+}
+</style>
+</head>
+<body>
+<a class="skip-link" href="#main">Zum Inhalt springen</a>
+
+<!-- Icon-Vorrat. Nur was mehrfach vorkommt steht hier; alles andere bleibt an
+     seiner Stelle im Markup, wo man es beim Lesen erwartet. -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <symbol id="i-copy" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"
+          stroke-linecap="round" stroke-linejoin="round">
+    <rect x="7.25" y="7.25" width="9.5" height="9.5" rx="2"/>
+    <path d="M12.75 7.25v-2a2 2 0 0 0-2-2h-5.5a2 2 0 0 0-2 2v5.5a2 2 0 0 0 2 2h2"/>
+  </symbol>
+</svg>
+
+<header class="topbar">
+  <a class="brand" href="#">
+    <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true">
+      <rect width="24" height="24" rx="4" fill="var(--ds-color-background-brand-bold-default)"/>
+      <path d="M8 6.5h8M8 11.5h6M8 11.5v6" fill="none" stroke="#fff" stroke-width="2"
+            stroke-linecap="round"/>
+    </svg>
+    <span class="brand-name">FinLink</span>
+  </a>
+
+  <div class="topbar-tools">
+    <button type="button" class="icon-btn is-brand" aria-label="KI-Assistent">
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"
+           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M11.5 2.5l1.1 2.9 2.9 1.1-2.9 1.1-1.1 2.9-1.1-2.9L7.5 6.5l2.9-1.1z"/>
+        <path d="M5.5 11l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7z"/>
+      </svg>
+    </button>
+    <button type="button" class="icon-btn" aria-label="Neu anlegen">
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"
+           stroke-linecap="round" aria-hidden="true">
+        <rect x="2.75" y="2.75" width="14.5" height="14.5" rx="3"/>
+        <path d="M10 6.75v6.5M6.75 10h6.5"/>
+      </svg>
+    </button>
+    <button type="button" class="icon-btn" aria-label="Benachrichtigungen">
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"
+           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M5.25 8.5a4.75 4.75 0 0 1 9.5 0c0 3 1 4.25 1.5 4.75H3.75c.5-.5 1.5-1.75 1.5-4.75z"/>
+        <path d="M8.25 15.5a1.9 1.9 0 0 0 3.5 0"/>
+      </svg>
+    </button>
+    <button type="button" class="icon-btn" aria-label="Hilfe">
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"
+           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="10" cy="10" r="7.25"/>
+        <path d="M8 7.75a2 2 0 1 1 2.75 1.85c-.5.2-.75.65-.75 1.15v.5"/>
+        <path d="M10 14.25h.01"/>
+      </svg>
+    </button>
+
+    <button type="button" class="lang" aria-label="Sprache: Deutsch">
+      DE
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"
+           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M5.5 8l4.5 4.5L14.5 8"/>
+      </svg>
+    </button>
+
+    <button type="button" class="account">
+      <span class="avatar" aria-hidden="true">GS</span>
+      <span class="account-text">
+        <span class="account-name">Gernot Schusser</span>
+        <span class="account-role">Global admin</span>
+      </span>
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"
+           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M5.5 8l4.5 4.5L14.5 8"/>
+      </svg>
+    </button>
+  </div>
+</header>
+
+<div class="shell">
+  <!-- Die Schiene ist die einzige dunkle Fläche der Seite. Finlink Core kennt
+       keine dunkle neutrale Fläche (G-27); ds-surface-inverse benennt genau
+       diese fehlende Stufe und trägt hier die Navigation. -->
+  <nav class="rail" aria-label="Hauptnavigation">
+    <a href="#">
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"
+           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <rect x="2.75" y="2.75" width="6" height="6" rx="1.5"/>
+        <rect x="11.25" y="2.75" width="6" height="6" rx="1.5"/>
+        <rect x="2.75" y="11.25" width="6" height="6" rx="1.5"/>
+        <rect x="11.25" y="11.25" width="6" height="6" rx="1.5"/>
+      </svg>
+      <span class="rail-label">Mein Tag</span>
+      <span class="rail-badge">99+</span>
+    </a>
+
+    <a href="#">
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"
+           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <rect x="2.75" y="3.75" width="14.5" height="12.5" rx="2"/>
+        <circle cx="7.5" cy="9" r="1.75"/>
+        <path d="M4.75 13.75c0-1.5 1.25-2.25 2.75-2.25s2.75.75 2.75 2.25"/>
+        <path d="M12.75 8.5h2.5M12.75 11.5h2.5"/>
+      </svg>
+      <span class="rail-label">Anträge</span>
+      <span class="rail-badge">87</span>
+    </a>
+
+    <a href="#">
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"
+           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M3.25 4.25h13.5L11.5 10.5v5.25l-3-1.75V10.5z"/>
+      </svg>
+      <span class="rail-label">Leads</span>
+      <span class="rail-badge">12</span>
+    </a>
+
+    <a href="#">
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"
+           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <rect x="2.25" y="4.75" width="15.5" height="11" rx="2"/>
+        <circle cx="7" cy="9.5" r="1.75"/>
+        <path d="M4.5 13.5c0-1.4 1.15-2.15 2.5-2.15s2.5.75 2.5 2.15"/>
+        <path d="M12.25 9h3.25M12.25 12h3.25"/>
+      </svg>
+      <span class="rail-label">Quellen</span>
+    </a>
+
+    <a href="#">
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"
+           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M2.75 7.75 10 3.5l7.25 4.25"/>
+        <path d="M4.75 7.75v7.5M8.25 7.75v7.5M11.75 7.75v7.5M15.25 7.75v7.5"/>
+        <path d="M3 16.5h14"/>
+      </svg>
+      <span class="rail-label">Unternehmen</span>
+    </a>
+
+    <a href="#">
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"
+           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <rect x="2.25" y="4.75" width="15.5" height="10.5" rx="2"/>
+        <path d="M2.25 8.5h15.5"/>
+        <path d="M5.25 12h3"/>
+      </svg>
+      <span class="rail-label">Buchhaltung</span>
+    </a>
+
+    <a href="#">
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"
+           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <rect x="2.75" y="2.75" width="14.5" height="14.5" rx="2.5"/>
+        <path d="M6.75 13.25V9M10 13.25V6.75M13.25 13.25v-2.5"/>
+      </svg>
+      <span class="rail-label">Reporting</span>
+    </a>
+
+    <a href="#">
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"
+           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M3.25 7.25 4.75 3.5h10.5l1.5 3.75"/>
+        <path d="M3.25 7.25h13.5v8.25a1 1 0 0 1-1 1H4.25a1 1 0 0 1-1-1z"/>
+        <path d="M7.75 16.5v-4.25h4.5v4.25"/>
+      </svg>
+      <span class="rail-label">Lead-Shop</span>
+    </a>
+
+    <a href="#">
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"
+           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <rect x="2.25" y="4.75" width="15.5" height="10.5" rx="2"/>
+        <path d="m3 6 7 5 7-5"/>
+      </svg>
+      <span class="rail-label">E-Mail</span>
+    </a>
+
+    <a href="#">
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"
+           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M11.5 2.5l1.1 2.9 2.9 1.1-2.9 1.1-1.1 2.9-1.1-2.9L7.5 6.5l2.9-1.1z"/>
+        <path d="M5.5 11l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7z"/>
+      </svg>
+      <span class="rail-label">KI-Chat</span>
+    </a>
+
+    <a href="#">
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"
+           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="10" cy="10" r="2.75"/>
+        <path d="M10 2.25v2M10 15.75v2M3.75 10h-2M18.25 10h-2M5.6 5.6 4.2 4.2M15.8 15.8l-1.4-1.4M14.4 5.6l1.4-1.4M4.2 15.8l1.4-1.4"/>
+      </svg>
+      <span class="rail-label">System</span>
+    </a>
+  </nav>
+
+  <main class="main" id="main">
+    <h1>Magic Links</h1>
+
+    <div class="page">
+      <nav class="subnav" aria-label="Bereiche">
+        <a href="#" data-panel="antragsstrecken" aria-current="page">Antragsstrecken</a>
+        <a href="#" data-panel="kunden-login">Kunden-Login</a>
+      </nav>
+
+      <section class="card" id="panel-antragsstrecken" aria-labelledby="h-magic-links">
+        <div class="card-block">
+          <h2 id="h-magic-links">Magic Links</h2>
+          <p>Senden Sie diesen Magic-Link an neue Kunden, um sich für die Nutzung des
+             Kundenbereichs zu registrieren. Kunden, welche sich über Ihren persönlichen
+             Magic-Link registrieren, werden direkt Ihnen zugeordnet, während Kunden des
+             Unternehmens-Magic-Links gleichmäßig an alle Berater in Ihrem Unternehmen
+             verteilt werden.</p>
+        </div>
+
+        <div class="card-block">
+          <p class="link-label">Persönlicher Magic-Link:</p>
+          <div class="url" id="url-personal">https://loanlink.finlink-staging.de/gernot-schusser/start</div>
+          <div class="share">
+            <span class="share-label">Teilen:</span>
+            <button type="button" class="copy" data-copy="url-personal"
+                    aria-label="Persönlichen Magic-Link kopieren">
+              <svg aria-hidden="true"><use href="#i-copy"/></svg>
+            </button>
+            <span class="copy-done" role="status" aria-live="polite"></span>
+          </div>
+        </div>
+
+        <div class="card-block">
+          <p class="link-label">Unternehmens-Magic-Link:</p>
+          <p>Alle neuen Leads, die über den Einladungslink des Unternehmens kommen, werden
+             entsprechend der Lead-Zuteilungsregeln verteilt, oder durch das
+             Rundlauf-Verfahren, falls keine Lead-Zuteilungsregeln bestehen.
+             <a href="#">Lead-Zuteilungsregeln ansehen</a></p>
+          <div class="url" id="url-company">https://loanlink.finlink-staging.de/start</div>
+          <div class="share">
+            <span class="share-label">Teilen:</span>
+            <button type="button" class="copy" data-copy="url-company"
+                    aria-label="Unternehmens-Magic-Link kopieren">
+              <svg aria-hidden="true"><use href="#i-copy"/></svg>
+            </button>
+            <span class="copy-done" role="status" aria-live="polite"></span>
+          </div>
+        </div>
+
+        <div class="card-block">
+          <p class="link-label">Kunden-Magic-Link: Vollständige Selbstauskunft (X Pflichtfelder)</p>
+          <p>Für Kundinnen und Kunden, die ihre Selbstauskunft direkt vollständig ausfüllen
+             möchten. Enthält alle Angaben inklusive X Pflichtfeldern.</p>
+          <div class="url" id="url-kunde-voll">https://loanlink.finlink-staging.de/gernot-schusser/selbstauskunft</div>
+          <div class="share">
+            <span class="share-label">Teilen:</span>
+            <button type="button" class="copy" data-copy="url-kunde-voll"
+                    aria-label="Kunden-Magic-Link für die vollständige Selbstauskunft kopieren">
+              <svg aria-hidden="true"><use href="#i-copy"/></svg>
+            </button>
+            <span class="copy-done" role="status" aria-live="polite"></span>
+          </div>
+        </div>
+        <div class="card-block">
+          <p class="link-label">Kunden-Magic-Link: kurze Selbstauskunft (X Pflichtfelder)</p>
+          <p>Nur X Pflichtfelder für den schnellen Einstieg.</p>
+          <div class="url" id="url-kunde-kurz">https://loanlink.finlink-staging.de/gernot-schusser/selbstauskunft-kurz</div>
+          <div class="share">
+            <span class="share-label">Teilen:</span>
+            <button type="button" class="copy" data-copy="url-kunde-kurz"
+                    aria-label="Kunden-Magic-Link für die kurze Selbstauskunft kopieren">
+              <svg aria-hidden="true"><use href="#i-copy"/></svg>
+            </button>
+            <span class="copy-done" role="status" aria-live="polite"></span>
+          </div>
+        </div>
+        <div class="card-block">
+          <p class="link-label">Vermittler-Magic-Link: Vollständige Selbstauskunft</p>
+          <p>Für Vermittlerinnen und Vermittler, z. B. Maklerbüros, die die Selbstauskunft im
+             Namen der Kundschaft ausfüllen. Enthält alle Angaben inklusive X Pflichtfeldern.</p>
+          <div class="url" id="url-vermittler">https://loanlink.finlink-staging.de/gernot-schusser/vermittler/selbstauskunft</div>
+          <div class="share">
+            <span class="share-label">Teilen:</span>
+            <button type="button" class="copy" data-copy="url-vermittler"
+                    aria-label="Vermittler-Magic-Link kopieren">
+              <svg aria-hidden="true"><use href="#i-copy"/></svg>
+            </button>
+            <span class="copy-done" role="status" aria-live="polite"></span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Kunden-Login ist im Screenshot nicht aufgeklappt und wird hier deshalb
+           nicht erfunden — der Reiter schaltet, die Karte sagt, dass die Ansicht
+           nicht Teil dieses Prototyps ist. -->
+      <section class="card" id="panel-kunden-login" hidden aria-labelledby="h-kunden-login">
+        <div class="card-block">
+          <h2 id="h-kunden-login">Kunden-Login</h2>
+          <p>Dieser Bereich gehört nicht zu diesem Prototyp — die Vorlage zeigt nur
+             die Ansicht <em>Antragsstrecken</em>.</p>
+        </div>
+      </section>
+    </div>
+
+  </main>
+</div>
+
+<script>
+/* Reiter: eine aktive Ansicht, aria-current wandert mit. */
+document.querySelectorAll('.subnav a').forEach(function (tab) {
+  tab.addEventListener('click', function (event) {
+    event.preventDefault();
+    document.querySelectorAll('.subnav a').forEach(function (other) {
+      other.removeAttribute('aria-current');
+    });
+    tab.setAttribute('aria-current', 'page');
+    document.querySelectorAll('.page .card').forEach(function (panel) {
+      panel.hidden = panel.id !== 'panel-' + tab.dataset.panel;
+    });
+  });
+});
+
+/* Kopieren. navigator.clipboard braucht einen sicheren Kontext; über file://
+   ist er nicht gegeben, darum der Fallback über eine Auswahl. */
+function report(row, message) {
+  var slot = row.querySelector('.copy-done');
+  slot.textContent = message;
+  clearTimeout(slot.dataset.timer);
+  slot.dataset.timer = setTimeout(function () { slot.textContent = ''; }, 2500);
+}
+
+document.querySelectorAll('.copy').forEach(function (button) {
+  button.addEventListener('click', function () {
+    var row = button.closest('.share');
+    var text = document.getElementById(button.dataset.copy).textContent.trim();
+    var done = function () { report(row, 'Link kopiert.'); };
+    var fail = function () { legacy(text, done, row); };
+
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(text).then(done, fail);
+    } else {
+      fail();
+    }
+  });
+});
+
+function legacy(text, done, row) {
+  var field = document.createElement('textarea');
+  field.value = text;
+  field.setAttribute('readonly', '');
+  field.style.position = 'fixed';
+  field.style.top = '-1000px';
+  document.body.appendChild(field);
+  field.select();
+  var ok = false;
+  try { ok = document.execCommand('copy'); } catch (error) { ok = false; }
+  document.body.removeChild(field);
+  if (ok) { done(); } else { report(row, 'Kopieren nicht möglich — Link bitte markieren.'); }
+}
+</script>
+</body>
+</html>

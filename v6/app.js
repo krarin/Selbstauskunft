@@ -159,7 +159,12 @@
       const bubble = document.createElement('span');
       bubble.className = 'info-bubble';
       bubble.setAttribute('aria-hidden', 'true');
-      bubble.textContent = text;
+      /* Fast jeder Hilfetext ist ein Satz, zwei sind Listen aus Stufe und Erklärung
+         (Ausstattung und Zustand). Trägt der Text Auszeichnung, übernimmt die Blase
+         sie, statt alle Absätze zu einem Fließtext zusammenzuziehen — kopiert, nicht
+         verschoben: das Original bleibt stehen, es ist das Ziel von aria-describedby. */
+      if (help.firstElementChild) bubble.append(...help.cloneNode(true).childNodes);
+      else bubble.textContent = text;
 
       wrap.append(button, bubble);
       label.appendChild(wrap);
@@ -1315,6 +1320,68 @@
     return ok;
   }
 
+  /* Zwei Felder, von denen mindestens eines gefüllt sein muss. Erreichbar zu sein
+     ist Pflicht, auf welchem Weg nicht — `required` an beiden Feldern würde beide
+     verlangen, an einem das andere zur Zierde machen. Also hält die Gruppe die
+     Regel, so wie .field[data-required] sie für eine Radiogruppe hält.
+
+     Im Fehlerfall werden BEIDE Felder rot: der Mangel liegt nicht an einem von
+     ihnen, sondern daran, dass keines ausgefüllt ist. Die Meldung steht einmal
+     unter dem Paar, und beide Felder verweisen per aria-describedby darauf — sonst
+     hörte man beim Tabben durch das zweite Feld nicht, was fehlt. */
+  function validateOneOf(group) {
+    const controls = $$('.input', group);
+    const ok = controls.some((control) => control.value.trim());
+
+    group.classList.toggle('invalid', !ok);
+    controls.forEach((control) => control.setAttribute('aria-invalid', String(!ok)));
+    if (!ok) {
+      let message = group.querySelector(':scope > .error-text');
+      if (!message) {
+        message = document.createElement('p');
+        message.className = 'error-text';
+        message.id = uid('err');
+        group.appendChild(message);
+      }
+      controls.forEach((control) => {
+        const described = (control.getAttribute('aria-describedby') || '')
+          .split(/\s+/).filter(Boolean);
+        if (!described.includes(message.id)) {
+          control.setAttribute('aria-describedby', [...described, message.id].join(' '));
+        }
+      });
+      message.textContent = 'Bitte geben Sie eine E-Mail-Adresse oder eine Telefonnummer an';
+    }
+    return ok;
+  }
+
+  /* Eine E-Mail-Adresse ist hier freiwillig, eine falsch getippte aber wertlos: der
+     Rückruf geht ins Leere und niemand merkt es. Geprüft wird deshalb nur, was
+     dasteht — leer ist in Ordnung, solange die Telefonnummer die Gruppe oben
+     rettet. */
+  function validateOptionalMail(input) {
+    const field = input.closest('.field');
+    const value = input.value.trim();
+
+    if (value && !MAIL_PATTERN.test(value)) {
+      field.classList.add('invalid');
+      input.setAttribute('aria-invalid', 'true');
+      messageFor(field, input).textContent = 'Diese E-Mail-Adresse sieht nicht vollständig aus';
+      return false;
+    }
+
+    /* Aufgeräumt wird nur, was diese Prüfung selbst angerichtet haben kann. Hält die
+       Gruppe darüber gerade den Fehler „eines von beiden“, dann ist das leere Feld
+       hier Teil davon — es rot zu lassen und aria-invalid stehen zu lassen ist genau
+       richtig, und ein toggle() hätte es stillschweigend für in Ordnung erklärt. */
+    const pair = input.closest('.field[data-one-of]');
+    if (!pair || !pair.classList.contains('invalid')) {
+      field.classList.remove('invalid');
+      input.setAttribute('aria-invalid', 'false');
+    }
+    return true;
+  }
+
   /* ------------------------------------------------------------- nav state */
 
   function wireNav() {
@@ -1537,39 +1604,112 @@
      Initialen kommen aus dem Namen, damit sie beim Wechsel der Person mitgehen. */
   function initAdvisor() {
     const params = new URLSearchParams(location.search);
-    const text = (sel, value) => { if (value) $(sel).textContent = value; };
+
+    /* Jede Angabe steht zweimal auf der Seite — in der Karte im Seitenkopf und im
+       Kontaktmenü der Mobil-Leiste —, und beide tragen dasselbe data-advisor. Nur
+       eine der beiden ist je sichtbar, aber welche, entscheidet die Bildschirm-
+       breite und nicht dieses Skript: geschrieben wird immer in alle. */
+    const nodes = (key) => $$(`[data-advisor="${key}"]`);
+    const text = (key, value) => {
+      if (value) nodes(key).forEach((node) => { node.textContent = value; });
+    };
+
+    /* Der Wert steht in .advisor-value INNERHALB des Elements, nicht als sein
+       ganzer Inhalt: daneben liegen das Icon und das unsichtbare Verb, die ein
+       textContent hier wegräumen würde.
+       Die href bekommt nur, was eine hat. Dieselbe Angabe ist in der Karte ein
+       Link und im Menü ein Knopf, der kopiert — dort wäre eine href eine
+       Eigenschaft, die niemand liest. */
+    const link = (key, value, href) => {
+      if (!value) return;
+      nodes(key).forEach((node) => {
+        node.querySelector('.advisor-value').textContent = value;
+        if (node.tagName === 'A') node.href = href(value);
+      });
+    };
 
     const name = params.get('berater');
-    text('#advisor-name', name);
-    text('#advisor-role', params.get('rolle'));
-    text('#advisor-address', params.get('adresse'));
+    text('name', name);
+    text('role', params.get('rolle'));
 
     if (name) {
-      $('#advisor-initials').textContent = name
+      text('initials', name
         .split(/\s+/).filter(Boolean).slice(0, 2)
-        .map((part) => part[0].toUpperCase()).join('');
+        .map((part) => part[0].toUpperCase()).join(''));
     }
 
     // Ein Telefonlink verträgt keine Leerzeichen, die gelesene Nummer braucht sie.
-    const phone = params.get('telefon');
-    if (phone) {
-      const link = $('#advisor-phone');
-      link.textContent = phone;
-      link.href = `tel:${phone.replace(/[^+\d]/g, '')}`;
-    }
-
-    const mail = params.get('mail');
-    if (mail) {
-      const link = $('#advisor-mail');
-      link.textContent = mail;
-      link.href = `mailto:${mail}`;
-    }
+    link('phone', params.get('telefon'), (v) => `tel:${v.replace(/[^+\d]/g, '')}`);
+    link('mail', params.get('mail'), (v) => `mailto:${v}`);
+    /* Die Adresse in der Karte ist ein Link auf eine Kartensuche, kein eingebetteter
+       Dienst — es geht nichts an Google, bevor jemand darauf klickt. Im Menü der
+       Leiste ist dieselbe Adresse ein Knopf, der sie kopiert: auf dem Telefon ist
+       die Anschrift das, was man in die eigene Navigations-App einsetzt. */
+    link('address', params.get('adresse'),
+      (v) => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(v)}`);
 
     const src = params.get('foto');
     if (!src) return;
-    const photo = $('#advisor-photo');
-    photo.addEventListener('load', () => { photo.hidden = false; });
-    photo.src = src;
+    nodes('photo').forEach((photo) => {
+      photo.addEventListener('load', () => { photo.hidden = false; });
+      photo.src = src;
+    });
+  }
+
+  /* Das Kontaktmenü hinter dem Portrait in der Mobil-Leiste. Es klappt auf und zu wie
+     die Abschnittsliste daneben und schließt aus denselben zwei Gründen: ein Klick
+     daneben und Escape. Beide Menüs hängen an derselben Leiste, also schließt das
+     Öffnen des einen das andere — zwei Tafeln übereinander wären nicht zu lesen. */
+  function wireAdvisorMenu() {
+    const toggle = $('#advisor-menu-toggle');
+    const status = $('#advisor-copy-status');
+
+    const setOpen = (open) => {
+      toggle.setAttribute('aria-expanded', String(open));
+      // Die Rückmeldung des letzten Kopiervorgangs gehört nicht zum nächsten Öffnen.
+      if (!open) status.textContent = '';
+    };
+
+    toggle.addEventListener('click', () => {
+      const open = toggle.getAttribute('aria-expanded') !== 'true';
+      if (open) setNavOpen(false);
+      setOpen(open);
+    });
+
+    /* Anrufen ist ein Link und tut es selbst; kopiert wird hier. Der Wert wird aus
+       der Zeile gelesen statt mitgeführt: er steht sichtbar darin, und was kopiert
+       wird, ist damit garantiert das, was dasteht — auch nachdem initAdvisor eine
+       andere Person hineingeschrieben hat. */
+    $$('.advisor-action[data-copy]').forEach((action) => {
+      action.addEventListener('click', async () => {
+        const value = action.querySelector('.advisor-value').textContent.trim();
+        const label = action.dataset.copy;
+        try {
+          await navigator.clipboard.writeText(value);
+          status.textContent = `${label} kopiert`;
+        } catch {
+          /* Dieselbe Lage wie bei der Referenz-ID: eine Seite, die direkt von der
+             Platte geöffnet wurde, bekommt die Zwischenablage oft nicht. Dann wird
+             der Wert markiert, statt als kopiert zu melden, was nicht kopiert ist. */
+          const range = document.createRange();
+          range.selectNodeContents(action.querySelector('.advisor-value'));
+          const selection = getSelection();
+          selection.removeAllRanges();
+          selection.addRange(range);
+          status.textContent = 'Bitte mit Strg+C bzw. Cmd+C kopieren — markiert ist es schon';
+        }
+      });
+    });
+
+    document.addEventListener('pointerdown', (event) => {
+      if (!event.target.closest('.advisor-menu')) setOpen(false);
+    });
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key !== 'Escape' || toggle.getAttribute('aria-expanded') !== 'true') return;
+      setOpen(false);
+      toggle.focus();   // Escape darf den Fokus nicht in einer geschlossenen Tafel lassen
+    });
   }
 
   /* ------------------------------------------------------- Absenden-Strecke */
@@ -1623,11 +1763,18 @@
     const controls = $$('.input[required], .select[required]', form).filter(isAsked);
     const groups = $$('.field[data-required]', form)
       .filter((g) => isAsked(g) && g.querySelector('input[type="radio"]'));
+    const pairs = $$('.field[data-one-of]', form).filter(isAsked);
+    const mails = $$('.input[data-mail]', form).filter(isAsked);
 
     return [
       ...controls.filter((c) => !validate(c)).map((c) => ({ node: c, focus: c })),
       ...groups.filter((g) => !validateGroup(g))
         .map((g) => ({ node: g, focus: g.querySelector('input[type="radio"]') })),
+      ...pairs.filter((g) => !validateOneOf(g))
+        .map((g) => ({ node: g, focus: g.querySelector('.input') })),
+      // Eine unvollständige Adresse hält den Versand genauso auf wie ein leeres Paar,
+      // sonst ginge sie als „ausgefüllt“ durch und der Rückruf ins Leere.
+      ...mails.filter((m) => !validateOptionalMail(m)).map((m) => ({ node: m, focus: m })),
     ].sort((a, b) => (a.node.compareDocumentPosition(b.node)
       & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1));
   }
@@ -1798,7 +1945,7 @@
     if (first) first.focus({ preventScroll: true });
   }
 
-  /* Einwilligung und Versand -------------------------------------------------- */
+  /* Einwilligung und Abschicken ------------------------------------------------ */
 
   const consent = $('#consent-broker');
   const consentField = $('#consent-field');
@@ -1947,6 +2094,7 @@
   wireToolsToggle();
   wireInfoTips();
   initAdvisor();
+  wireAdvisorMenu();
   initEmbed();
 
   zweck.addEventListener('change', updateStart);
@@ -2064,8 +2212,22 @@
   renumberKredite();
 
   document.addEventListener('input', touched);
+
+  /* Ein Paar, das schon rot ist, muss sich beim Tippen wieder beruhigen — und zwar
+     im Moment des Tippens, nicht erst beim Verlassen des Feldes: die Meldung sagt
+     „eines von beiden“, und sobald eines dasteht, stimmt sie nicht mehr. Nur wenn
+     die Gruppe bereits beanstandet wurde, sonst würde das erste Zeichen im leeren
+     Formular sofort einen Fehler erzeugen. */
+  document.addEventListener('input', (event) => {
+    if (!event.target.matches('.input')) return;
+    const pair = event.target.closest('.field[data-one-of]');
+    if (pair && pair.classList.contains('invalid')) validateOneOf(pair);
+  });
+
   document.addEventListener('blur', (event) => {
-    if (event.target.matches('.input, .select')) validate(event.target);
+    if (!event.target.matches('.input, .select')) return;
+    if (event.target.matches('[data-mail]')) { validateOptionalMail(event.target); return; }
+    validate(event.target);
   }, true);
 
   /* The way on is also the completeness check: an incomplete form does not move to

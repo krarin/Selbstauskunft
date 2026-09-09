@@ -124,6 +124,10 @@
     <!-- The Immobilienart is written into this entry once it is picked — "Immobilie ·
          Grundstück" — the same way the Antragsteller entry picks up the first name. -->
     <a href="#immobilie" class="sub object-nav" data-navfor="immobilie"><span id="immo-nav-title">Immobilie</span></a>
+    <!-- Zweiter Eintrag zum selben Objekt: der Abschnitt ist lang genug, dass man ihn
+         gezielt ansteuern will. data-art nimmt ihn beim Grundstück mit dem Abschnitt
+         zusammen weg — dafür muss .show unten dem hidden weichen. -->
+    <a href="#immobilienmerkmale" class="sub object-nav" data-navfor="immobilie" data-art="!Grundstück">Immobilienmerkmale</a>
     <a href="#neubau"    class="sub object-nav" data-navfor="neubau">Neubau</a>
     <a href="#anschluss" class="sub object-nav" data-navfor="anschluss">Anschlussfinanzierung</a>
     <a href="#modern"    class="sub object-nav" data-navfor="modernisierung">Modernisierung</a>
@@ -158,6 +162,55 @@
       <button type="button" class="add-btn" id="prefill">Beispieldaten einfügen</button>
       <p class="nav-note" id="prefill-status" role="status" aria-live="polite"></p>
     </div>
+    </div>
+
+    <!-- Kontakt zur Beraterin oder zum Berater, auf dem Telefon. Die Karte aus dem
+         Seitenkopf ist dort weg (siehe .advisor im 640px-Block) und steckt hier: das
+         Portrait rechts in der klebenden Leiste, und dahinter dieselben drei
+         Kontaktwege. Über 640px ist der Block nicht da — dort steht die Karte.
+
+         Er steht NACH .nav-links im Quelltext, nicht davor: die Liste klappt über
+         `.nav-toggle[aria-expanded="true"] + .nav-links` auf, und dazwischen
+         geschoben wäre sie kein Nachbar des Knopfes mehr. Mit der Tab-Taste kommt
+         man dadurch erst durch die Abschnitte und dann zum Portrait — an das Ende
+         der Leiste, wo es auch steht. An das rechte Ende schiebt es sich per
+         margin-inline-start: auto, nicht per Reihenfolge.
+
+         Die drei Zeilen der Tafel sind Handlungen, keine Angaben: anrufen ist ein
+         Link, die anderen beiden kopieren in die Zwischenablage. Deshalb ist die
+         Nummer ein <a> und E-Mail und Anschrift sind <button> — was ein Tipp tut,
+         soll am Element ablesbar sein und nicht erst im Skript stehen. Das Verb
+         steht unsichtbar vor dem Wert, damit die Zeile vorgelesen mehr sagt als die
+         Nummer selbst. -->
+    <div class="advisor-menu">
+      <button type="button" class="advisor-avatar" id="advisor-menu-toggle"
+              aria-expanded="false" aria-controls="advisor-menu-pop">
+        <span class="sr-only">Kontakt zu <span data-advisor="name">Jan Joisten</span></span>
+        <span class="advisor-photo" aria-hidden="true">
+          <span class="advisor-initials" data-advisor="initials">JJ</span>
+          <img data-advisor="photo" alt="" hidden>
+        </span>
+      </button>
+
+      <div class="advisor-pop" id="advisor-menu-pop">
+        <a class="advisor-action" data-advisor="phone" href="tel:+491756834679">
+          <span class="advisor-icon-box"><svg class="advisor-icon" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true"><path d="M9.61499 7.63L8.34499 7.485C8.03999 7.45 7.73999 7.555 7.52499 7.77L6.60499 8.69C5.18999 7.97 4.02999 6.815 3.30999 5.395L4.23499 4.47C4.44999 4.255 4.55499 3.955 4.51999 3.65L4.37499 2.39C4.31499 1.885 3.88999 1.505 3.37999 1.505H2.51499C1.94999 1.505 1.47999 1.975 1.51499 2.54C1.77999 6.81 5.19499 10.22 9.45999 10.485C10.025 10.52 10.495 10.05 10.495 9.485V8.62C10.5 8.115 10.12 7.69 9.61499 7.63Z"/></svg></span>
+          <span class="sr-only">Anrufen: </span>
+          <span class="advisor-value">+49 175 683 4679</span>
+        </a>
+        <button type="button" class="advisor-action" data-advisor="mail" data-copy="E-Mail-Adresse">
+          <span class="advisor-icon-box"><svg class="advisor-icon" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true"><path d="M10 2H2C1.45 2 1.005 2.45 1.005 3L1 9C1 9.55 1.45 10 2 10H10C10.55 10 11 9.55 11 9V3C11 2.45 10.55 2 10 2ZM9.8 4.125L6.265 6.335C6.105 6.435 5.895 6.435 5.735 6.335L2.2 4.125C2.075 4.045 2 3.91 2 3.765C2 3.43 2.365 3.23 2.65 3.405L6 5.5L9.35 3.405C9.635 3.23 10 3.43 10 3.765C10 3.91 9.925 4.045 9.8 4.125Z"/></svg></span>
+          <span class="sr-only">E-Mail-Adresse kopieren: </span>
+          <span class="advisor-value">jan.joisten@finlink.de</span>
+        </button>
+        <button type="button" class="advisor-action" id="advisor-nav-address"
+                data-advisor="address" data-copy="Anschrift">
+          <span class="advisor-icon-box"><svg class="advisor-icon" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true"><path d="M6 1C3.9 1 2 2.61 2 5.1C2 6.69 3.225 8.56 5.67 10.715C5.86 10.88 6.145 10.88 6.335 10.715C8.775 8.56 10 6.69 10 5.1C10 2.61 8.1 1 6 1ZM6 6C5.45 6 5 5.55 5 5C5 4.45 5.45 4 6 4C6.55 4 7 4.45 7 5C7 5.55 6.55 6 6 6Z"/></svg></span>
+          <span class="sr-only">Anschrift kopieren: </span>
+          <span class="advisor-value">Musterstraße 12, 12305 Berlin</span>
+        </button>
+        <p class="advisor-status" id="advisor-copy-status" role="status" aria-live="polite"></p>
+      </div>
     </div>
 
 
@@ -211,7 +264,10 @@
          Das Portraet ist ein <img> ohne src, solange keins mitkommt; sichtbar sind
          dann die Initialen darunter. Einen alt-Text bekommt es nicht: der Name steht
          unmittelbar darunter, und ein zweites Mal vorgelesen zu werden hilft
-         niemandem. -->
+         niemandem.
+         Was hier data-advisor traegt, gibt es zweimal: einmal in dieser Karte und
+         einmal im Kontaktmenue der Mobil-Leiste. initAdvisor schreibt in beide,
+         darum steht der Haken am Attribut und nicht an der id. -->
     <div class="page-head">
       <div class="page-intro">
         <h1 class="page-title">Selbstauskunft</h1>
@@ -223,47 +279,67 @@
       <aside class="advisor" aria-labelledby="advisor-name">
         <div class="advisor-person">
           <span class="advisor-photo">
-            <span class="advisor-initials" id="advisor-initials" aria-hidden="true">JJ</span>
-            <img id="advisor-photo" alt="" hidden>
+            <span class="advisor-initials" id="advisor-initials" data-advisor="initials" aria-hidden="true">JJ</span>
+            <img id="advisor-photo" data-advisor="photo" alt="" hidden>
           </span>
           <div class="advisor-identity">
-            <p class="advisor-name" id="advisor-name">Jan Joisten</p>
-            <p class="advisor-role" id="advisor-role">Finanzierungsexperte</p>
+            <p class="advisor-name" id="advisor-name" data-advisor="name">Jan Joisten</p>
+            <p class="advisor-role" id="advisor-role" data-advisor="role">Finanzierungsexperte</p>
           </div>
         </div>
 
-        <!-- Das dt traegt nur das Icon, also braucht jede Zeile ein Wort dazu, das
-             nicht auf dem Schirm steht. Ohne das liest ein Screenreader drei leere
-             Begriffe mit drei Werten vor.
-             Die drei Icons sind die Exporte aus icons/ — gefuellt, im 12er-Raster —
-             Pfad fuer Pfad unveraendert uebernommen. Weggelassen ist nur die Klammer
-             aus clipPath, die bei allen dreien nichts abschneidet; ersetzt ist nur
-             die eingebrannte #003EB4 durch currentColor, damit die Farbe vom dt
-             kommt und damit aus icon/brand/bold — das folgt dem Markenschalter. -->
+        <!-- Der Wert liegt INNERHALB des Links und nicht daneben: der Link ist die
+             ganze Zeile, und was man anklickt, soll das sein, was man liest. Das dt
+             traegt das Wort, das nie auf dem Schirm steht — Telefon, E-Mail,
+             Adresse —, sonst liest ein Screenreader drei Werte ohne Begriff vor.
+             Auf dem Telefon ist dieser Block nicht da; dort stehen dieselben drei
+             Wege hinter dem Portrait in der Leiste (.advisor-menu oben).
+             Die drei Icons sind die Exporte aus Icons/ — gefuellt, im 12er-Raster —
+             Pfad fuer Pfad unveraendert uebernommen. Weggelassen ist nur die
+             Klammer aus clipPath, die bei allen dreien nichts abschneidet;
+             ersetzt ist nur die eingebrannte #003EB4 durch currentColor, damit die
+             Farbe aus icon/brand/bold kommt und dem Markenschalter folgt. -->
         <dl class="advisor-contact">
           <div class="advisor-row">
-            <dt><span class="sr-only">Telefon</span>
-              <svg class="advisor-icon" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true">
-                <path d="M9.61499 7.63L8.34499 7.485C8.03999 7.45 7.73999 7.555 7.52499 7.77L6.60499 8.69C5.18999 7.97 4.02999 6.815 3.30999 5.395L4.23499 4.47C4.44999 4.255 4.55499 3.955 4.51999 3.65L4.37499 2.39C4.31499 1.885 3.88999 1.505 3.37999 1.505H2.51499C1.94999 1.505 1.47999 1.975 1.51499 2.54C1.77999 6.81 5.19499 10.22 9.45999 10.485C10.025 10.52 10.495 10.05 10.495 9.485V8.62C10.5 8.115 10.12 7.69 9.61499 7.63Z"/>
-              </svg>
-            </dt>
-            <dd><a id="advisor-phone" href="tel:+491756834679">+49 175 683 4679</a></dd>
+            <dt class="sr-only">Telefon</dt>
+            <dd>
+              <a class="advisor-link" id="advisor-phone" data-advisor="phone" href="tel:+491756834679">
+                <span class="advisor-icon-box">
+                  <svg class="advisor-icon" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true">
+                    <path d="M9.61499 7.63L8.34499 7.485C8.03999 7.45 7.73999 7.555 7.52499 7.77L6.60499 8.69C5.18999 7.97 4.02999 6.815 3.30999 5.395L4.23499 4.47C4.44999 4.255 4.55499 3.955 4.51999 3.65L4.37499 2.39C4.31499 1.885 3.88999 1.505 3.37999 1.505H2.51499C1.94999 1.505 1.47999 1.975 1.51499 2.54C1.77999 6.81 5.19499 10.22 9.45999 10.485C10.025 10.52 10.495 10.05 10.495 9.485V8.62C10.5 8.115 10.12 7.69 9.61499 7.63Z"/>
+                  </svg>
+                </span>
+                <span class="advisor-value">+49 175 683 4679</span>
+              </a>
+            </dd>
           </div>
           <div class="advisor-row">
-            <dt><span class="sr-only">E-Mail</span>
-              <svg class="advisor-icon" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true">
-                <path d="M10 2H2C1.45 2 1.005 2.45 1.005 3L1 9C1 9.55 1.45 10 2 10H10C10.55 10 11 9.55 11 9V3C11 2.45 10.55 2 10 2ZM9.8 4.125L6.265 6.335C6.105 6.435 5.895 6.435 5.735 6.335L2.2 4.125C2.075 4.045 2 3.91 2 3.765C2 3.43 2.365 3.23 2.65 3.405L6 5.5L9.35 3.405C9.635 3.23 10 3.43 10 3.765C10 3.91 9.925 4.045 9.8 4.125Z"/>
-              </svg>
-            </dt>
-            <dd><a id="advisor-mail" href="mailto:jan.joisten@finlink.de">jan.joisten@finlink.de</a></dd>
+            <dt class="sr-only">E-Mail</dt>
+            <dd>
+              <a class="advisor-link" id="advisor-mail" data-advisor="mail" href="mailto:jan.joisten@finlink.de">
+                <span class="advisor-icon-box">
+                  <svg class="advisor-icon" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true">
+                    <path d="M10 2H2C1.45 2 1.005 2.45 1.005 3L1 9C1 9.55 1.45 10 2 10H10C10.55 10 11 9.55 11 9V3C11 2.45 10.55 2 10 2ZM9.8 4.125L6.265 6.335C6.105 6.435 5.895 6.435 5.735 6.335L2.2 4.125C2.075 4.045 2 3.91 2 3.765C2 3.43 2.365 3.23 2.65 3.405L6 5.5L9.35 3.405C9.635 3.23 10 3.43 10 3.765C10 3.91 9.925 4.045 9.8 4.125Z"/>
+                  </svg>
+                </span>
+                <span class="advisor-value">jan.joisten@finlink.de</span>
+              </a>
+            </dd>
           </div>
           <div class="advisor-row">
-            <dt><span class="sr-only">Adresse</span>
-              <svg class="advisor-icon" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true">
-                <path d="M6 1C3.9 1 2 2.61 2 5.1C2 6.69 3.225 8.56 5.67 10.715C5.86 10.88 6.145 10.88 6.335 10.715C8.775 8.56 10 6.69 10 5.1C10 2.61 8.1 1 6 1ZM6 6C5.45 6 5 5.55 5 5C5 4.45 5.45 4 6 4C6.55 4 7 4.45 7 5C7 5.55 6.55 6 6 6Z"/>
-              </svg>
-            </dt>
-            <dd id="advisor-address">Musterstraße 12, 12305 Berlin</dd>
+            <dt class="sr-only">Adresse</dt>
+            <dd>
+              <a class="advisor-link" id="advisor-address" data-advisor="address"
+                 href="https://www.google.com/maps/search/?api=1&amp;query=Musterstra%C3%9Fe%2012%2C%2012305%20Berlin"
+                 target="_blank" rel="noopener noreferrer">
+                <span class="advisor-icon-box">
+                  <svg class="advisor-icon" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true">
+                    <path d="M6 1C3.9 1 2 2.61 2 5.1C2 6.69 3.225 8.56 5.67 10.715C5.86 10.88 6.145 10.88 6.335 10.715C8.775 8.56 10 6.69 10 5.1C10 2.61 8.1 1 6 1ZM6 6C5.45 6 5 5.55 5 5C5 4.45 5.45 4 6 4C6.55 4 7 4.45 7 5C7 5.55 6.55 6 6 6Z"/>
+                  </svg>
+                </span>
+                <span class="advisor-value">Musterstraße 12, 12305 Berlin</span>
+              </a>
+            </dd>
           </div>
         </dl>
       </aside>
@@ -410,6 +486,28 @@
                 <div class="field col-6">
                   <label for="a1-nachname">Nachname <span class="req" aria-hidden="true">*</span></label>
                   <input class="input" id="a1-nachname" type="text" data-role="nachname" autocomplete="family-name" required>
+                </div>
+                <!-- E-Mail ODER Telefon: erreichbar sein ist Pflicht, auf welchem Weg
+                     nicht. Deshalb trägt keines der beiden Felder `required` — das würde
+                     beide verlangen. Die Gruppe darum hält die Regel (data-one-of), färbt
+                     im Fehlerfall beide Felder und trägt die eine Meldung darunter; das
+                     Sternchen steht folgerichtig an der Gruppe und nicht an den
+                     Feldern. -->
+                <div class="field col-12" role="group" aria-labelledby="lbl-a1-kontakt" data-one-of>
+                  <span class="group-label" id="lbl-a1-kontakt">Erreichbarkeit <span class="req" aria-hidden="true">*</span></span>
+                  <p class="help" id="h-a1-kontakt">Eine der beiden Angaben genügt — darüber meldet sich die Beraterin oder der Berater bei Rückfragen.</p>
+                  <div class="grid">
+                    <div class="field col-6">
+                      <label for="a1-email">E-Mail-Adresse</label>
+                      <input class="input" id="a1-email" type="email" inputmode="email"
+                             autocomplete="email" data-mail aria-describedby="h-a1-kontakt">
+                    </div>
+                    <div class="field col-6">
+                      <label for="a1-telefon">Telefonnummer</label>
+                      <input class="input" id="a1-telefon" type="tel" inputmode="tel"
+                             autocomplete="tel" aria-describedby="h-a1-kontakt">
+                    </div>
+                  </div>
                 </div>
                 <div class="field col-8">
                   <label for="a1-strasse">Straße <span class="req" aria-hidden="true">*</span></label>
@@ -558,25 +656,6 @@
                 <div class="field col-4">
                   <label for="b1-seit">Beschäftigt seit <span class="req" aria-hidden="true">*</span></label>
                   <input class="input" id="b1-seit" type="text" placeholder="mm.jjjj" inputmode="numeric" required>
-                </div>
-                <!-- The employer's address, deliberately without autocomplete tokens: the
-                     browser's address entry is the applicant's own, and offering it here
-                     would fill the company with where the applicant lives. -->
-                <div class="field col-8 col-start">
-                  <label for="b1-ag-strasse">Straße des Arbeitgebers <span class="req" aria-hidden="true">*</span></label>
-                  <input class="input" id="b1-ag-strasse" type="text" required>
-                </div>
-                <div class="field col-4">
-                  <label for="b1-ag-hausnr">Hausnr. <span class="req" aria-hidden="true">*</span></label>
-                  <input class="input" id="b1-ag-hausnr" type="text" required>
-                </div>
-                <div class="field col-4">
-                  <label for="b1-ag-plz">PLZ <span class="req" aria-hidden="true">*</span></label>
-                  <input class="input" id="b1-ag-plz" type="text" inputmode="numeric" required>
-                </div>
-                <div class="field col-8">
-                  <label for="b1-ag-ort">Ort <span class="req" aria-hidden="true">*</span></label>
-                  <input class="input" id="b1-ag-ort" type="text" required>
                 </div>
                 <div class="field col-12" role="group" aria-labelledby="lbl-b1-befristet" data-show-when="Ja">
                   <span class="group-label" id="lbl-b1-befristet">Ist das Arbeitsverhältnis befristet?</span>
@@ -1757,6 +1836,190 @@
           </div>
           </div>
         </section>
+
+        <!-- ============ IMMOBILIENMERKMALE ============ -->
+        <!-- Eigener statischer Teil neben „Immobilie“ statt einer weiteren .subhead
+             darin: die dreizehn Fragen gelten einem anderen Gegenstand — nicht mehr, wo
+             das Objekt steht und wie groß es ist, sondern wie es ausgestattet ist. Als
+             Überschrift innerhalb der Immobilie wäre es der siebte Block einer Liste,
+             die dann niemand mehr überblickt.
+
+             Alle dreizehn Angaben sind freiwillig und alle sind Auswahllisten, auch die
+             vier, die nur „Ja“ und „Nein“ anbieten: in einem Raster aus dreizehn gleich
+             gebauten Feldern brechen vier Chip-Reihen den Rhythmus, obwohl sie dasselbe
+             fragen wie die Listen daneben. Ein Grundstück wird nach keiner davon
+             gefragt — es hat kein Bad, keine Heizung und keinen Keller. -->
+        <section class="subsection-static" id="immobilienmerkmale" aria-labelledby="h-merkmale"
+                 data-art="!Grundstück">
+          <h3 class="subsection-title" id="h-merkmale">Immobilienmerkmale</h3>
+          <div class="card-pad">
+          <div class="grid">
+            <div class="field col-4">
+              <label for="i-aufzug">Aufzug</label>
+              <span class="select-wrap">
+                <select class="select" id="i-aufzug">
+                  <option value="">Bitte wählen</option>
+                  <option>Ja</option><option>Nein</option>
+                </select>
+              </span>
+            </div>
+            <div class="field col-4">
+              <label for="i-fenster">Fenster</label>
+              <span class="select-wrap">
+                <select class="select" id="i-fenster">
+                  <option value="">Bitte wählen</option>
+                  <option>Dreifachverglasung</option><option>Einfach</option>
+                  <option>Isolierverglasung</option><option>Kastenfenster</option>
+                  <option>Raumhohe Verglasung</option><option>Spezialverglasung</option>
+                  <option>Zweifachverglasung</option><option>Sonstige</option>
+                </select>
+              </span>
+            </div>
+            <div class="field col-4">
+              <label for="i-bad">Bad</label>
+              <span class="select-wrap">
+                <select class="select" id="i-bad">
+                  <option value="">Bitte wählen</option>
+                  <option>Innenliegend</option><option>Mit Fenster</option>
+                  <option>Mehr als ein Bad</option>
+                </select>
+              </span>
+            </div>
+            <div class="field col-4">
+              <label for="i-gaeste-wc">Gäste-WC</label>
+              <span class="select-wrap">
+                <select class="select" id="i-gaeste-wc">
+                  <option value="">Bitte wählen</option>
+                  <option>Ja</option><option>Nein</option>
+                </select>
+              </span>
+            </div>
+            <div class="field col-4">
+              <label for="i-balkon">Balkon</label>
+              <span class="select-wrap">
+                <select class="select" id="i-balkon">
+                  <option value="">Bitte wählen</option>
+                  <option>Balkon über 10 m²</option><option>Balkon unter 10 m²</option>
+                  <option>Wintergarten</option><option>Kein Balkon</option>
+                </select>
+              </span>
+            </div>
+            <div class="field col-4">
+              <label for="i-heizung">Heizung</label>
+              <span class="select-wrap">
+                <select class="select" id="i-heizung">
+                  <option value="">Bitte wählen</option>
+                  <option>Zentralheizung</option><option>Fußbodenheizung</option>
+                  <option>Einzelöfen</option><option>Sonstige</option>
+                </select>
+              </span>
+            </div>
+            <div class="field col-4">
+              <label for="i-abstellraum">Abstellraum</label>
+              <span class="select-wrap">
+                <select class="select" id="i-abstellraum">
+                  <option value="">Bitte wählen</option>
+                  <option>Innerhalb</option><option>Außerhalb</option>
+                  <option>Innerhalb und außerhalb</option><option>Keiner</option>
+                </select>
+              </span>
+            </div>
+            <div class="field col-4">
+              <label for="i-boden">Fußbodenmaterial</label>
+              <span class="select-wrap">
+                <select class="select" id="i-boden">
+                  <option value="">Bitte wählen</option>
+                  <option>Fliesen</option><option>Parkett / Naturstein</option>
+                  <option>Teppich / Laminat</option><option>Kunststoff / PVC</option>
+                  <option>Sonstige</option>
+                </select>
+              </span>
+            </div>
+            <div class="field col-4">
+              <label for="i-keller">Keller</label>
+              <span class="select-wrap">
+                <select class="select" id="i-keller">
+                  <option value="">Bitte wählen</option>
+                  <option>Unterkellert</option><option>Teilunterkellert</option>
+                  <option>Nicht unterkellert</option>
+                </select>
+              </span>
+            </div>
+            <!-- Die beiden Stufenlisten sind die einzigen Felder des Abschnitts mit einer
+                 Erläuterung, und sie brauchen sie: „gehoben“ und „mittel“ sind hier keine
+                 Einschätzung, sondern definierte Stufen, an denen der Marktwert hängt.
+                 Der Hilfetext ist deshalb eine Liste statt eines Satzes — eine Zeile je
+                 Stufe, den Begriff vorangestellt, damit man die eigene Antwort findet,
+                 ohne die ganze Blase zu lesen. Zum Symbol wird er wie jeder .help im
+                 Formular, siehe buildHelpIcons. -->
+            <div class="field col-4">
+              <label for="i-ausstattung">Ausstattung</label>
+              <div class="help" id="h-i-ausstattung">
+                <p>Für die korrekte Berechnung des Marktwertes ist die Ausstattung ein
+                  maßgeblicher Faktor. Darüber hinaus verlangen viele Produktanbieter die
+                  Angabe der Ausstattung für die Kreditentscheidung.</p>
+                <p><strong>stark gehoben:</strong> Hochwertige Dämmung, 3fach-Verglasung,
+                  hochwertiges Parkett oder Dielen, Fußbodenheizung</p>
+                <p><strong>gehoben:</strong> Gute Wärmedämmung, 3fach-Verglasung,
+                  Fertigparkett, Fußbodenheizung</p>
+                <p><strong>mittel:</strong> Durchschnittliche marktübliche
+                  Ausstattungsmerkmale</p>
+                <p><strong>einfach:</strong> Schlechter Wärmeschutz, 1fach-Verglasung,
+                  kein Bodenbelag, Einzelöfen oder Elektroheizung</p>
+              </div>
+              <span class="select-wrap">
+                <select class="select" id="i-ausstattung" aria-describedby="h-i-ausstattung">
+                  <option value="">Bitte wählen</option>
+                  <option>Stark gehoben</option><option>Gehoben</option>
+                  <option>Mittel</option><option>Einfach</option>
+                </select>
+              </span>
+            </div>
+            <div class="field col-4">
+              <label for="i-familienverkauf">Familienverkauf</label>
+              <span class="select-wrap">
+                <select class="select" id="i-familienverkauf">
+                  <option value="">Bitte wählen</option>
+                  <option>Ja</option><option>Nein</option>
+                </select>
+              </span>
+            </div>
+            <div class="field col-4">
+              <label for="i-zustand">Zustand</label>
+              <div class="help" id="h-i-zustand">
+                <p>Für die korrekte Berechnung des Marktwertes ist der Zustand ein
+                  maßgeblicher Faktor.</p>
+                <p><strong>sehr gut:</strong> Neubau oder Kernsanierung (vor max. zwei
+                  Jahren)</p>
+                <p><strong>gut:</strong> Bauwerk und Ausstattung neuwertig ohne
+                  nennenswerten Verschleiß</p>
+                <p><strong>mittel:</strong> Baujahrestypischer Bauwerks- und
+                  Ausstattungszustand ohne Instandhaltungsstau</p>
+                <p><strong>mäßig:</strong> Sichtbarer Verschleiß an Bauwerk und
+                  Ausstattung, Instandhaltungsbedarf in den nächsten Jahren</p>
+                <p><strong>schlecht:</strong> Grobe Bauschäden/-mängel mit sofortigem
+                  Sanierungsbedarf</p>
+              </div>
+              <span class="select-wrap">
+                <select class="select" id="i-zustand" aria-describedby="h-i-zustand">
+                  <option value="">Bitte wählen</option>
+                  <option>Sehr gut</option><option>Gut</option><option>Mittel</option>
+                  <option>Mäßig</option><option>Schlecht</option>
+                </select>
+              </span>
+            </div>
+            <div class="field col-4">
+              <label for="i-zwangsversteigerung">Erwerb Zwangsversteigerung</label>
+              <span class="select-wrap">
+                <select class="select" id="i-zwangsversteigerung">
+                  <option value="">Bitte wählen</option>
+                  <option>Ja</option><option>Nein</option>
+                </select>
+              </span>
+            </div>
+          </div>
+          </div>
+        </section>
         </div></div></div>
         <!-- ============ OBJEKTABSCHNITT: NEUBAU ============ -->
         <div class="reveal object-section" data-for="neubau"><div class="reveal-inner"><div class="pad">
@@ -1967,7 +2230,7 @@
     </section>
 
     <section class="card card-static" id="freigabe" aria-labelledby="h-freigabe">
-      <h2 class="card-head" id="h-freigabe">Einwilligung und Versand</h2>
+      <h2 class="card-head" id="h-freigabe">Einwilligung und Abschicken</h2>
       <div class="card-body">
         <div class="card-body-inner">
           <div class="card-pad flow">
@@ -1981,12 +2244,14 @@
             </div>
 
             <div class="note info" id="consent-mail-note">
-              <p class="note-title">Ihre Kundin oder Ihr Kunde bestätigt selbst per E-Mail</p>
-              <p>Sobald Sie senden, erhält <span id="consent-customer">Ihre Kundin oder
-                Ihr Kunde</span> eine E-Mail mit einem Bestätigungslink. Erst mit dem
-                Klick liegt der Beraterin oder dem Berater die Einwilligung vor. Wir
-                erinnern automatisch, falls die Bestätigung ausbleibt — Sie müssen
-                nichts weiter tun.</p>
+              <div class="note-body">
+                <p class="note-title">Ihre Kundin oder Ihr Kunde bestätigt selbst per E-Mail</p>
+                <p>Sobald Sie senden, erhält <span id="consent-customer">Ihre Kundin oder
+                  Ihr Kunde</span> eine E-Mail mit einem Bestätigungslink. Erst mit dem
+                  Klick liegt der Beraterin oder dem Berater die Einwilligung vor. Wir
+                  erinnern automatisch, falls die Bestätigung ausbleibt — Sie müssen
+                  nichts weiter tun.</p>
+              </div>
             </div>
 
             <div class="grid mail-grid">
@@ -2006,12 +2271,14 @@
 
             <!-- Die Warnung steht direkt über dem Button, der sie auslöst — nicht am
                  Anfang der Seite, wo sie bis zum Klick wieder vergessen ist. -->
-            <div class="note warn" id="final-note">
-              <p class="note-title">Nach dem Senden ist keine Änderung mehr möglich</p>
-              <p>Die Selbstauskunft geht an die Beraterin oder den Berater und wird für
-                Sie geschlossen: Sie können sie danach nicht mehr öffnen und nichts mehr
-                korrigieren. Bitte prüfen Sie die Angaben oben, solange Sie noch zurück
-                können.</p>
+            <div class="note danger" id="final-note">
+              <div class="note-body">
+                <p class="note-title">Nach dem Senden ist keine Änderung mehr möglich</p>
+                <p>Die Selbstauskunft geht an die Beraterin oder den Berater und wird für
+                  Sie geschlossen: Sie können sie danach nicht mehr öffnen und nichts mehr
+                  korrigieren. Bitte prüfen Sie die Angaben oben, solange Sie noch zurück
+                  können.</p>
+              </div>
             </div>
 
           </div>
@@ -2039,9 +2306,11 @@
             </div>
             <p class="ref-status" id="copy-status" role="status" aria-live="polite"></p>
             <div class="note success">
-              <p class="note-title">Auch per E-Mail unterwegs</p>
-              <p>Wir haben die Referenz-ID an <span id="sent-mail-makler">Ihre
-                E-Mail-Adresse</span> gesendet.</p>
+              <div class="note-body">
+                <p class="note-title">Auch per E-Mail unterwegs</p>
+                <p>Wir haben die Referenz-ID an <span id="sent-mail-makler">Ihre
+                  E-Mail-Adresse</span> gesendet.</p>
+              </div>
             </div>
           </div>
         </div>
@@ -2064,10 +2333,12 @@
                 Für jede Rückfrage zu diesem Vorgang genügt die Referenz-ID oben.</li>
             </ol>
             <div class="note">
-              <p class="note-title">Der Antrag ist geschlossen</p>
-              <p>Sie haben keinen Zugriff mehr auf die gesendeten Angaben und können sie
-                nicht mehr bearbeiten. Falls etwas korrigiert werden muss, wenden Sie
-                sich mit der Referenz-ID an die Beraterin oder den Berater.</p>
+              <div class="note-body">
+                <p class="note-title">Der Antrag ist geschlossen</p>
+                <p>Sie haben keinen Zugriff mehr auf die gesendeten Angaben und können sie
+                  nicht mehr bearbeiten. Falls etwas korrigiert werden muss, wenden Sie
+                  sich mit der Referenz-ID an die Beraterin oder den Berater.</p>
+              </div>
             </div>
           </div>
         </div>

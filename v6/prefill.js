@@ -56,6 +56,8 @@
   const VALUES = [
     [/^Vorname/,                            'Erika'],
     [/^Nachname/,                           'Mustermann'],
+    [/^E-Mail-Adresse/,                     'erika.mustermann@example.com'],
+    [/^Telefonnummer/,                      '+49 221 1234567'],
     [/^Straße des Arbeitgebers/,            'Industriestraße'],
     [/^Straße/,                             'Musterstraße'],
     [/^Hausnr|^Nr\./,                       '12'],
@@ -141,6 +143,12 @@
     'Kauf einer bestehenden Immobilie', 'Eigentumswohnung', 'Selbst nutzen',
     'deutsch', 'ledig', 'Angestellt', 'IT', '12',
     'Erstes Obergeschoss', 'Effizienzhaus-Standard 55', '10 Jahre', 'Stellplatz',
+    // Immobilienmerkmale: dreizehn freiwillige Listen, die ohne Eintrag hier alle
+    // leer blieben — und dann fehlt der ganze Abschnitt in der Prüfliste. „Nein“
+    // deckt die vier Ja/Nein-Listen ab, „Mittel“ Ausstattung und Zustand zugleich:
+    // ein unauffälliger Beispielfall, kein besonders gutes Objekt.
+    'Nein', 'Isolierverglasung', 'Mit Fenster', 'Kein Balkon', 'Zentralheizung',
+    'Keiner', 'Kunststoff / PVC', 'Unterkellert', 'Mittel',
   ];
 
   /* Was ein Pflichtfeld bekommt, das in keinem Katalog steht: die Einheit neben
