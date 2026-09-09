@@ -4,6 +4,19 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Selbstauskunft · V6 · FinLink</title>
+<!-- Das Symbol in der Tableiste. Auf 16 gezeichnet und nicht aus einer der
+     20er-Glyphen verkleinert: die sind mit 1.6 Kontur gesetzt, und 1.6 wird bei
+     16px zu 1.28 Geraetepixeln — aus der Linie wird Grau. Hier stehen deshalb
+     Flaechen statt Konturen, und der Grund ist gefuellt: eine reine Kontur
+     verschwindet auf einer dunklen Tableiste.
+     Die Farbe ist teal/700 und nicht teal/500 — dieselbe Rechnung wie beim
+     Primaerknopf: Weiss auf teal/500 haelt 3.67:1, auf teal/700 5.32:1, und bei
+     16px entscheidet das ueber lesbar oder Matsch (siehe tokens.a11y.css).
+     Das hier ist der Stand vor dem ersten Skript. Danach setzt app.js dasselbe
+     Symbol noch einmal — aus background/brand/bold statt aus einem eingetippten
+     Hex, damit es dem Markenschalter folgt, und mit dem Haken, sobald gesendet
+     ist. -->
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2016%2016%22%3E%3Crect%20width%3D%2216%22%20height%3D%2216%22%20rx%3D%223.5%22%20fill%3D%22%2300796B%22%2F%3E%3Crect%20x%3D%223.5%22%20y%3D%222.75%22%20width%3D%229%22%20height%3D%2210.5%22%20rx%3D%221.5%22%20fill%3D%22%23fff%22%2F%3E%3Crect%20x%3D%225%22%20y%3D%224.9%22%20width%3D%226%22%20height%3D%221.2%22%20rx%3D%22.6%22%20fill%3D%22%2300796B%22%2F%3E%3Crect%20x%3D%225%22%20y%3D%227.4%22%20width%3D%226%22%20height%3D%221.2%22%20rx%3D%22.6%22%20fill%3D%22%2300796B%22%2F%3E%3Crect%20x%3D%225%22%20y%3D%229.9%22%20width%3D%223.5%22%20height%3D%221.2%22%20rx%3D%22.6%22%20fill%3D%22%2300796B%22%2F%3E%3C%2Fsvg%3E">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1844,25 +1857,57 @@
              Überschrift innerhalb der Immobilie wäre es der siebte Block einer Liste,
              die dann niemand mehr überblickt.
 
-             Alle dreizehn Angaben sind freiwillig und alle sind Auswahllisten, auch die
-             vier, die nur „Ja“ und „Nein“ anbieten: in einem Raster aus dreizehn gleich
-             gebauten Feldern brechen vier Chip-Reihen den Rhythmus, obwohl sie dasselbe
-             fragen wie die Listen daneben. Ein Grundstück wird nach keiner davon
-             gefragt — es hat kein Bad, keine Heizung und keinen Keller. -->
+             Alle dreizehn Angaben sind freiwillig. Vier davon fragen nur „Ja“ oder
+             „Nein“ und stehen deshalb vorn und als Chips: bei genau zwei möglichen
+             Antworten ist eine Auswahlliste ein Klick, der nichts erklärt. Die neun
+             übrigen haben drei bis acht Einträge und bleiben Listen. Die Trennung
+             kostet den gleichmäßigen Rhythmus, den dreizehn identische Felder hatten,
+             und bringt dafür, dass die Form der Frage ihre Antwort ankündigt.
+             Ein Grundstück wird nach keiner davon gefragt — es hat kein Bad, keine
+             Heizung und keinen Keller. -->
         <section class="subsection-static" id="immobilienmerkmale" aria-labelledby="h-merkmale"
                  data-art="!Grundstück">
           <h3 class="subsection-title" id="h-merkmale">Immobilienmerkmale</h3>
           <div class="card-pad">
           <div class="grid">
-            <div class="field col-4">
-              <label for="i-aufzug">Aufzug</label>
-              <span class="select-wrap">
-                <select class="select" id="i-aufzug">
-                  <option value="">Bitte wählen</option>
-                  <option>Ja</option><option>Nein</option>
-                </select>
-              </span>
+            <!-- Die vier Ja/Nein-Fragen zuerst und als Chips: eine Liste mit genau zwei
+                 Einträgen versteckt beide hinter einem Klick, und „Bitte wählen“ zu öffnen,
+                 um zwischen Ja und Nein zu wählen, ist ein Klick zu viel für die Antwort.
+                 Sie stehen vorn, weil sie die schnellsten sind — vier Chip-Reihen zu je
+                 col-3 füllen genau eine Zeile, danach beginnen die Listen wieder sauber
+                 links. Freiwillig wie der ganze Abschnitt: nichts ist vorbelegt. -->
+            <div class="field col-3" role="group" aria-labelledby="lbl-i-aufzug">
+              <span class="group-label" id="lbl-i-aufzug">Aufzug</span>
+              <div class="choices">
+                <label class="choice"><input type="radio" name="i-aufzug" value="Ja"><span>Ja</span></label>
+                <label class="choice"><input type="radio" name="i-aufzug" value="Nein"><span>Nein</span></label>
+              </div>
             </div>
+            <div class="field col-3" role="group" aria-labelledby="lbl-i-gaeste-wc">
+              <span class="group-label" id="lbl-i-gaeste-wc">Gäste-WC</span>
+              <div class="choices">
+                <label class="choice"><input type="radio" name="i-gaeste-wc" value="Ja"><span>Ja</span></label>
+                <label class="choice"><input type="radio" name="i-gaeste-wc" value="Nein"><span>Nein</span></label>
+              </div>
+            </div>
+            <div class="field col-3" role="group" aria-labelledby="lbl-i-familienverkauf">
+              <span class="group-label" id="lbl-i-familienverkauf">Familienverkauf</span>
+              <div class="choices">
+                <label class="choice"><input type="radio" name="i-familienverkauf" value="Ja"><span>Ja</span></label>
+                <label class="choice"><input type="radio" name="i-familienverkauf" value="Nein"><span>Nein</span></label>
+              </div>
+            </div>
+            <div class="field col-3" role="group" aria-labelledby="lbl-i-zwangsversteigerung">
+              <span class="group-label" id="lbl-i-zwangsversteigerung">Erwerb Zwangsversteigerung</span>
+              <div class="choices">
+                <label class="choice"><input type="radio" name="i-zwangsversteigerung" value="Ja"><span>Ja</span></label>
+                <label class="choice"><input type="radio" name="i-zwangsversteigerung" value="Nein"><span>Nein</span></label>
+              </div>
+            </div>
+
+            <!-- Die neun Listen mit mehr als zwei Einträgen bleiben Listen, drei je Zeile:
+                 col-4 mal drei ergibt wieder volle Zeilen, die Spalten fluchten also über
+                 alle drei hinweg. -->
             <div class="field col-4">
               <label for="i-fenster">Fenster</label>
               <span class="select-wrap">
@@ -1882,15 +1927,6 @@
                   <option value="">Bitte wählen</option>
                   <option>Innenliegend</option><option>Mit Fenster</option>
                   <option>Mehr als ein Bad</option>
-                </select>
-              </span>
-            </div>
-            <div class="field col-4">
-              <label for="i-gaeste-wc">Gäste-WC</label>
-              <span class="select-wrap">
-                <select class="select" id="i-gaeste-wc">
-                  <option value="">Bitte wählen</option>
-                  <option>Ja</option><option>Nein</option>
                 </select>
               </span>
             </div>
@@ -1976,15 +2012,6 @@
               </span>
             </div>
             <div class="field col-4">
-              <label for="i-familienverkauf">Familienverkauf</label>
-              <span class="select-wrap">
-                <select class="select" id="i-familienverkauf">
-                  <option value="">Bitte wählen</option>
-                  <option>Ja</option><option>Nein</option>
-                </select>
-              </span>
-            </div>
-            <div class="field col-4">
               <label for="i-zustand">Zustand</label>
               <div class="help" id="h-i-zustand">
                 <p>Für die korrekte Berechnung des Marktwertes ist der Zustand ein
@@ -2005,15 +2032,6 @@
                   <option value="">Bitte wählen</option>
                   <option>Sehr gut</option><option>Gut</option><option>Mittel</option>
                   <option>Mäßig</option><option>Schlecht</option>
-                </select>
-              </span>
-            </div>
-            <div class="field col-4">
-              <label for="i-zwangsversteigerung">Erwerb Zwangsversteigerung</label>
-              <span class="select-wrap">
-                <select class="select" id="i-zwangsversteigerung">
-                  <option value="">Bitte wählen</option>
-                  <option>Ja</option><option>Nein</option>
                 </select>
               </span>
             </div>

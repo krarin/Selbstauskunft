@@ -1514,6 +1514,55 @@
     });
   }
 
+  /* --------------------------------------------------------------- favicon */
+
+  /* Das Symbol in der Tableiste. Ein Formular, das über einen Magic Link geöffnet
+     wird, bleibt tagelang offen, während jemand Gehaltsnachweise zusammensucht —
+     das Symbol muss diesen einen Tab unter zwanzig wiederfindbar machen. Darum
+     eine gefüllte Kachel und keine Glyphe: eine reine Kontur verschwindet auf
+     einer dunklen Tableiste, und die 1.6er Konturen der Navigationsglyphen fallen
+     bei 16px ohnehin auseinander (1.6 wird zu 1.28 Gerätepixeln). Gezeichnet ist
+     deshalb auf 16 und in Flächen, nicht auf 20 und verkleinert.
+
+     Die Farbe steht nicht als Hex im Quelltext, sondern kommt aus
+     background/brand/bold. Damit folgt das Symbol dem Markenschalter — die
+     Kachel wird korallenrot, wenn die Seite es wird — und, wichtiger, dem
+     Kontrast-Pass in tokens.a11y.css: Weiß auf teal/500 hält 3.67:1, auf
+     teal/700 5.32:1. Dieselbe Rechnung wie beim Primärknopf, und bei 16px
+     entscheidet sie über lesbar oder Matsch.
+
+     %C ist der Platzhalter für dieselbe Farbe innerhalb der Glyphe: die Linien
+     des Blattes sind ausgestanzt, nicht gezeichnet. */
+  const FAVICON = {
+    form: '<rect x="3.5" y="2.75" width="9" height="10.5" rx="1.5" fill="#fff"/>'
+        + '<rect x="5" y="4.9" width="6" height="1.2" rx=".6" fill="%C"/>'
+        + '<rect x="5" y="7.4" width="6" height="1.2" rx=".6" fill="%C"/>'
+        + '<rect x="5" y="9.9" width="3.5" height="1.2" rx=".6" fill="%C"/>',
+    /* Gesendet bekommt den Haken. Das ist kein Schmuck: es ist die Antwort auf
+       „habe ich das eigentlich abgeschickt?" für genau den Tab, den jemand eine
+       Woche offen gelassen hat — ohne ihn dafür wieder hervorholen zu müssen.
+       Die Zusammenfassung behält das Blatt, dort ist noch nichts entschieden. */
+    sent: '<path d="M4.4 8.3l2.5 2.5 4.7-5" fill="none" stroke="#fff" stroke-width="1.9"'
+        + ' stroke-linecap="round" stroke-linejoin="round"/>',
+  };
+
+  function setFavicon(view) {
+    const brand = getComputedStyle(document.documentElement)
+      .getPropertyValue('--ds-color-background-brand-bold-default').trim() || '#00796B';
+    const glyph = (FAVICON[view] || FAVICON.form).split('%C').join(brand);
+    const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">'
+      + `<rect width="16" height="16" rx="3.5" fill="${brand}"/>${glyph}</svg>`;
+
+    let link = $('link[rel="icon"]');
+    if (!link) {
+      link = document.createElement('link');
+      link.rel = 'icon';
+      document.head.append(link);
+    }
+    link.type = 'image/svg+xml';
+    link.href = `data:image/svg+xml,${encodeURIComponent(svg)}`;
+  }
+
   /* --------------------------------------------------------------- toggles */
 
   const SETTINGS = ['appearance', 'density', 'brand'];
@@ -1527,6 +1576,8 @@
         Object.entries(button.dataset).forEach(([key, value]) => {
           document.documentElement.setAttribute(`data-${key}`, value);
         });
+        // Die Marke steckt in der Kachel, also muss sie mit ihr wechseln.
+        setFavicon(document.documentElement.getAttribute('data-view'));
         syncPreview();
       }));
     });
@@ -1780,6 +1831,7 @@
       bar.hidden = true;
     });
     document.documentElement.setAttribute('data-view', name);
+    setFavicon(name);
     window.scrollTo(0, 0);
   }
 
@@ -2296,4 +2348,7 @@
   // The form is the first view; showView is not used for it, because it would take
   // the focus off the top of the page before anyone has done anything.
   document.documentElement.setAttribute('data-view', 'form');
+  // Dasselbe Symbol, das schon im <head> steht — jetzt aber aus dem Token statt
+  // aus dem eingetippten Hex, damit ein Markenwechsel es von hier an mitnimmt.
+  setFavicon('form');
 })();
