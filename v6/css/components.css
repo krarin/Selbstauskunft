@@ -535,11 +535,12 @@ body { margin: 0; }
    Bedienelement, und ein Rahmen um sie würde nach etwas zum Anklicken aussehen. */
 .page-title:focus { outline: none; }
 
-/* Der Abstand nach unten gehoert der Lede ueberall dort, wo sie fuer sich steht —
-   auf „Zusammenfassung“ und auf „Gesendet“, die keinen Seitenkopf haben und deren
-   Lede sonst direkt an der Karte darunter klebt. Nur im Seitenkopf faellt er weg:
-   dort ist die Lede nicht das letzte Element, und den Abstand zum Formular setzt
-   .page-head fuer beide Spalten gemeinsam. */
+/* Der Abstand nach unten gehoert der Lede ueberall dort, wo sie fuer sich steht,
+   sonst klebte sie an der Karte darunter. Im Seitenkopf faellt er weg: dort ist die
+   Lede nicht das letzte Element, und den Abstand nach unten setzt .page-head fuer
+   beide Spalten gemeinsam — derselbe Wert, das Satzbild bleibt also gleich.
+   Seit „Zusammenfassung“ und „Gesendet“ denselben Seitenkopf tragen (Beraterblock
+   rechts, siehe cloneAdvisor in app.js), gilt dort der zweite Fall. */
 .lede {
   margin: 0 0 var(--ds-spacing-32);
   max-width: var(--ds-layout-measure-prose);

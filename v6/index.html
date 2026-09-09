@@ -2200,9 +2200,17 @@
        Seitenwechsel würde ihn verlieren. Genau einer der drei Views ist
        sichtbar — siehe showView() in app.js. -->
   <main class="content" id="summary-view" aria-labelledby="h-summary" hidden>
-    <h1 class="page-title" id="h-summary">Zusammenfassung</h1>
-    <p class="lede">Bitte prüfen Sie die Angaben ein letztes Mal. Danach senden Sie die
-      Selbstauskunft an die Beraterin oder den Berater — das ist der letzte Schritt.</p>
+    <!-- Derselbe Seitenkopf wie im Formular, und aus demselben Grund: wer die Angaben
+         ein letztes Mal prueft, will genau in diesem Moment sehen, an wen sie gehen.
+         Den Beraterblock haengt cloneAdvisor() zur Laufzeit hier an — er steht nur
+         einmal im Quelltext. -->
+    <div class="page-head">
+      <div class="page-intro">
+        <h1 class="page-title" id="h-summary">Zusammenfassung</h1>
+        <p class="lede">Bitte prüfen Sie die Angaben ein letztes Mal. Danach senden Sie die
+          Selbstauskunft an die Beraterin oder den Berater — das ist der letzte Schritt.</p>
+      </div>
+    </div>
 
     <!-- Die drei Schritte stehen vor der Prüfliste, nicht darunter: was nach dem
          Senden passiert, ist die Information, die man vor dem Klicken braucht. -->
@@ -2289,9 +2297,15 @@
 
   <!-- ===================== GESENDET (Schritt 3) ===================== -->
   <main class="content" id="sent-view" aria-labelledby="h-sent" hidden>
-    <h1 class="page-title" id="h-sent">Gesendet — vielen Dank</h1>
-    <p class="lede">Die Selbstauskunft von <span id="sent-name">Ihrer Kundin oder Ihrem
-      Kunden</span> liegt jetzt bei der Beraterin oder dem Berater.</p>
+    <!-- Nach dem Senden ist der Block das, was von der Seite uebrig bleiben soll: die
+         Referenz-ID und die Person, bei der man mit ihr nachfragt. -->
+    <div class="page-head">
+      <div class="page-intro">
+        <h1 class="page-title" id="h-sent">Gesendet — vielen Dank</h1>
+        <p class="lede">Die Selbstauskunft von <span id="sent-name">Ihrer Kundin oder Ihrem
+          Kunden</span> liegt jetzt bei der Beraterin oder dem Berater.</p>
+      </div>
+    </div>
 
     <section class="card card-static" id="referenz" aria-labelledby="h-referenz">
       <h2 class="card-head" id="h-referenz">Ihre Referenz-ID</h2>

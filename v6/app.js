@@ -1602,6 +1602,35 @@
      bei einem toten Link für immer — stehen die Initialen im Kreis, statt dass ein
      kaputtes Bildsymbol die Stelle besetzt, an der ein Gesicht sein sollte. Die
      Initialen kommen aus dem Namen, damit sie beim Wechsel der Person mitgehen. */
+  /* Der Beraterblock steht im Seitenkopf aller drei Ansichten. Geklont statt dreimal
+     geschrieben: initAdvisor schreibt in jedes [data-advisor], die Kopien gehen also
+     ohne weiteres mit, und ein Wechsel der Person per Parameter trifft alle drei.
+     Darum laeuft das hier VOR initAdvisor — danach waeren die Kopien leer geblieben.
+
+     Die ids fallen im Klon weg. Dreimal dieselbe id ist ungueltig, und
+     getElementById haette danach eine Kopie statt des Originals getroffen. Damit
+     verliert aria-labelledby sein Ziel, also bekommt der Name in jedem Klon eine
+     eigene id und der Klon zeigt darauf: ein aria-label mit eingesetztem Namen waere
+     nach dem ersten Parameterwechsel falsch, ein Verweis bleibt richtig.
+
+     Auf dem Telefon ist nichts zu tun — .advisor traegt bei 640px display:none, und
+     die Kopien tragen dieselbe Klasse. Die Mobil-Ansicht bleibt, wie sie war. */
+  function cloneAdvisor() {
+    const source = $('.page-head > .advisor');
+    if (!source) return;
+
+    $$('#summary-view > .page-head, #sent-view > .page-head').forEach((head) => {
+      const copy = source.cloneNode(true);
+      $$('[id]', copy).forEach((node) => node.removeAttribute('id'));
+
+      const name = copy.querySelector('[data-advisor="name"]');
+      name.id = uid('advisor-name');
+      copy.setAttribute('aria-labelledby', name.id);
+
+      head.appendChild(copy);
+    });
+  }
+
   function initAdvisor() {
     const params = new URLSearchParams(location.search);
 
@@ -2093,6 +2122,7 @@
   wireNavToggle();
   wireToolsToggle();
   wireInfoTips();
+  cloneAdvisor();
   initAdvisor();
   wireAdvisorMenu();
   initEmbed();
