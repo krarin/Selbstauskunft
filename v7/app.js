@@ -1355,11 +1355,6 @@
     return ok;
   }
 
-  /* Deliberately loose: an @ with a dot behind it. The prototype sends nothing, so
-     anything stricter here is a promise it cannot keep — and real addresses are
-     stranger at the edges than a tighter pattern believes. */
-  const MAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
-
   /* Eine E-Mail-Adresse ist hier freiwillig, eine falsch getippte aber wertlos: der
      Rückruf geht ins Leere und niemand merkt es. Geprüft wird deshalb nur, was
      dasteht — leer ist in Ordnung, solange die Telefonnummer die Gruppe oben
@@ -1570,10 +1565,7 @@
 
   /* --------------------------------------------------------------- toggles */
 
-  // 'shell' reist mit, obwohl es in der 390er-Vorschau nichts bewirkt: die Liste ist
-  // das, was einen Wechsel überlebt und in der Adresse steht, und ein Schalter, der
-  // beim Öffnen der Mobil-Vorschau heimlich zurückspringt, wäre der schlechtere Handel.
-  const SETTINGS = ['appearance', 'density', 'brand', 'shell'];
+  const SETTINGS = ['appearance', 'density', 'brand'];
 
   function wireToggles() {
     $$('.seg').forEach((group) => {
@@ -2038,7 +2030,29 @@
 
   const consent = $('#consent-broker');
   const consentField = $('#consent-field');
+  const mailKunde = $('#mail-kunde');
+  const mailMakler = $('#mail-makler');
   const sendText = $('#send-text');
+
+  /* Deliberately loose: an @ with a dot behind it. The prototype sends nothing, so
+     anything stricter here is a promise it cannot keep — and real addresses are
+     stranger at the edges than a tighter pattern believes. */
+  const MAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
+  function validateMail(input) {
+    const field = input.closest('.field');
+    const value = input.value.trim();
+    const invalid = !MAIL_PATTERN.test(value);
+
+    field.classList.toggle('invalid', invalid);
+    input.setAttribute('aria-invalid', String(invalid));
+    if (invalid) {
+      messageFor(field, input).textContent = value
+        ? 'Diese E-Mail-Adresse sieht nicht vollständig aus'
+        : 'Für den Versand brauchen wir diese E-Mail-Adresse';
+    }
+    return !invalid;
+  }
 
   /* The consent is a checkbox with no chip, so the error cannot be carried by a
      border the way it is on a choice group — it is a message under the sentence,
@@ -2064,8 +2078,21 @@
 
   function openSummary() {
     buildReview();
+    $('#consent-customer').textContent = customerName() || 'Ihre Kundin oder Ihr Kunde';
     sendText.textContent = 'Noch nicht gesendet — Sie können weiterhin ändern';
     showView('summary');
+  }
+
+  /* Format SA-JAHR-XXXXXX. The alphabet leaves out I, O, 0 and 1: the ID is read
+     aloud and copied by hand, and those four are what gets confused doing it. In
+     the real product the server issues it — here it stands for the fact that there
+     is one, and shows what it looks like to write down. */
+  const REF_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+
+  function referenceId() {
+    const bytes = crypto.getRandomValues(new Uint8Array(6));
+    const tail = Array.from(bytes, (n) => REF_ALPHABET[n % REF_ALPHABET.length]).join('');
+    return `SA-${new Date().getFullYear()}-${tail}`;
   }
 
   /* Sent means gone: the form is not merely hidden, every control in it is switched
@@ -2081,19 +2108,26 @@
   }
 
   async function send() {
-    /* Das Häkchen ist die einzige Bedingung, die vor dem Senden noch offen sein
-       kann — die Pflichtfelder liegen alle im Formular und sind auf dem Weg
-       hierher geprüft worden. */
-    if (!validateConsent()) {
+    /* All three checks run, not just up to the first failure: someone who has to
+       fix something should see everything that is missing at once. */
+    const missing = [
+      { ok: validateConsent(), focus: consent },
+      { ok: validateMail(mailKunde), focus: mailKunde },
+      { ok: validateMail(mailMakler), focus: mailMakler },
+    ].filter((check) => !check.ok);
+
+    if (missing.length) {
       sendText.textContent = 'Noch nicht gesendet — bitte ergänzen Sie das Markierte';
-      consent.focus();
+      missing[0].focus.focus();
       return;
     }
 
+    const customer = customerName() || 'Ihre Kundin oder Ihr Kunde';
     if (!await confirmAction({
       title: 'Jetzt an die Beraterin oder den Berater senden?',
-      text: 'Danach können Sie die Selbstauskunft nicht mehr öffnen und nichts mehr '
-        + 'ändern.',
+      text: `Danach können Sie die Selbstauskunft nicht mehr öffnen und nichts mehr `
+        + `ändern. ${customer} erhält eine E-Mail zur eigenen Bestätigung, und Ihre `
+        + `Referenz-ID senden wir an ${mailMakler.value.trim()}.`,
       action: 'Selbstauskunft abschicken',
       tone: 'primary',
     })) {
@@ -2101,10 +2135,34 @@
       return;
     }
 
+    const reference = referenceId();
+    $('#ref-id').textContent = reference;
     $('#sent-name').textContent = customerName() || 'Ihrer Kundin oder Ihrem Kunden';
+    $('#sent-mail-makler').textContent = mailMakler.value.trim();
+    $('#sent-mail-kunde').textContent = mailKunde.value.trim();
+    $('#copy-status').textContent = '';
 
     lockForm();
     showView('sent');
+  }
+
+  async function copyReference() {
+    const reference = $('#ref-id').textContent.trim();
+    const status = $('#copy-status');
+    try {
+      await navigator.clipboard.writeText(reference);
+      status.textContent = `Referenz-ID ${reference} in die Zwischenablage kopiert`;
+    } catch {
+      /* The clipboard needs a permission that a page opened straight off disk often
+         does not have. Then the ID is selected instead: Ctrl/Cmd+C is one keystroke
+         away, and nothing is reported as done that did not happen. */
+      const range = document.createRange();
+      range.selectNodeContents($('#ref-id'));
+      const selection = getSelection();
+      selection.removeAllRanges();
+      selection.addRange(range);
+      status.textContent = 'Bitte mit Strg+C bzw. Cmd+C kopieren — markiert ist sie schon';
+    }
   }
 
   /* ------------------------------------------------------------------ init */
@@ -2277,12 +2335,15 @@
   $('#back-to-form').addEventListener('click', () => showView('form'));
 
   $('#send').addEventListener('click', send);
+  $('#copy-ref').addEventListener('click', copyReference);
 
   // Prototype only: in the real product the case ends on the sent screen.
   $('#restart').addEventListener('click', () => location.reload());
 
   // Ticking the box is the answer, so the complaint about it missing goes at once.
   consent.addEventListener('change', () => { if (consent.checked) validateConsent(); });
+  [mailKunde, mailMakler].forEach((input) =>
+    input.addEventListener('blur', () => validateMail(input)));
 
   // The form is the first view; showView is not used for it, because it would take
   // the focus off the top of the page before anyone has done anything.

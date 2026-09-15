@@ -244,6 +244,17 @@
     return filled;
   }
 
+  /* Auch die zwei Adressen des Versandschritts, damit die Strecke bis zur
+     Referenz-ID in drei Klicks durchläuft. Das Einwilligungshäkchen bleibt
+     bewusst leer — es ist die Entscheidung, um die es auf der Seite geht. */
+  function fillSendStep() {
+    [['#mail-kunde', 'erika.mustermann@example.com'],
+      ['#mail-makler', 'makler@finlink.de']].forEach(([selector, value]) => {
+      const input = $(selector);
+      if (input && !input.value.trim()) type(input, value);
+    });
+  }
+
   /* Eine Antwort öffnet den nächsten Zweig, also wird in Durchgängen gefüllt,
      bis ein Durchgang nichts mehr findet. Die Obergrenze ist eine Notbremse:
      die tiefste Kette im Formular ist drei Ebenen tief. */
@@ -251,6 +262,7 @@
     for (let pass = 0; pass < 6; pass++) {
       if (!(fillChoices() + fillSelects() + fillInputs())) break;
     }
+    fillSendStep();
     status.textContent = 'Beispieldaten eingefügt. Jetzt „Weiter zu Zusammenfassung“.';
   }
 

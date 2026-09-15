@@ -148,11 +148,7 @@
   --ds-layout-measure-prose: 68ch;
   --ds-layout-measure-amount: 170px;
   --ds-layout-measure-tooltip: 32ch;
-  /* 52ch trug den Text, aber nicht die Knopfzeile: „Selbstauskunft abschicken“
-     und „Abbrechen“ brauchen nebeneinander 357px, 52ch liessen 345px — die
-     zwei Knoepfe brachen um, obwohl der Dialog halb leer war. 56ch gibt der
-     Zeile 376px und damit Luft, auch wenn eine Beschriftung waechst. */
-  --ds-layout-measure-modal: 56ch;
+  --ds-layout-measure-modal: 52ch;
   --ds-layout-measure-review-term: 43ch;
   --ds-preview-width: 390px;
   --ds-preview-height: 844px;

@@ -83,7 +83,8 @@ body { margin: 0; }
 }
 
 .card-title,
-.card-static > .card-head {
+.card-static > .card-head,
+.ref-id {
   font-family: var(--ds-font-family-sans);
   font-size: var(--ds-typography-heading-md-font-size);
   line-height: var(--ds-typography-heading-md-line-height);
@@ -158,6 +159,7 @@ body { margin: 0; }
 .error-text,
 .save-state,
 .review-list > dt,
+.ref-status,
 .advisor-status {
   font-family: var(--ds-font-family-sans);
   font-size: var(--ds-typography-body-sm-default-font-size);
@@ -248,7 +250,8 @@ body { margin: 0; }
    tokens.css; these are the nodes that carry a number meant to be compared down
    a column, which in a Selbstauskunft is every money field and the reference. */
 .input.num,
-.with-unit .input {
+.with-unit .input,
+.ref-id {
   font-variant-numeric: tabular-nums;
   font-feature-settings: 'tnum' 1;
 }
@@ -280,7 +283,8 @@ body { margin: 0; }
   }
 
   .card-title,
-  .card-static > .card-head {
+  .card-static > .card-head,
+  .ref-id {
     font-size: var(--ds-typography-heading-sm-font-size);
     line-height: var(--ds-typography-heading-sm-line-height);
     letter-spacing: var(--ds-typography-heading-sm-letter-spacing);
@@ -391,39 +395,6 @@ body { margin: 0; }
   grid-template-columns: var(--ds-layout-nav-width) minmax(0, var(--ds-layout-content-max));
   gap: var(--ds-spacing-40);
   padding: var(--ds-spacing-40) var(--ds-layout-gutter) var(--ds-spacing-64);
-}
-
-/* Nur für den Prototyp: der Inhalt steht mittig im Fenster, die Navigation bleibt am
-   linken Rand stehen. Zwei Dinge, die sonst zusammenhängen, werden hier getrennt —
-   die Navigation ist ein Werkzeug am Rand und gehört dorthin, der Inhalt ist das,
-   worauf man schaut, und gehört in die Mitte.
-
-   Gemacht wird das über die Lücke zwischen den beiden Spalten, nicht über eine
-   Position: die Navigation steht als erste Rasterspalte weiterhin an der Gosse, und
-   die Lücke wächst genau so weit, dass die Inhaltsspalte auf der Fenstermitte landet.
-   Damit bleibt die Navigation im Fluss — sie ist sticky und scrollt mit, und eine
-   absolut gesetzte Spalte hätte das aufgegeben.
-
-   Die Rechnung: die Inhaltsspalte beginnt bei Gosse + Navigationsbreite + Lücke und
-   soll bei (Fenster − Inhaltsbreite) / 2 beginnen. Prozente beziehen sich beim
-   column-gap auf die eigene Inhaltsbox, also auf Fenster minus zwei Gossen — die
-   heben sich gegen die eine Gosse links zu genau einer Navigationsbreite weg.
-
-   Das max() ist die Notbremse: unterhalb von rund 1788px käme die Mitte links von der
-   Navigation zu liegen, der Inhalt würde sie überlaufen. Dort greift wieder die
-   normale 40er-Lücke, und die Ansicht ist die bekannte. Der Schalter tut also erst
-   etwas, wenn wirklich Platz da ist. */
-:root[data-shell="centered"] .app {
-  column-gap: max(var(--ds-spacing-40),
-    (100% - var(--ds-layout-content-max)) / 2 - var(--ds-layout-nav-width));
-}
-
-/* Die Leiste geht über die ganze Fensterbreite und deckelt nur ihren Inhalt. Gedeckelt
-   wird sie hier auf die Inhaltsspalte statt auf die ganze Schale, damit Knopf und
-   Statuszeile über den Kartenkanten stehen und nicht über der Navigation daneben. */
-:root[data-shell="centered"] .actionbar-inner {
-  max-width: calc(var(--ds-layout-content-max) + 2 * var(--ds-layout-gutter));
-  margin-inline: auto;
 }
 
 /* -------------------------------------------------------------------- nav */
@@ -576,10 +547,6 @@ body { margin: 0; }
   color: var(--ds-color-text-neutral-subtle-default);
 }
 .page-head .lede { margin-bottom: 0; }
-/* Stehen zwei Saetze im Seitenkopf — "Gesendet" sagt erst, dass es weg ist, dann,
-   an wen man sich wendet —, braucht der zweite den Abstand nach oben: die Regel
-   darueber hat beiden den nach unten genommen. */
-.page-head .lede + .lede { margin-top: var(--ds-spacing-16); }
 
 /* Titel und Beraterin oder Berater teilen sich eine Zeile: links, worum es geht,
    rechts, wer den Link geschickt hat. Der Abstand nach unten sass frueher an
@@ -2356,6 +2323,32 @@ body { margin: 0; }
 }
 
 /* ------------------------------------------------------------- Referenz-ID */
+
+/* Gestrichelter Rahmen und Grundfläche: der Kasten ist nichts zum Ausfüllen und
+   nichts zum Anklicken, sondern etwas zum Herausnehmen — dieselbe Sprache wie
+   der "+ hinzufügen"-Button, nur ohne Akzentfarbe. */
+.refbox {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ds-spacing-12);
+  padding: var(--ds-spacing-16);
+  background: var(--ds-surface-page);
+  border: var(--ds-border-width-1) dashed var(--ds-color-border-neutral-bold-default);
+  border-radius: var(--ds-field-radius);
+}
+.ref-id {
+  flex: 1 1 auto;
+  color: var(--ds-color-text-neutral-bold-default);
+  word-break: break-word;
+}
+/* Die Rückmeldung zum Kopieren hält ihre Zeile frei, auch wenn sie leer ist:
+   sonst rutscht der Kasten darüber beim ersten Klick nach oben. */
+.ref-status {
+  min-height: calc(var(--ds-typography-body-md-default-font-size) * var(--ds-typography-body-md-default-line-height));
+  margin: 0;
+  color: var(--ds-color-text-brand-bold-default);
+}
 
 /* Gesendet: die Leiste sagt nur noch, dass nichts mehr zu tun ist. */
 .save-state.locked {
