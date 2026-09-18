@@ -1744,6 +1744,76 @@
     });
   }
 
+  /* Kopieren aus der Beraterkarte — also nur auf dem Desktop.
+
+     Ein mailto: öffnet ein Programm, das an dieser Stelle niemand bestellt hat, und
+     eine Kartensuche beantwortet eine Anschrift, die man ohnehin gleich weitergibt,
+     mit einem fremden Tab: gebraucht wird in beiden Fällen der Wert selbst, um ihn
+     ins eigene Mailfenster oder in die eigene Navigation zu setzen. E-Mail und
+     Anschrift kopieren deshalb, statt dem Link zu folgen — dieselbe Handlung wie im
+     Kontaktmenü der Mobil-Leiste, wo beide ohnehin schon Knöpfe sind.
+
+     Die Nummer ist nicht dabei: sie übergibt an die Telefon-App und bleibt damit
+     überall dieselbe Zeile — ein tel:-Link, hier wie in der Leiste. Deshalb steht
+     data-copy im Markup und nicht eine Liste von ids hier: welche Zeile kopiert, ist
+     eine Eigenschaft der Zeile und soll dort stehen, wo man sie liest.
+
+     Die href bleibt trotzdem an beiden: ohne Skript ist die Zeile wieder der Link,
+     der sie war, und „Link kopieren“ im Kontextmenü bleibt erreichbar.
+
+     Die Breite wird nirgends abgefragt. Unter 640px trägt .advisor display:none —
+     was nicht da ist, wird nicht geklickt —, und in der Leiste tun dieselben drei
+     Wege längst dasselbe.
+
+     Der Wert wird aus der Zeile gelesen statt mitgeführt: er steht sichtbar darin,
+     und was kopiert wird, ist damit garantiert das, was dasteht — auch nachdem
+     initAdvisor eine andere Person hineingeschrieben hat. Läuft nach cloneAdvisor,
+     damit die Karten in Zusammenfassung und Gesendet mit verdrahtet werden. */
+  function wireAdvisorCopy() {
+    const ANGEBOT = 'Zum Kopieren klicken';
+
+    $$('.advisor-link[data-copy]').forEach((link) => {
+      const hint = link.parentElement.querySelector('.advisor-hint');
+      if (!hint) return;
+      let timer;
+
+      const say = (message) => {
+        clearTimeout(timer);
+        /* Die Blase ist zugleich die Rückmeldung (role="status"). Erst sichtbar
+           machen, dann beschriften: was unsichtbar geschrieben wird, steht nicht im
+           Accessibility-Baum und wird nicht vorgelesen. */
+        hint.classList.add('is-shown');
+        requestAnimationFrame(() => { hint.textContent = message; });
+
+        timer = setTimeout(() => {
+          /* Umgekehrte Reihenfolge, aus demselben Grund: erst verstecken, dann das
+             Angebot zurückschreiben, sonst meldet der Weg zurück ein zweites Mal. */
+          hint.classList.remove('is-shown');
+          hint.textContent = ANGEBOT;
+        }, 2000);
+      };
+
+      link.addEventListener('click', async (event) => {
+        event.preventDefault();
+        const value = link.querySelector('.advisor-value').textContent.trim();
+        try {
+          await navigator.clipboard.writeText(value);
+          say('In die Zwischenablage kopiert');
+        } catch {
+          /* Dieselbe Lage wie im Kontaktmenü: eine Seite, die direkt von der Platte
+             geöffnet wurde, bekommt die Zwischenablage oft nicht. Dann wird der Wert
+             markiert, statt als kopiert zu melden, was nicht kopiert ist. */
+          const range = document.createRange();
+          range.selectNodeContents(link.querySelector('.advisor-value'));
+          const selection = getSelection();
+          selection.removeAllRanges();
+          selection.addRange(range);
+          say('Bitte mit Strg+C bzw. Cmd+C kopieren');
+        }
+      });
+    });
+  }
+
   /* Das Kontaktmenü hinter dem Portrait in der Mobil-Leiste. Es klappt auf und zu wie
      die Abschnittsliste daneben und schließt aus denselben zwei Gründen: ein Klick
      daneben und Escape. Beide Menüs hängen an derselben Leiste, also schließt das
@@ -2118,6 +2188,7 @@
   wireInfoTips();
   cloneAdvisor();
   initAdvisor();
+  wireAdvisorCopy();
   wireAdvisorMenu();
   initEmbed();
 

@@ -716,24 +716,76 @@ body { margin: 0; }
   height: var(--ds-advisor-icon-size);
 }
 
-/* Die Adresse ist ein Link geworden, weil die Nadel auf dem Telefon eines von drei
-   Tippzielen ist und etwas tun muss. Auf dem Desktop soll sie aber bleiben, was sie
-   war — Text, nicht der dritte tuerkise Link in einer Spalte mit zwei anderen. Sie
-   traegt deshalb im Ruhezustand die Textfarbe und keine Unterstreichung, und zeigt
-   erst beim Ueberfahren oder im Fokus, dass sie eine ist. Auf dem Telefon greift die
-   Regel ins Leere: dort steht ohnehin nur das Icon. */
-/* Beides muss am <a> selbst stehen: text-decoration vererbt sich an die Kinder und
+/* Alle drei Zeilen sind Links, aber keine sieht im Ruhezustand danach aus. Sie
+   stehen untereinander in einer schmalen Spalte, und drei tuerkise, unterstrichene
+   Zeilen hintereinander sind keine Kontaktangaben mehr, sondern eine Linkliste: das
+   Auge liest dann die Auszeichnung statt der Nummer, der Adresse, des Namens. Was
+   sie sind, gehoert an die Stelle, an der es gebraucht wird — unter dem Zeiger. Dort
+   wechselt die Zeile auf die Markenfarbe, unterstreicht sich, und die Blase darueber
+   sagt dazu, was der Klick tut: die Nummer uebergibt an die Telefon-App, E-Mail und
+   Anschrift kopieren sich (siehe .advisor-hint weiter unten). Zusammen ist das die
+   ganze Ankuendigung, und im Ruhezustand kostet sie nichts.
+
+   Der Fokus bekommt denselben Wechsel: die Tastatur braucht dieselbe Auskunft wie
+   der Zeiger. Den Ring dazu setzt die gemeinsame Fokusregel weiter unten, in die
+   .advisor-link dafuer aufgenommen ist — Farbe und Unterstreichung sagen "Link",
+   der Ring sagt "hier stehst du", und das eine kann das andere nicht vertreten.
+
+   Auf dem Telefon greift die Regel ins Leere — dort ist .advisor weg, und in der
+   Leiste sind dieselben drei Wege Knoepfe in einer Tafel, wo sie als Zeilen mit
+   Tippziel und Flaechen-Hover ohnehin nicht nach Links aussehen.
+
+   Beides muss am <a> selbst stehen: text-decoration vererbt sich an die Kinder und
    laesst sich von dort nicht zuruecknehmen, und die Linkfarbe kommt von :where(a).
-   Das Icon bleibt trotzdem tuerkis — .advisor-icon-box setzt seine Farbe selbst. */
-#advisor-address {
+   Das Icon bleibt trotzdem tuerkis — .advisor-icon-box setzt seine Farbe selbst, und
+   es ist das einzige, was die Zeile im Ruhezustand ueberhaupt als etwas markiert,
+   das man anfassen kann. */
+.advisor-link {
   color: var(--ds-color-text-neutral-subtle-default);
   text-decoration: none;
 }
-#advisor-address:hover,
-#advisor-address:focus-visible {
+.advisor-link:hover,
+.advisor-link:focus-visible {
   color: var(--ds-color-text-brand-bold-default);
   text-decoration: underline;
 }
+
+/* ------------------------------------ kopieren aus der Beraterkarte
+
+   Drei Zeilen, die drei verschiedene Dinge tun, und keiner davon sieht man das an:
+   ein mailto: oeffnet ein Programm, das an dieser Stelle keiner bestellt hat, eine
+   Kartensuche beantwortet eine Anschrift mit einem fremden Tab — beide kopieren
+   deshalb den Wert (wireAdvisorCopy in app.js) —, und die Nummer uebergibt an die
+   Telefon-App. Damit das an der Zeile steht, bevor man sie anklickt, haengt
+   darueber dieselbe Blase, die am Formular die Hilfetexte traegt: beim Ueberfahren
+   die Ankuendigung, bei den beiden kopierenden nach dem Klick die Quittung im
+   selben Kasten. Sie nimmt .info-bubble
+   unveraendert mit: Flaeche, Ink, Schatten und Mass sind dort begruendet, und ein
+   zweiter Tooltip in einer zweiten Machart waere genau das, was ein Prototyp
+   nicht vorfuehren soll. Geregelt wird hier nur, woran sie haengt und wann sie
+   kommt.
+
+   Der Anker ist das dd und nicht der Link darin. An derselben Kante steht die
+   Blase so oder so — das dd ist genau so breit wie die Zeile —, aber im Link
+   waere ihr Text Teil des Linknamens und wuerde jedes Mal mitgelesen.
+
+   Unter 640px greift nichts davon: dort traegt .advisor display:none, und
+   dieselben drei Wege stehen als Knoepfe im Kontaktmenue der Leiste. Was nicht
+   da ist, wird nicht ueberfahren und nicht geklickt — eine Breitenabfrage
+   braucht es dafuer nicht. */
+.advisor-row > dd { position: relative; }
+
+/* Dieselbe Mechanik wie bei den Hilfetexten: Zeigen nur dort, wo Ueberfahren
+   wirklich Ueberfahren ist, sonst bliebe die Blase auf einem Tippziel haengen.
+   Der Selektor fragt nicht nach data-copy — die Blase gibt es nur, wo eine
+   angelegt ist, und die Nummer hat eine, ohne zu kopieren.
+   .is-shown ist die Quittung nach dem Klick — sie kommt aus dem Skript und haelt
+   sich ein paar Sekunden von selbst. */
+@media (hover: hover) {
+  .advisor-link:hover + .advisor-hint { opacity: 1; visibility: visible; }
+}
+.advisor-link:focus-visible + .advisor-hint,
+.advisor-hint.is-shown { opacity: 1; visibility: visible; }
 
 /* ------------------------------------ Kontaktmenue in der Mobil-Leiste
 
@@ -1167,6 +1219,12 @@ body { margin: 0; }
 .link-btn:focus-visible,
 .advisor-avatar:focus-visible,
 .advisor-action:focus-visible,
+/* Die drei Kontaktzeilen sehen im Ruhezustand nicht nach Links aus (siehe
+   .advisor-link). Der Ring der Tastatur muss dann aber genau der gleiche sein wie
+   ueberall sonst — die Farbe und die Unterstreichung, die dort beim Fokus dazu-
+   kommen, sind die Auskunft "das ist ein Link", nicht die Auskunft "hier steht der
+   Fokus". */
+.advisor-link:focus-visible,
 .tools-toggle:focus-visible {
   outline: var(--ds-border-width-2) solid var(--ds-color-border-brand-bold-default);
   outline-offset: var(--ds-border-width-1);
