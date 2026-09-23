@@ -95,17 +95,6 @@
     <a href="#einkommen"         class="sub">Einkommen</a>
     <a href="#ausgaben"          class="sub">Ausgaben</a>
 
-    <a href="#kinder">
-      <svg class="nav-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"
-           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <circle cx="6.75" cy="5.5" r="2.5"/>
-        <path d="M2.75 17.25v-2.5c0-2.1 1.8-3.25 4-3.25"/>
-        <circle cx="13.5" cy="9.5" r="2.25"/>
-        <path d="M9.75 17.25v-1.75c0-1.8 1.7-2.75 3.75-2.75s3.75.95 3.75 2.75v1.75"/>
-      </svg>
-      Kinder
-    </a>
-
     <a href="#finanzen">
       <svg class="nav-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"
            stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -551,21 +540,36 @@
                     </div>
                   </div>
                 </div>
+                <!-- Steht in der Vorlage, sichtbar ist es nur bei Antragsteller 2:
+                     dessen Block ist eine Kopie dieses hier, und was nicht hier steht,
+                     kommt nie in die Kopie. Ausgeblendet wird es deshalb per CSS an
+                     .applicant[data-applicant="1"] und nicht per hidden — hidden
+                     hiesse „wird gerade nicht gefragt“, und genau so liest es isAsked.
+                     data-adr an den vier Adressfeldern ist der Griff, mit dem die
+                     Uebernahme sie findet: die ids bekommen in der Kopie ein Suffix,
+                     die Rolle des Feldes bleibt. „Wohnhaft seit“ traegt keinen — das
+                     ist ein Datum pro Person und kein Teil der Anschrift. -->
+                <div class="field col-12 same-address">
+                  <label class="choice plain" for="a1-adr-gleich">
+                    <input type="checkbox" id="a1-adr-gleich" data-same-address>
+                    <span>Adresse wie bei Antragsteller 1</span>
+                  </label>
+                </div>
                 <div class="field col-8">
                   <label for="a1-strasse">Straße <span class="req" aria-hidden="true">*</span></label>
-                  <input class="input" id="a1-strasse" type="text" autocomplete="address-line1" required>
+                  <input class="input" id="a1-strasse" type="text" data-adr="strasse" autocomplete="address-line1" required>
                 </div>
                 <div class="field col-4">
                   <label for="a1-hausnr">Hausnr. <span class="req" aria-hidden="true">*</span></label>
-                  <input class="input" id="a1-hausnr" type="text" autocomplete="address-line2" required>
+                  <input class="input" id="a1-hausnr" type="text" data-adr="hausnr" autocomplete="address-line2" required>
                 </div>
                 <div class="field col-4">
                   <label for="a1-plz">PLZ <span class="req" aria-hidden="true">*</span></label>
-                  <input class="input" id="a1-plz" type="text" inputmode="numeric" autocomplete="postal-code" required>
+                  <input class="input" id="a1-plz" type="text" data-adr="plz" inputmode="numeric" autocomplete="postal-code" required>
                 </div>
                 <div class="field col-4">
                   <label for="a1-ort">Ort <span class="req" aria-hidden="true">*</span></label>
-                  <input class="input" id="a1-ort" type="text" autocomplete="address-level2" required>
+                  <input class="input" id="a1-ort" type="text" data-adr="ort" autocomplete="address-level2" required>
                 </div>
                 <div class="field col-4">
                   <label for="a1-wohnhaft">Wohnhaft seit</label>
@@ -637,6 +641,31 @@
                         </select>
                       </span>
                     </div>
+                  </div></div></div>
+                </div>
+
+                <!-- Kinder standen bis hierher als eigener Schritt zwischen
+                     Antragsteller und Finanzen — als Frage an den Haushalt. Sie sind
+                     aber eine Frage an die Person: wer für ein Kind aufkommt, steht
+                     bei zwei Antragstellern nicht automatisch für beide fest. Die
+                     Frage steht deshalb jetzt hier, einmal pro Antragsteller, und
+                     ihre Liste gehört dem Block, in dem sie steht.
+                     data-kinder statt einer id ist der Griff fürs Skript: die id
+                     bekommt in der Kopie ein Suffix, die Rolle des Feldes bleibt. -->
+                <div class="field col-12" role="group" aria-labelledby="lbl-a1-kinder"
+                     data-kinder data-show-when="Ja">
+                  <span class="group-label" id="lbl-a1-kinder">Haben Sie Kinder, die finanziell von Ihnen abhängig sind?</span>
+                  <div class="choices">
+                    <label class="choice"><input type="radio" name="a1-kinder" value="Ja"><span>Ja</span></label>
+                    <label class="choice"><input type="radio" name="a1-kinder" value="Nein"><span>Nein</span></label>
+                  </div>
+                  <div class="reveal"><div class="reveal-inner"><div class="pad">
+                    <div class="kinder-list"></div>
+                    <!-- Der Knopf steht unter der Liste, nicht darueber: „Ja“ bringt
+                         Kind 1 schon mit, und was er tut, ist von da an immer
+                         „eines mehr“ — das gehoert ans Ende dessen, was schon da ist,
+                         und nicht davor. -->
+                    <button type="button" class="add-btn kinder-add">+ Weiteres Kind hinzufügen</button>
                   </div></div></div>
                 </div>
               </div>
@@ -1038,33 +1067,6 @@
           </div>
           </div>
         </section>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ===================== 3 · KINDER ===================== -->
-    <section class="card" id="kinder" aria-labelledby="h-kinder" data-open="false">
-      <h2 class="card-head">
-        <button type="button" class="card-toggle" aria-expanded="false" aria-controls="body-kinder">
-          <svg class="chev" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M5 8l5 5 5-5"/></svg>
-          <span class="card-title" id="h-kinder">Kinder</span>
-        </button>
-      </h2>
-      <div class="card-body" id="body-kinder">
-        <div class="card-body-inner">
-          <div class="card-pad">
-      <div class="field" role="group" aria-labelledby="lbl-kinder" id="kinder-toggle" data-show-when="Ja" data-required>
-        <span class="group-label" id="lbl-kinder">Leben Kinder im Haushalt? <span class="req" aria-hidden="true">*</span></span>
-        <div class="choices">
-          <label class="choice"><input type="radio" name="kinder" value="Ja"><span>Ja</span></label>
-          <label class="choice"><input type="radio" name="kinder" value="Nein"><span>Nein</span></label>
-        </div>
-        <div class="reveal"><div class="reveal-inner"><div class="pad">
-          <button type="button" class="add-btn kinder-add">+ Kind hinzufügen</button>
-          <div class="kinder-list"></div>
-        </div></div></div>
-      </div>
           </div>
         </div>
       </div>
@@ -2391,27 +2393,38 @@
 <!-- template: Kind (eine Zeile, wiederholbar) -->
 <template id="tpl-kind">
   <div class="child-row">
-    <div class="field c-name">
-      <label>Name</label>
-      <input class="input" type="text">
-    </div>
-    <div class="field c-date">
-      <label>Geburtsdatum <span class="req" aria-hidden="true">*</span></label>
-      <input class="input" type="text" placeholder="tt.mm.jjjj" inputmode="numeric" required>
-    </div>
-    <div class="field" role="group">
-      <span class="group-label">Kindergeld?</span>
-      <div class="choices">
-        <label class="choice"><input type="radio" value="Ja"><span>Ja</span></label>
-        <label class="choice"><input type="radio" value="Nein"><span>Nein</span></label>
-      </div>
-    </div>
-    <button type="button" class="icon-btn" data-remove data-confirm="Kind" aria-label="Kind entfernen">
-      <svg class="ico-trash" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"
+    <!-- Bis hierher trennte die Zeilen nur eine Haarlinie, und der Papierkorb stand am
+         Ende der Felder. Mit „Kind 1“, „Kind 2“ hat jede Zeile einen Namen, ueber den
+         man sprechen kann — und damit gehoert der Papierkorb dorthin, wo steht, was er
+         wegwirft: dieselbe Kopfzeile wie bei Stellplatz und Antragsteller.
+         Die Nummer kommt aus renumberKinder und nicht aus dem Template: wird die
+         mittlere von drei Zeilen geloescht, muessen die darunter nachruecken. -->
+    <div class="child-head">
+      <span class="c-title">Kind 1</span>
+      <button type="button" class="icon-btn" data-remove data-confirm="Kind" aria-label="Kind 1 entfernen">
+        <svg class="ico-trash" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"
            stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <path d="M4 6h12M8 6V4.6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1V6M6.4 6l.6 9.4a1 1 0 0 0 1 .9h4a1 1 0 0 0 1-.9L13.6 6M8.7 9v4.6M11.3 9v4.6"/>
       </svg>
-    </button>
+      </button>
+    </div>
+    <div class="child-fields">
+      <div class="field c-name">
+        <label>Name</label>
+        <input class="input" type="text">
+      </div>
+      <div class="field c-date">
+        <label>Geburtsdatum <span class="req" aria-hidden="true">*</span></label>
+        <input class="input" type="text" placeholder="tt.mm.jjjj" inputmode="numeric" required>
+      </div>
+      <div class="field" role="group">
+        <span class="group-label">Kindergeld?</span>
+        <div class="choices">
+          <label class="choice"><input type="radio" value="Ja"><span>Ja</span></label>
+          <label class="choice"><input type="radio" value="Nein"><span>Nein</span></label>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 

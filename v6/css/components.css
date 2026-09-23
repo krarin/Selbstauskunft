@@ -174,6 +174,7 @@ body { margin: 0; }
 .cal-zoom,
 .applicant-title,
 .subcard-head,
+.c-title,
 .note-title {
   font-family: var(--ds-font-family-sans);
   font-size: var(--ds-typography-body-md-strong-font-size);
@@ -1811,16 +1812,68 @@ body { margin: 0; }
   border: 0;
 }
 
+/* Die Hoehe kommt vom Loeschknopf, nicht vom Text: 24px Knopf neben einer 20px
+   hohen Zeile machen den Kopf von Antragsteller 2 vier Pixel hoeher als den von
+   Antragsteller 1 — und damit stand seit der Anrede jede Zeile rechts vier Pixel
+   tiefer als links. Nebeneinander faellt das an jeder Zeile auf, und aufaddiert
+   ueber die Karte ist es genau der Versatz, den man sieht, ohne ihn benennen zu
+   koennen. Die min-height gibt beiden Koepfen die Hoehe, die der Knopf ohnehin
+   erzwingt; wo keiner sitzt, ist sie leerer Raum in der richtigen Groesse. */
 .applicant-head {
   display: flex;
   align-items: center;
   gap: var(--ds-spacing-8);
+  min-height: var(--ds-spacing-24);
   margin-bottom: var(--ds-spacing-16);
 }
 .applicant-title {
   color: var(--ds-color-text-neutral-bold-default);
 }
 .applicants:not(.two) .applicant-head { display: none; }
+
+/* „Adresse wie bei Antragsteller 1“ — die Frage gibt es nur fuer den zweiten. Sie
+   steht trotzdem in der Vorlage, weil Antragsteller 2 eine Kopie davon ist.
+
+   Bei einem Antragsteller faellt sie ganz weg. Stehen zwei nebeneinander, faellt sie
+   beim ersten nur aus dem Bild, nicht aus dem Raster: visibility statt display. Die
+   beiden Tafeln sind zwei getrennte Raster in zwei Spalten, die nichts voneinander
+   wissen — eine Zeile, die es nur rechts gibt, verschiebt dort alles ab Strasse um
+   ihre Hoehe nach unten, und dann steht die PLZ des einen neben dem Geburtsdatum des
+   anderen. Der leere Platz links ist der Preis dafuer, dass die beiden Adressen auf
+   derselben Linie liegen, und er ist billiger als der Versatz.
+
+   display:none und nicht hidden fuer den Wegfall: hidden ist in diesem Formular die
+   Auskunft „wird gerade nicht gefragt“, die isAsked liest, und das ist etwas anderes
+   als „gibt es fuer diesen Antragsteller nicht“. */
+.applicants:not(.two) .same-address { display: none; }
+.applicant[data-applicant="1"] .same-address { visibility: hidden; }
+
+/* Reserviert wird der Platz aber nur, solange die beiden Tafeln wirklich
+   nebeneinander stehen — sonst ist er ein Loch ueber der Strasse von Antragsteller 1.
+   Und das entscheidet nicht die Breite des Fensters, sondern die des Rasters selbst:
+   auto-fit klappt auf eine Spalte zurueck, sobald der Platz fuer zwei
+   --ds-layout-col-min-applicant nicht mehr reicht — bei einer 1100px breiten Seite
+   passiert das laengst, obwohl der Telefon-Breakpoint noch weit weg ist. Eine
+   @media-Abfrage traefe also die falsche Zahl; gefragt wird deshalb der Container.
+
+   856px ist genau die Schwelle, an der auto-fit umschlaegt: zweimal
+   --ds-layout-col-min-applicant (420) plus die Luecke dazwischen (--ds-spacing-16).
+   Sie steht hier als Zahl, weil in der @container-Abfrage kein var() erlaubt ist —
+   aendert sich einer der beiden Werte, muss sie mit. */
+.applicants { container-type: inline-size; container-name: applicants; }
+
+@container applicants not (min-width: 856px) {
+  .applicant[data-applicant="1"] .same-address { display: none; }
+}
+
+/* Uebernommen statt selbst ausgefuellt. Dasselbe Bild wie eine nicht angekreuzte
+   Betragszeile (.amount-cell[data-inactive]): die Fuellung tritt zurueck, der Text
+   behaelt seinen vollen Kontrast — es steht ja etwas darin, es wird hier nur nicht
+   eingegeben. Der Rahmen bleibt, damit das Feld ein Feld bleibt und die Zeile nicht
+   in vier grauen Flecken auseinanderfaellt. */
+.field[data-inactive] .input {
+  background: var(--ds-color-background-neutral-subtle-default);
+}
 
 .subcard {
   margin-bottom: var(--ds-spacing-16);
@@ -1843,7 +1896,16 @@ body { margin: 0; }
    line, so the tops line up the controls just as well — and the Geburtsdatum message
    then grows downwards instead of pushing its own input up out of line with the name
    beside it. */
-.child-row {
+.child-row { display: block; }
+/* Derselbe Kopf wie bei .subcard und .applicant: Name links, Papierkorb rechts. */
+.child-head {
+  display: flex;
+  align-items: center;
+  gap: var(--ds-spacing-8);
+  min-height: var(--ds-spacing-24);
+  margin-bottom: var(--ds-spacing-12);
+}
+.child-fields {
   display: flex;
   flex-wrap: wrap;
   align-items: flex-start;
@@ -1856,16 +1918,9 @@ body { margin: 0; }
 }
 .child-row .c-name { flex: 2 1 var(--ds-layout-col-min-choice); }
 .child-row .c-date { flex: 1 1 var(--ds-layout-col-min-choice); }
-/* The button has no label of its own, so it starts one label line lower than the
-   fields do; giving it the input's own height then puts its centre on the input's
-   centre — the trash lines up with the field line. All three values are tokens, so
-   this follows the density switch as --field-height does. */
-.child-row > .icon-btn {
-  flex: none;
-  height: var(--ds-field-height);
-  margin-top: calc(var(--ds-typography-body-md-medium-font-size) * var(--ds-typography-body-md-medium-line-height) + var(--ds-field-gap-label));
-}
-
+/* Die erste Kinderzeile faengt mit ihrer Ueberschrift an, und die stiesse sonst
+   direkt an die Chips der Frage darueber. */
+.kinder-list:not(:empty) { margin-top: var(--ds-spacing-16); }
 /* Bare glyph, no box: next to a row of fields a bordered square reads as another
    control to fill in. The hit area stays a full 24px square, it just isn't drawn. */
 .icon-btn {
@@ -1905,8 +1960,10 @@ body { margin: 0; }
 }
 .add-btn:hover { background: var(--ds-color-background-brand-subtlest-default); }
 
-/* the add button sits above the rows it adds to, so the gap goes below it */
-.add-btn + .kinder-list { margin-top: var(--ds-spacing-12); }
+/* Der Knopf sitzt unter den Zeilen, die er ergaenzt, also geht der Abstand darueber —
+   und nur, wenn ueberhaupt etwas dasteht: ist die Liste leer, folgt er direkt auf den
+   Hinweis und braucht dessen Abstand nicht doppelt. */
+.kinder-list:not(:empty) + .add-btn { margin-top: var(--ds-spacing-16); }
 
 /* A question answered by the button beside it — "Sind Immobilien vorhanden?" needs no
    Ja/Nein, because adding the first entry says Ja and removing the last one says Nein.

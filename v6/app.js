@@ -433,7 +433,7 @@
         if (list && list.id === 'kredite-liste') renumberKredite();
         if (list && list.id === 'immobilien-liste') renumberImmobilien();
         if (list && list.classList.contains('darlehen-liste')) renumberDarlehen(list);
-        if (list && list.classList.contains('kinder-list')) syncKinderAdd();
+        if (list && list.classList.contains('kinder-list')) syncKinderAdd(list);
         if (list && list.classList.contains('einkommen-liste')) renumberEinkommen(list);
         touched();
       });
@@ -1118,6 +1118,76 @@
     container.appendChild(copy);
     hydrate(copy);
     wireNameEcho(copy);
+  }
+
+  /* ------------------------------------------- Adresse wie bei Antragsteller 1
+
+     Zwei Antragsteller wohnen in den meisten Fällen zusammen, und die zweite Adresse
+     ist dann Zeichen für Zeichen die erste. Das Häkchen nimmt sie herüber, statt sie
+     abtippen zu lassen.
+
+     Übernommen wird, was zur Anschrift gehört: Straße, Hausnummer, PLZ, Ort.
+     „Wohnhaft seit“ nicht — das ist ein Datum pro Person, und wer zusammenzieht,
+     zieht selten am selben Tag ein.
+
+     Die vier Felder bleiben stehen und lesbar und werden nur zurückgenommen, genau
+     wie eine nicht angekreuzte Betragszeile: data-inactive nimmt sie aus der
+     Pflichtfeld-Zählung (siehe isAsked) und lässt die Füllung zurücktreten.
+     Schreibgeschützt sind sie dazu, weil sonst dort etwas anderes stünde, als das
+     Häkchen behauptet — aber erreichbar, damit man die übernommene Adresse auch mit
+     der Tastatur lesen kann.
+
+     Es ist keine einmalige Kopie: solange das Häkchen steht, geht jede spätere
+     Änderung bei Antragsteller 1 mit. Und was vorher dastand, wird beim Setzen
+     gemerkt und beim Abwählen zurückgelegt — das Häkchen ist eine Übernahme, kein
+     Löschen. */
+  const SAME_ADDRESS = '[data-same-address]';
+  const ownAddress = new WeakMap();
+
+  /* Antragsteller 2 wird angelegt und wieder gelöscht, beides beliebig oft. Deshalb
+     hängt hier nichts an den Feldern selbst — die Verdrahtung steht einmal unten am
+     Dokument, und gesucht wird das Paar jedes Mal neu. */
+  function sameAddressPair() {
+    const box = $(`.applicant[data-applicant="2"] ${SAME_ADDRESS}`);
+    if (!box) return null;
+    const second = box.closest('.applicant');
+    const first = box.closest('.applicants').querySelector('.applicant[data-applicant="1"]');
+    return {
+      box,
+      fields: $$('[data-adr]', second).map((target) => ({
+        target,
+        source: first.querySelector(`[data-adr="${target.dataset.adr}"]`),
+      })),
+    };
+  }
+
+  function syncSameAddress() {
+    const pair = sameAddressPair();
+    if (!pair || !pair.box.checked) return;
+    pair.fields.forEach(({ target, source }) => {
+      target.value = source.value;
+      /* Eine rote Meldung, die nicht mehr stimmt, muss weg. Eine neue kann hier nicht
+         entstehen: leer ist die übernommene Adresse nur, solange sie bei Antragsteller
+         1 leer ist — und dort fehlt sie dann auch und wird dort angemahnt. */
+      if (target.closest('.field').classList.contains('invalid')) validate(target);
+    });
+    touched();
+  }
+
+  function applySameAddress() {
+    const pair = sameAddressPair();
+    if (!pair) return;
+    const on = pair.box.checked;
+
+    pair.fields.forEach(({ target }) => {
+      if (on) ownAddress.set(target, target.value);
+      else target.value = ownAddress.get(target) ?? '';
+      target.readOnly = on;
+      target.closest('.field').toggleAttribute('data-inactive', on);
+    });
+
+    if (on) syncSameAddress();
+    else touched();
   }
 
   function wireNameEcho(panel) {
@@ -1961,6 +2031,17 @@
   function reviewEntry(field) {
     if (!isAsked(field)) return null;
 
+    /* „Adresse wie bei Antragsteller 1“ ist keine Frage nach einem Wert, sondern
+       selbst schon die Antwort. Steht das Häkchen, sind die vier Adressfelder
+       data-inactive und fallen oben heraus — ohne diesen Satz hätte Antragsteller 2
+       in der Rückschau gar keine Adresse, was schlimmer wäre als die doppelte.
+       Steht es nicht, stehen die vier Felder für sich und hier ist nichts zu sagen.
+       Eng an data-same-address gebunden und nicht an .choice.plain allgemein: das
+       einzige andere Kästchen dieser Machart ist die Einwilligung, und die gehört
+       nicht in eine Liste der gegebenen Antworten. */
+    const same = field.querySelector(':scope > .choice.plain > [data-same-address]');
+    if (same) return same.checked ? { label: 'Adresse', value: 'wie bei Antragsteller 1' } : null;
+
     const control = field.querySelector(CONTROL_SEL);
     let value = '';
 
@@ -1998,6 +2079,18 @@
     if (node.matches('.subcard')) {
       return labelText(node.querySelector(':scope > .subcard-head > span'));
     }
+    /* Eine Kinderzeile hat keine Überschrift, die man vorlesen könnte — im Formular
+       trennt sie nur eine Haarlinie von der nächsten. In der Rückschau reicht das
+       nicht: seit die Kinder im Block des Antragstellers stehen, folgt „Geburtsdatum
+       = 04.03.2019“ unmittelbar auf dessen eigenes, und ohne Krume steht zweimal
+       dasselbe Wort mit verschiedenen Daten da. Die Nummer kommt aus der Stellung in
+       der Liste, der Name aus der Zeile selbst — dieselbe Form wie beim
+       Antragsteller, damit die Krume durchgehend gleich gebaut ist. */
+    if (node.matches('.child-row')) {
+      const title = labelText(node.querySelector(':scope > .child-head > .c-title'));
+      const name = ((node.querySelector('.c-name .input') || {}).value || '').trim();
+      return name ? `${title} – ${name}` : title;
+    }
     return labelText(node.querySelector(':scope > .subsection-title')
       || node.querySelector(':scope > .card-head .card-title'));
   }
@@ -2008,7 +2101,7 @@
     const crumbs = [];
     for (let node = field.parentElement; node; node = node.parentElement) {
       if (node.matches('.card') && !node.matches('.subsection')) break;
-      if (node.matches('.applicant, .subcard, .subsection, .subsection-static')) {
+      if (node.matches('.applicant, .subcard, .subsection, .subsection-static, .child-row')) {
         const crumb = crumbFor(node);
         if (crumb) crumbs.unshift(crumb);
       }
@@ -2224,32 +2317,47 @@
       }
     }));
 
-  const kinderList = $('.kinder-list');
-  const kinderAdd = $('.kinder-add');
+  /* Die Kinderfrage steht einmal pro Antragsteller, also gibt es die Liste nicht mehr
+     einmal, sondern zweimal — und die zweite entsteht und vergeht mit Antragsteller 2.
+     Deshalb hängt hier nichts mehr an einem Knopf: das Dokument horcht, und gesucht
+     wird jedes Mal die Liste, die zu dem Knopf gehört, der geklickt wurde. */
+  const kinderListOf = (node) => node.closest('[data-kinder]').querySelector('.kinder-list');
 
   /* Answering Ja already is the first child: it says there is one, so the row to
      fill in appears with the answer instead of behind another click. The button
-     stays put above the list and only ever adds further children — it names that,
-     and falls back to the first-child wording if every row is taken out again. */
-  function syncKinderAdd() {
-    kinderAdd.textContent = kinderList.children.length
-      ? '+ Weiteres Kind hinzufügen'
-      : '+ Kind hinzufügen';
+     sits under the list and only ever adds further children — it names that, and
+     falls back to the first-child wording if every row is taken out again.
+
+     Die Nummern kommen aus der Stellung in der Liste und nicht aus einem Zaehler:
+     wird die mittlere von drei Zeilen geloescht, heisst die letzte danach „Kind 2“
+     und nicht weiter „Kind 3“. Das unsichtbare Etikett des Papierkorbs geht mit —
+     vorgelesen wird sonst dreimal dasselbe „Kind entfernen“. */
+  function syncKinderAdd(list) {
+    if (!list) return;
+    $$(':scope > .child-row', list).forEach((row, index) => {
+      const name = `Kind ${index + 1}`;
+      row.querySelector('.c-title').textContent = name;
+      row.querySelector('[data-remove]').setAttribute('aria-label', `${name} entfernen`);
+    });
+    list.closest('[data-kinder]').querySelector('.kinder-add').textContent =
+      list.children.length ? '+ Weiteres Kind hinzufügen' : '+ Kind hinzufügen';
   }
 
-  kinderAdd.addEventListener('click', () => {
-    addFromTemplate('tpl-kind', kinderList);
-    syncKinderAdd();
+  document.addEventListener('click', (event) => {
+    if (!event.target.matches('.kinder-add')) return;
+    const list = kinderListOf(event.target);
+    addFromTemplate('tpl-kind', list);
+    syncKinderAdd(list);
   });
 
-  $$('#kinder-toggle input[type="radio"]').forEach((radio) =>
-    radio.addEventListener('change', () => {
-      if (radio.checked && radio.value === 'Ja' && !kinderList.children.length) {
-        addFromTemplate('tpl-kind', kinderList);
-      }
-      syncKinderAdd();
-    }));
-  syncKinderAdd();
+  document.addEventListener('change', (event) => {
+    if (!event.target.matches('[data-kinder] > .choices input[type="radio"]')) return;
+    const list = kinderListOf(event.target);
+    if (event.target.checked && event.target.value === 'Ja' && !list.children.length) {
+      addFromTemplate('tpl-kind', list);
+    }
+    syncKinderAdd(list);
+  });
 
   const stellplaetze = $('#stellplaetze');
   $('#add-stellplatz').addEventListener('click', () => {
@@ -2307,6 +2415,15 @@
   renumberKredite();
 
   document.addEventListener('input', touched);
+
+  /* Das Häkchen und die Felder, an denen es hängt, entstehen und vergehen mit
+     Antragsteller 2 — also horcht das Dokument und nicht das Feld. */
+  document.addEventListener('change', (event) => {
+    if (event.target.matches(SAME_ADDRESS)) applySameAddress();
+  });
+  document.addEventListener('input', (event) => {
+    if (event.target.matches('.applicant[data-applicant="1"] [data-adr]')) syncSameAddress();
+  });
 
   /* Ein Paar, das schon rot ist, muss sich beim Tippen wieder beruhigen — und zwar
      im Moment des Tippens, nicht erst beim Verlassen des Feldes: die Meldung sagt
