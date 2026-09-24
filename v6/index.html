@@ -2174,17 +2174,26 @@
       <div class="card-body" id="body-details">
         <div class="card-body-inner">
           <div class="card-pad">
-      <div class="grid">
-        <div class="field col-4">
-          <label for="d-eigenkapital">Eingesetztes Eigenkapital <span class="req" aria-hidden="true">*</span></label>
+      <div class="grid grid-tight">
+        <div class="field col-2">
+          <!-- Geschuetztes Leerzeichen vor dem Stern: in einer 173px-Spalte passt
+               "Eingesetztes Eigenkapital" gerade noch in eine Zeile, der Stern und
+               das i-Icon dahinter nicht mehr - die beiden Marken standen allein in
+               Zeile zwei, abgeloest von dem Wort, zu dem sie gehoeren. Geklebt
+               bricht stattdessen "Eigenkapital" mit um. Das Icon haengt ohne
+               Leerzeichen am Stern (app.js setzt es per appendChild) und kann von
+               sich aus nicht umbrechen. -->
+          <label for="d-eigenkapital">Eingesetztes Eigenkapital <span class="req" aria-hidden="true">*</span></label>
           <p class="help" id="h-d-ek">Ersparnisse, Bausparguthaben oder Eigenleistungen.</p>
           <div class="with-unit"><input class="input" id="d-eigenkapital" inputmode="decimal" aria-describedby="h-d-ek" required><span class="unit">€</span></div>
         </div>
-        <div class="field col-4">
+        <div class="field col-2">
           <label for="d-laufzeit">Gewünschte Laufzeit <span class="req" aria-hidden="true">*</span></label>
           <div class="with-unit"><input class="input" id="d-laufzeit" inputmode="numeric" required><span class="unit">Jahre</span></div>
         </div>
-        <div class="field col-4">
+        <!-- Drei statt zwei Spalten: die Kappung gilt nur für Zahlenfelder, das
+             Select trägt "Länger als 20 Jahre" und braucht die Breite selbst. -->
+        <div class="field col-3">
           <label for="d-zinsbindung">Gewünschte Zinsbindung <span class="req" aria-hidden="true">*</span></label>
           <span class="select-wrap">
             <select class="select" id="d-zinsbindung" required>
@@ -2193,12 +2202,15 @@
             </select>
           </span>
         </div>
-        <div class="field col-4">
+        <!-- col-start bricht die Reihe: bei diesen Spannweiten pass(t)en sonst alle
+             fünf Felder in eine Zeile, und die zweite Frage hätte keinen Bezug mehr
+             zur ersten Reihe. -->
+        <div class="field col-2 col-start">
           <label for="d-tilgung">Tilgungssatz <span class="req" aria-hidden="true">*</span></label>
           <p class="help" id="h-d-tilg">Anfänglicher Tilgungssatz pro Jahr, üblich sind 2 bis 3 %.</p>
           <div class="with-unit"><input class="input" id="d-tilgung" inputmode="decimal" aria-describedby="h-d-tilg" required><span class="unit">%</span></div>
         </div>
-        <div class="field col-4">
+        <div class="field col-2">
           <label for="d-rate">Gewünschte monatliche Rate</label>
           <div class="with-unit"><input class="input" id="d-rate" inputmode="decimal"><span class="unit">€</span></div>
         </div>

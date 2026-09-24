@@ -1595,6 +1595,15 @@
      40px und steht neben dem Formular, nicht darueber. Ohne diese beiden Bedingungen
      waere jede Blase auf dem Desktop nach unten geklappt — gegen eine Leiste, die sie
      nie verdeckt haette. */
+  /* Der Rand der Seite ist clientWidth/clientHeight des Wurzelelements, nicht
+     innerWidth/innerHeight des Fensters. Die beiden gehen auseinander, sobald eine
+     Bildlaufleiste da ist — und auf dem Telefon auch dann, wenn der sichtbare
+     Ausschnitt gegenueber dem Layout skaliert ist: gemessen wurden dort 462 gegen 390.
+     Gegen innerWidth gerechnet steht die Blase dann bis zu 72px zu weit rechts, also
+     genau ueber der Kante, vor der sie ausweichen sollte. */
+  const seiteBreit = () => document.documentElement.clientWidth;
+  const seiteHoch = () => document.documentElement.clientHeight;
+
   function tipCeiling(box, safe) {
     const bar = document.querySelector('.nav');
     if (!bar) return safe;
@@ -1613,6 +1622,7 @@
     // erst zurueck auf die Vorgabe, sonst misst man die Ausweichbewegung von vorhin
     bubble.classList.remove('below');
     bubble.style.removeProperty('--ds-tip-shift');
+    bubble.style.removeProperty('--ds-tip-left');
     const icon = wrap.querySelector('.info-btn');
 
     /* Die 16px des Design Systems zaehlen ab dem Zeichen. Die Blase haengt aber an der
@@ -1627,6 +1637,14 @@
       const i = icon.getBoundingClientRect();
       bubble.style.setProperty('--ds-tip-above', `${Math.round(h.bottom - i.top)}px`);
       bubble.style.setProperty('--ds-tip-below', `${Math.round(i.bottom - h.top)}px`);
+
+      /* Mittig ueber dem Zeichen. Die Breite steht schon fest — sie haengt an
+         --ds-layout-measure-tooltip und am Fenster, nicht am Elternteil —, also darf
+         sie hier gemessen und die linke Kante daraus gerechnet werden, ohne dass das
+         Setzen von left sie wieder veraendert. */
+      const breite = bubble.getBoundingClientRect().width;
+      bubble.style.setProperty('--ds-tip-left',
+        `${Math.round(i.left + i.width / 2 - h.left - breite / 2)}px`);
     }
 
     const safe = tipSafe();
@@ -1653,14 +1671,14 @@
          Telefon nicht, dort gilt die Regel vor der Bequemlichkeit, und auch nicht,
          wenn die Seite von Hand gesetzt wurde. */
       const box = bubble.getBoundingClientRect();
-      if (!fixed && !schmal && box.bottom > innerHeight - safe && passtOben) {
+      if (!fixed && !schmal && box.bottom > seiteHoch() - safe && passtOben) {
         bubble.classList.remove('below');
       }
     }
 
     const box = bubble.getBoundingClientRect();
     let shift = 0;
-    if (box.right > innerWidth - safe) shift = innerWidth - safe - box.right;
+    if (box.right > seiteBreit() - safe) shift = seiteBreit() - safe - box.right;
     if (box.left + shift < safe) shift = safe - box.left;
     if (shift) bubble.style.setProperty('--ds-tip-shift', `${Math.round(shift)}px`);
 

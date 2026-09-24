@@ -1127,6 +1127,7 @@ body { margin: 0; }
    taten (und an vier weiteren fehlten). */
 .grid ~ .grid { margin-top: var(--ds-field-gap-stack); }
 
+.col-2  { grid-column-end: span 2; }
 .col-3  { grid-column-end: span 3; }
 .col-4  { grid-column-end: span 4; }
 .col-6  { grid-column-end: span 6; }
@@ -1138,6 +1139,25 @@ body { margin: 0; }
    preceding field instead of sitting beside it. Precedes the single-column
    mobile override, which resets the start so the field still goes full width. */
 .col-start { grid-column-start: 1; }
+
+/* Eine Reihe aus lauter gekappten Zahlenfeldern stand in Dritteln der Karte: der
+   Kasten 170px, die Spalte 361px, dazwischen 191px Nichts — und daneben ein Select
+   ohne Kappung, das seine Spalte füllt. Nebeneinander gelesen wirken die Felder
+   dadurch nicht schmal, sondern verstreut.
+
+   .grid-tight kappt nicht den Kasten (das tut --ds-layout-measure-amount weiter
+   oben schon), sondern die Spanne: zwei der zwölf Spalten sind 173px und damit
+   genau die gekappte Breite. Das Zwölferraster bleibt stehen, weil in demselben
+   Raster die Ja/Nein-Gruppen und das Textfeld mit col-12 über die ganze Karte
+   gehen — ein Raster mit inhaltsbreiten Spuren bräche die.
+
+   Bei 173px bricht eine lange Frage um ("Eingesetztes Eigenkapital" braucht zwei
+   Zeilen, "Tilgungssatz" eine). Ohne Ausgleich säßen die Kästen einer Reihe
+   deshalb auf verschiedenen Höhen — also hängt das Bedienelement am unteren Rand
+   seiner Zelle und alle stehen auf einer Linie, gleich wie viele Zeilen die Frage
+   darüber braucht. Nur hier, nicht an .field allgemein: anderswo folgt einem Feld
+   ein .reveal, und der gehört dicht unter sein Bedienelement, nicht ans Zellenende. */
+.grid-tight > .field > :last-child { margin-top: auto; }
 
 /* ------------------------------------------------------------------- field */
 
@@ -1534,15 +1554,23 @@ body { margin: 0; }
    the filled circle could do without — otherwise it collides with the required *. */
 .info-wrap { display: inline-flex; vertical-align: middle; margin-left: var(--ds-spacing-4); }
 
-/* The bubble is measured against the label, not against the 16px icon inside it.
-   Centred on the icon it was free to run off whichever edge the icon happened to sit
-   near — and the icon sits at the END of the label, so on a narrow column that edge
-   was always the right one. Anchored to the label instead, the bubble starts where
-   the label starts and can never be wider than the field, which is inside the card,
-   which is inside the page: it cannot be clipped at any width without the field
-   itself being clipped first.
-   The wrap gives up its own positioning for this; whatever holds it becomes the
-   containing block. :has(> .info-wrap) rather than a list of hosts because the icon
+/* Die Blase steht mittig ueber dem Zeichen — und damit steht ihre Spitze in ihrer
+   Mitte, was das Design System so zeigt und was man von einer Sprechblase erwartet.
+
+   Frueher hing sie an der linken Kante der Beschriftung. Das war kein
+   Gestaltungswunsch, sondern ein Ausweichmanoever: mittig ueber dem Zeichen konnte sie
+   ueber den Rand laufen, und weil das Zeichen am ENDE der Beschriftung sitzt, war das
+   in einer schmalen Spalte immer der rechte. An der Beschriftung war sie nie breiter
+   als das Feld und konnte deshalb gar nicht erst anstossen — um den Preis, dass ihre
+   Spitze weit rechts aus der Mitte sass.
+   Diesen Preis muss sie nicht mehr zahlen: seit placeInfoBubble beim Oeffnen misst und
+   am Fensterrand zurueckschiebt, ist das Anstossen abgedeckt. Die Blase darf also
+   wieder dort stehen, wo sie hingehoert.
+   Die linke Kante rechnet das Skript aus (--ds-tip-left); ohne es faellt sie auf die
+   Kante der Beschriftung zurueck, also auf das alte Verhalten.
+
+   Der Wrap gibt dafuer seine eigene Positionierung auf; was ihn haelt, wird der
+   Bezugsrahmen. :has(> .info-wrap) rather than a list of hosts because the icon
    is appended at runtime to whatever element carries the field's label — a <label>,
    a .group-label, or a heading referenced by aria-labelledby. */
 :has(> .info-wrap) { position: relative; }
@@ -1556,7 +1584,7 @@ body { margin: 0; }
      beim Oeffnen (placeInfoBubble); 100% ist der Rueckfall, solange es nicht gelaufen
      ist, und zugleich der richtige Wert fuer eine umgebrochene Beschriftung. */
   bottom: calc(var(--ds-tip-above, 100%) + var(--ds-tip-offset));
-  left: 0;
+  left: var(--ds-tip-left, 0px);
   /* „Nicht hinter anderem Inhalt“: was gerade unter dem Zeiger liegt, gewinnt. Die
      Blase steht deshalb ueber allem, was sich im Formular ueber ein Feld legen kann —
      ueber der klebenden Aktionsleiste (4) und auch ueber einem offenen Kalender (20),
@@ -1624,12 +1652,11 @@ body { margin: 0; }
    eine falsche Wahl nicht auf, weil Rahmen und Flaeche dort dieselbe Farbe haben; im
    dunklen wird daraus ein offener Winkel unter einer durchgezogenen Linie.)
 
-   Waagerecht steht sie nicht in der Mitte der Blase, sondern ueber dem Zeichen: das
-   Skript misst beim Oeffnen, wie weit dessen Mitte von der linken Kante der Blase
-   entfernt ist, und legt den Wert in --ds-tip-caret ab. Damit zeigt sie auch dann noch
-   auf das Zeichen, wenn die Blase am Fensterrand zur Seite geschoben wurde — genau der
-   Fall, in dem eine fest mittige Spitze auf irgendetwas anderes zeigen wuerde.
-   Der Rueckfall 50% gilt nur, solange das Skript nicht gelaufen ist. */
+   Waagerecht gerechnet, nicht auf 50% gesetzt: im Normalfall kommt dabei genau die
+   Mitte heraus, weil die Blase mittig ueber dem Zeichen steht. Am Fensterrand ist sie
+   das nicht mehr — dort ist sie zur Seite geschoben —, und dann wandert die Spitze mit
+   dem Zeichen, statt auf die Mitte einer verschobenen Blase und damit auf irgendetwas
+   zu zeigen. Der Rueckfall 50% gilt nur, solange das Skript nicht gelaufen ist. */
 .info-bubble::after {
   content: "";
   position: absolute;
@@ -2681,7 +2708,7 @@ body { margin: 0; }
 }
 
 @media (max-width: 640px) {
-  .col-3, .col-4, .col-6, .col-8, .col-9 { grid-column: auto / span 12; }
+  .col-2, .col-3, .col-4, .col-6, .col-8, .col-9 { grid-column: auto / span 12; }
   /* The row gap changes job at this width. Two and three to a row, fields are grouped
      by sitting *beside* each other and the gap only has to part the bands; stacked, it
      is the sole thing telling "next question" from "next part of this one" — against
