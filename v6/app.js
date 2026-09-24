@@ -26,6 +26,17 @@
     + ':scope > .with-unit > .input, :scope > .with-picker > .input, '
     + ':scope > .select-wrap > .select';
 
+  /* Info.svg, Pfad fuer Pfad uebernommen; geaendert ist nur die eingebrannte #607D8B,
+     die currentColor wird, damit die Farbe aus dem Token kommt. Steht hier und nicht
+     im Markup, weil fast jedes Zeichen im Formular zur Laufzeit aus einem Hilfetext
+     gebaut wird (siehe buildHelpIcons) — das eine fest geschriebene in index.html
+     traegt denselben Pfad. */
+  const INFO_ICON = '<svg class="ico-info" viewBox="0 0 20 20" fill="currentColor" '
+    + 'aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" '
+    + 'd="M10 1.66667C5.4 1.66667 1.66667 5.4 1.66667 10C1.66667 14.6 5.4 18.3333 10 '
+    + '18.3333C14.6 18.3333 18.3333 14.6 18.3333 10C18.3333 5.4 14.6 1.66667 10 '
+    + '1.66667ZM9.16667 14.1667V9.16667H10.8333V14.1667H9.16667ZM9.16667 5.83333V7.5H10.8333V5.83333H9.16667Z"/></svg>';
+
   /* The same trash glyph the repeatable templates carry inline, for the remove buttons
      that are built in script instead — keep the two in step. */
   const TRASH_ICON = '<svg class="ico-trash" viewBox="0 0 20 20" fill="none" '
@@ -151,7 +162,7 @@
       const button = document.createElement('button');
       button.type = 'button';
       button.className = 'info-btn';
-      button.textContent = 'i';
+      button.innerHTML = INFO_ICON;
       button.setAttribute('aria-label', `Erläuterung zu ${name}`);
       button.setAttribute('aria-describedby', help.id);
       button.setAttribute('aria-expanded', 'false');
@@ -1557,7 +1568,142 @@
 
      One open at a time. Two bubbles are both absolutely positioned over the fields
      around them, so a second one opening on top of the first is unreadable. */
+  /* Ausrichtung der Sprechblase — die Regel „auto“ aus dem Design System.
+
+     Vorgabe ist oben. Das Zeichen sitzt am Ende einer Beschriftung, und ueber ihr
+     liegt immer das vorige Feld: Platz, den in dem Moment niemand liest. Passt die
+     Blase dort nicht mehr ins Fenster, klappt sie nach unten, statt oben abgeschnitten
+     zu werden. Waagerecht wird sie so weit hereingeschoben, wie noetig ist, damit
+     keine Kante ueber den Rand laeuft.
+
+     Gemessen wird, bevor die Blase zu sehen ist: visibility:hidden nimmt ihr die
+     Sichtbarkeit, nicht den Kasten — sie hat also schon Masse, und das Ausweichen
+     passiert nicht vor den Augen, sondern davor.
+
+     data-placement an der .info-wrap schaltet das Messen ab und legt die Seite fest;
+     „auto“ ist eine Vorgabe, keine Vorschrift. */
+  /* Der Randabstand steht im Token und nicht hier: die Zahl ist eine Vorgabe des
+     Design Systems (16px/1rem an allen vier Kanten), und sie soll an einer Stelle
+     stehen, nicht an zweien. */
+  const tipSafe = () => parseFloat(getComputedStyle(document.documentElement)
+    .getPropertyValue('--ds-tip-safe-inset')) || 16;
+
+  /* Die Oberkante, unter der es fuer die Blase eng wird. Normalerweise der Fensterrand
+     — aber auf dem Telefon klebt die Abschnittsleiste oben, und Platz hinter ihr ist
+     kein Platz. Sie zaehlt nur mit, wenn sie wirklich oben klebt UND waagerecht vor
+     der Blase liegt: auf dem Desktop ist dieselbe .nav die Spalte links, die klebt bei
+     40px und steht neben dem Formular, nicht darueber. Ohne diese beiden Bedingungen
+     waere jede Blase auf dem Desktop nach unten geklappt — gegen eine Leiste, die sie
+     nie verdeckt haette. */
+  function tipCeiling(box, safe) {
+    const bar = document.querySelector('.nav');
+    if (!bar) return safe;
+    const position = getComputedStyle(bar).position;
+    if (position !== 'sticky' && position !== 'fixed') return safe;
+    const r = bar.getBoundingClientRect();
+    const klebtOben = r.top <= safe;
+    const liegtDavor = r.left < box.right && box.left < r.right;
+    return klebtOben && liegtDavor ? Math.max(safe, r.bottom) : safe;
+  }
+
+  function placeInfoBubble(wrap) {
+    const bubble = wrap.querySelector(':scope > .info-bubble');
+    if (!bubble) return;
+
+    // erst zurueck auf die Vorgabe, sonst misst man die Ausweichbewegung von vorhin
+    bubble.classList.remove('below');
+    bubble.style.removeProperty('--ds-tip-shift');
+    const icon = wrap.querySelector('.info-btn');
+
+    /* Die 16px des Design Systems zaehlen ab dem Zeichen. Die Blase haengt aber an der
+       Beschriftung — die gibt ihr die linke Kante und traegt sie auch dann noch, wenn
+       sie ueber zwei Zeilen laeuft. Also wird der Abstand zwischen Beschriftungskasten
+       und Zeichen hier einmal ausgemessen und als Ankerwert weitergereicht, statt ihn
+       im CSS aus Schriftgroesse und Zeilenhoehe nachzurechnen: gemessen stimmt er auch
+       bei umgebrochener Beschriftung, wo das Zeichen in der letzten Zeile steht. */
+    const host = bubble.offsetParent;
+    if (host && icon) {
+      const h = host.getBoundingClientRect();
+      const i = icon.getBoundingClientRect();
+      bubble.style.setProperty('--ds-tip-above', `${Math.round(h.bottom - i.top)}px`);
+      bubble.style.setProperty('--ds-tip-below', `${Math.round(i.bottom - h.top)}px`);
+    }
+
+    const safe = tipSafe();
+    const fixed = wrap.dataset.placement;
+    /* Auf dem Telefon gibt es nur eine Seite. Ueber dem Zeichen steht dort die
+       Beschriftung und darueber gleich das vorige Feld — in einer einspaltigen Ansicht
+       ist das der Text, den man gerade liest, waehrend unter dem Zeichen das Feld
+       liegt, das man ohnehin gleich anfasst. Die Regel ist deshalb keine Notloesung
+       fuer wenig Platz, sondern die Ansage: unterhalb, immer. */
+    const schmal = matchMedia('(max-width: 640px)').matches;
+
+    const oben = bubble.getBoundingClientRect();
+    const passtOben = oben.top >= tipCeiling(oben, safe);
+
+    let unten;
+    if (schmal) unten = true;
+    else if (fixed) unten = fixed === 'bottom';
+    else unten = !passtOben;
+
+    if (unten) {
+      bubble.classList.add('below');
+      /* Unterhalb kann es genauso eng werden. Stoesst die Blase dort an die untere
+         Kante und oben waere Platz gewesen, geht sie zurueck nach oben — auf dem
+         Telefon nicht, dort gilt die Regel vor der Bequemlichkeit, und auch nicht,
+         wenn die Seite von Hand gesetzt wurde. */
+      const box = bubble.getBoundingClientRect();
+      if (!fixed && !schmal && box.bottom > innerHeight - safe && passtOben) {
+        bubble.classList.remove('below');
+      }
+    }
+
+    const box = bubble.getBoundingClientRect();
+    let shift = 0;
+    if (box.right > innerWidth - safe) shift = innerWidth - safe - box.right;
+    if (box.left + shift < safe) shift = safe - box.left;
+    if (shift) bubble.style.setProperty('--ds-tip-shift', `${Math.round(shift)}px`);
+
+    /* Die Spitze zeigt auf das Zeichen, nicht auf die Mitte der Blase. Zuletzt
+       gerechnet, weil sie von der endgueltigen Lage abhaengt: die Blase kann eben noch
+       zur Seite gerueckt sein, und eine Spitze, die das nicht mitmacht, zeigt danach
+       auf irgendetwas.
+       Begrenzt auf das gerade Stueck Kante zwischen den beiden Rundungen — weiter
+       aussen saesse sie auf der Ecke und haette keine Kante mehr, aus der sie
+       herauswaechst. Liegt das Zeichen ausserhalb dieses Bereichs, bleibt sie am
+       naechstgelegenen Ende stehen: dann zeigt sie in die richtige Richtung, wenn
+       schon nicht genau auf den Punkt. */
+    if (icon) {
+      const b = bubble.getBoundingClientRect();
+      const i = icon.getBoundingClientRect();
+      const size = parseFloat(getComputedStyle(bubble).getPropertyValue('--ds-tip-caret-size')) || 8;
+      const radius = parseFloat(getComputedStyle(bubble).borderTopLeftRadius) || 0;
+      /* Halbe Breite der gedrehten Spitze, nicht ihre Kantenlaenge: ein um 45 Grad
+         gedrehtes Quadrat ist an seiner breitesten Stelle die Diagonale, also ragt es
+         nach jeder Seite um Kante x 0,707 heraus. Mit der Kantenlaenge gerechnet waere
+         die Grenze zwei Pixel zu eng — genug, um die Spitze an einem Zeichen ganz am
+         rechten Ende einer Beschriftung daneben zeigen zu lassen. */
+      const rand = radius + size * Math.SQRT1_2;
+      const mitte = i.left + i.width / 2 - b.left;
+      const wert = Math.min(Math.max(mitte, rand), Math.max(rand, b.width - rand));
+      bubble.style.setProperty('--ds-tip-caret', `${Math.round(wert)}px`);
+    }
+  }
+
   function wireInfoTips() {
+    /* Gemessen wird bei jedem Weg, auf dem eine Blase aufgeht: Zeiger, Tastatur und
+       Klick. pointerover und focusin, weil beide hochblubbern — pointerenter und
+       focus tun das nicht und muessten an jedes einzelne Zeichen gehaengt werden,
+       auch an die, die spaeter entstehen. */
+    document.addEventListener('pointerover', (event) => {
+      const wrap = event.target.closest && event.target.closest('.info-wrap');
+      if (wrap) placeInfoBubble(wrap);
+    });
+    document.addEventListener('focusin', (event) => {
+      const wrap = event.target.closest && event.target.closest('.info-wrap');
+      if (wrap) placeInfoBubble(wrap);
+    });
+
     const closeTips = (except) => {
       $$('.info-btn[aria-expanded="true"]').forEach((button) => {
         if (button !== except) button.setAttribute('aria-expanded', 'false');
@@ -1571,6 +1717,7 @@
       if (!button) return;
       const open = button.getAttribute('aria-expanded') === 'true';
       closeTips(button);
+      if (!open) placeInfoBubble(button.closest('.info-wrap'));
       button.setAttribute('aria-expanded', String(!open));
     });
 

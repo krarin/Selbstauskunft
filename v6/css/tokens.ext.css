@@ -127,6 +127,20 @@
   --ds-card-radius: var(--ds-radius-lg);
   --ds-advisor-avatar-size: var(--ds-spacing-64);
   --ds-advisor-icon-size: var(--ds-spacing-16);
+  /* Das Info-Zeichen steht neben einer 14px-Beschriftung. 16 ist die Stufe, auf der
+     es als Zeichen daneben lesbar bleibt, ohne sie zu ueberragen; das Tippziel ist
+     davon unabhaengig 24 (siehe .info-btn::after). */
+  --ds-info-icon-size: var(--ds-spacing-16);
+  /* Abstand, den eine Sprechblase zum Fensterrand haelt, bevor sie ausweicht —
+     16px/1rem, wie das Design System es fuer alle vier Kanten vorgibt. */
+  --ds-tip-safe-inset: var(--ds-spacing-16);
+  /* Und derselbe Abstand zwischen Ausloeser und Blase, auf welcher Seite auch immer
+     sie steht. */
+  --ds-tip-offset: var(--ds-spacing-16);
+  /* Kantenlaenge des Quadrats, das um 45 Grad gedreht die Spitze bildet. 8 ergibt eine
+     Spitze von rund 11px Breite und knapp 6px Hoehe — gross genug, um auf das Zeichen
+     zu zeigen, klein genug, um nicht als eigene Form gelesen zu werden. */
+  --ds-tip-caret-size: var(--ds-spacing-8);
   --ds-advisor-gap: var(--ds-spacing-24);
   --ds-advisor-row-gap: var(--ds-spacing-12);
   --ds-advisor-tap-target: var(--ds-spacing-48);
@@ -147,7 +161,11 @@
   --ds-layout-col-amount: var(--ds-layout-measure-amount);
   --ds-layout-measure-prose: 68ch;
   --ds-layout-measure-amount: 170px;
-  --ds-layout-measure-tooltip: 32ch;
+  /* 288px/18rem ist die Hoechstbreite einer Sprechblase im Design System. Vorher stand
+     hier ein Mass in ch, also in Zeichen der laufenden Schrift — das war die richtige
+     Groesse fuer einen Satz, aber nicht die Zahl, gegen die gebaut wird. Wer mehr Platz
+     braucht als diese Breite, nimmt keine Sprechblase, sondern einen Toggletip. */
+  --ds-layout-measure-tooltip: 288px;
   /* 52ch trug den Text, aber nicht die Knopfzeile: „Selbstauskunft abschicken“
      und „Abbrechen“ brauchen nebeneinander 357px, 52ch liessen 345px — die
      zwei Knoepfe brachen um, obwohl der Dialog halb leer war. 56ch gibt der
@@ -229,6 +247,16 @@
   --ds-color-background-danger-subtlest-default: var(--_ds-ext-color-red-950);
   --ds-color-border-danger-bold-default: var(--_ds-color-red-500);
   --ds-color-text-danger-bold-default: var(--_ds-ext-color-red-400);
+  /* icon/neutral/subtle hat im Dunkelmodus keine Entsprechung im Kernsatz. Die
+     Textrolle daneben bekommt eine — text/neutral/subtle geht auf grey.400 —, die
+     Icon-Rolle blieb auf grey.600 stehen. Auf der Karte sind das 2.21:1 und damit
+     unter den 3:1, die 1.4.11 fuer ein Zeichen verlangt, das etwas bedeutet (das
+     Erklaerzeichen neben einer Beschriftung ist genau so eines). grey.400 bringt
+     5.06:1 auf der Karte und 9.41:1 auf der Seite — dieselbe Stufe, die die
+     Textrolle nimmt, damit Beschriftung und Zeichen daneben auch im Dunkeln auf
+     einer Hoehe bleiben. */
+  --ds-color-icon-neutral-subtle-default: var(--_ds-color-grey-400);
+  --ds-color-icon-neutral-subtle-hovered: var(--_ds-color-grey-300);
   --ds-color-icon-danger-bold-default: var(--_ds-color-red-500);
   --ds-color-background-info-subtlest-default: var(--_ds-ext-color-blue-950);
   --ds-color-border-info-bold-default: var(--_ds-color-blue-500);

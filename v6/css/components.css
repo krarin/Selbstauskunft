@@ -1110,6 +1110,23 @@ body { margin: 0; }
    span 6` would put the span on the start edge instead, where .col-start below
    overwrites it — and a field with a start of 1 and an auto end is one column
    wide, not six. */
+/* Zwei Raster hintereinander im selben Block sind gelesen nichts anderes als zwei
+   Zeilen eines Rasters — der Umbruch dazwischen ist eine Frage der Auszeichnung
+   (eine Frage steht dazwischen, ein Teil der Felder haengt an der Immobilienart),
+   nicht eine Frage an die, die das Formular ausfuellen. Ohne Abstand stoesst die
+   erste Zeile des zweiten Rasters an die letzte des ersten, waehrend jede Zeile
+   innerhalb eines Rasters ihre --ds-field-gap-stack hat: an genau dieser Stelle
+   sieht das Raster kaputt aus, ohne dass man sagen koennte, warum.
+
+   Das allgemeine Geschwister-Zeichen und nicht das direkte: zwischen zwei Rastern
+   steht oft ein Feld, das gerade nicht gefragt ist und [hidden] traegt. Fuer die
+   Nachbarschaft zaehlt es trotzdem, fuer das Auge nicht — mit + waere der Abstand
+   genau dann weg, wenn er gebraucht wird.
+
+   Ersetzt drei Inline-Korrekturen im Markup, die dasselbe an drei Stellen von Hand
+   taten (und an vier weiteren fehlten). */
+.grid ~ .grid { margin-top: var(--ds-field-gap-stack); }
+
 .col-3  { grid-column-end: span 3; }
 .col-4  { grid-column-end: span 4; }
 .col-6  { grid-column-end: span 6; }
@@ -1479,21 +1496,30 @@ body { margin: 0; }
 
 /* info icon + tooltip ------------------------------------------------------- */
 
-/* Outlined, not filled: a ring in the same colour as the glyph, so the icon reads as
-   a hint next to the label rather than a badge competing with it. */
+/* Das Zeichen ist jetzt der Export aus Info.svg — ein gefuellter Kreis mit
+   ausgespartem „i“, Pfad fuer Pfad uebernommen. Geaendert ist nur die eingebrannte
+   #607D8B: sie wird currentColor, damit die Farbe aus icon/neutral/subtle kommt und
+   dem Erscheinungsbild folgt — dieselbe Behandlung wie bei den Beraterzeichen.
+   Damit faellt auch der nachgebaute Ring weg: Kreis und Buchstabe stecken in der
+   Zeichnung, der Knopf ist nur noch ihr Rahmen. */
 .info-btn {
   position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: var(--ds-spacing-16);
-  height: var(--ds-spacing-16);
+  width: var(--ds-info-icon-size);
+  height: var(--ds-info-icon-size);
   padding: 0;
-  color: var(--ds-color-text-neutral-subtle-default);
+  color: var(--ds-color-icon-neutral-subtle-default);
   background: none;
-  border: var(--ds-border-width-1) solid var(--ds-color-text-neutral-subtle-default);
-  border-radius: var(--ds-pill-radius);
+  border: 0;
   cursor: help;
+}
+.info-btn:hover { color: var(--ds-color-icon-neutral-subtle-hovered); }
+.ico-info {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 /* The circle is 16px so it sits quietly next to a 14px label, but a pointer target
    that small fails WCAG 2.5.8, so the hit area is expanded to 24px invisibly rather
@@ -1523,12 +1549,33 @@ body { margin: 0; }
 
 .info-bubble {
   position: absolute;
-  bottom: calc(100% + var(--ds-spacing-8));
+  /* 16px vom AUSLOESER, nicht vom Kasten, in dem er steht. Gemessen wird gegen die
+     Beschriftung — sie ist das positionierte Elternteil und gibt der Blase ihre linke
+     Kante —, aber das Zeichen sitzt in deren Zeile um die Restluft der Zeilenhoehe
+     tiefer. Ohne Korrektur waeren es 19px statt 16. Den genauen Wert setzt das Skript
+     beim Oeffnen (placeInfoBubble); 100% ist der Rueckfall, solange es nicht gelaufen
+     ist, und zugleich der richtige Wert fuer eine umgebrochene Beschriftung. */
+  bottom: calc(var(--ds-tip-above, 100%) + var(--ds-tip-offset));
   left: 0;
-  z-index: 5;
+  /* „Nicht hinter anderem Inhalt“: was gerade unter dem Zeiger liegt, gewinnt. Die
+     Blase steht deshalb ueber allem, was sich im Formular ueber ein Feld legen kann —
+     ueber der klebenden Aktionsleiste (4) und auch ueber einem offenen Kalender (20),
+     der neben einem Erklaerzeichen aufgeklappt sein kann. */
+  z-index: 21;
+  /* Waagerechtes Ausweichen. Steht die Blase am Fensterrand an, schiebt das Skript
+     sie hier um genau so viel herein, wie noetig ist — translate und nicht left,
+     damit ihr Kasten und damit die Messung davon unberuehrt bleiben. */
+  translate: var(--ds-tip-shift, 0) 0;
   width: max-content;
-  /* 100% is the label, so the measure is a ceiling and the field is the real limit */
-  max-width: min(var(--ds-layout-measure-tooltip), 100%);
+  /* Zwei Grenzen: die Hoechstbreite aus dem Design System, und das Fenster abzueglich
+     des Randabstands, den eine Blase auf beiden Seiten einhaelt.
+     Frueher stand hier 100% — die Breite der Beschriftung —, weil die Blase sich nicht
+     selbst davor bewahren konnte, an einer Kante abgeschnitten zu werden; sie blieb
+     lieber im Feld. Das misst jetzt das Skript (placeInfoBubble), und damit darf sie
+     wieder so breit sein, wie sie sein soll: eine Blase ist eine Auflage und kein
+     Bestandteil des Feldes, ueber dem sie liegt. */
+  max-width: min(var(--ds-layout-measure-tooltip),
+                 calc(100vw - 2 * var(--ds-tip-safe-inset)));
   padding: var(--ds-spacing-8) var(--ds-spacing-12);
   /* G-27 — the one surface darker than the page it floats over. Finlink Core's
      neutral background ramp is light-only, so both the fill and its ink are
@@ -1548,11 +1595,61 @@ body { margin: 0; }
   transition: opacity 0.12s;
 }
 
+/* Ausrichtung: oben ist die Vorgabe, weil das Zeichen am Ende einer Beschriftung
+   steht und ueber ihr immer das Feld davor liegt — also Platz, den niemand gerade
+   liest. Passt die Blase dort nicht mehr ins Fenster, klappt sie nach unten; das
+   Skript misst beim Oeffnen und setzt diese Klasse (siehe placeInfoBubble).
+   Wer die Seite selbst festlegen will, setzt data-placement="top|bottom" an die
+   .info-wrap — dann misst das Skript nicht, sondern gehorcht. */
+.info-bubble.below {
+  top: calc(var(--ds-tip-below, 100%) + var(--ds-tip-offset));
+  bottom: auto;
+}
+
 /* Zwei Erläuterungen im Formular — Ausstattung und Zustand — sind keine Sätze, sondern
    Listen: eine Einleitung und dann je eine Zeile pro Stufe. Sie stehen als Absätze im
    Hilfetext, und die Blase übernimmt sie als solche, damit sie nicht als eine Wand aus
    Text ankommen. Der erklärte Begriff steht fett voran: gesucht wird die eigene
    Antwort, nicht der ganze Text. */
+/* Die Spitze — ein um 45 Grad gedrehtes Quadrat, dessen Mitte genau auf der Kante der
+   Blase sitzt: die innere Haelfte deckt das Stueck Rahmen ab, das sie ueberlagert, die
+   aeussere ragt heraus und zeigt ihre zwei Kanten. Der Umriss der Blase laeuft dadurch
+   ohne Bruch in die Spitze hinein — wichtig im Dunkelmodus, wo der Rahmen wirklich zu
+   sehen ist (heller als die Flaeche, siehe --ds-surface-inverse-border).
+
+   Sichtbar sind nur die zwei Kanten, die nach aussen zeigen. Bei einer Drehung um 45
+   Grad im Uhrzeigersinn zeigen nach unten die urspruengliche Unter- und die RECHTE
+   Kante, nach oben die Ober- und die linke — deshalb die asymmetrische border-width
+   statt eines Rahmens ringsum, der quer durch die Blase liefe. (Im hellen Modus faellt
+   eine falsche Wahl nicht auf, weil Rahmen und Flaeche dort dieselbe Farbe haben; im
+   dunklen wird daraus ein offener Winkel unter einer durchgezogenen Linie.)
+
+   Waagerecht steht sie nicht in der Mitte der Blase, sondern ueber dem Zeichen: das
+   Skript misst beim Oeffnen, wie weit dessen Mitte von der linken Kante der Blase
+   entfernt ist, und legt den Wert in --ds-tip-caret ab. Damit zeigt sie auch dann noch
+   auf das Zeichen, wenn die Blase am Fensterrand zur Seite geschoben wurde — genau der
+   Fall, in dem eine fest mittige Spitze auf irgendetwas anderes zeigen wuerde.
+   Der Rueckfall 50% gilt nur, solange das Skript nicht gelaufen ist. */
+.info-bubble::after {
+  content: "";
+  position: absolute;
+  left: var(--ds-tip-caret, 50%);
+  width: var(--ds-tip-caret-size);
+  height: var(--ds-tip-caret-size);
+  margin-left: calc(-0.5 * var(--ds-tip-caret-size));
+  background: var(--ds-surface-inverse);
+  border: 0 solid var(--ds-surface-inverse-border);
+  rotate: 45deg;
+}
+.info-bubble:not(.below)::after {
+  bottom: calc(-0.5 * var(--ds-tip-caret-size));
+  border-width: 0 var(--ds-border-width-1) var(--ds-border-width-1) 0;
+}
+.info-bubble.below::after {
+  top: calc(-0.5 * var(--ds-tip-caret-size));
+  border-width: var(--ds-border-width-1) 0 0 var(--ds-border-width-1);
+}
+
 .info-bubble > p { margin: 0; }
 .info-bubble > p + p { margin-top: var(--ds-spacing-8); }
 .info-bubble strong { font-weight: var(--ds-typography-body-md-strong-font-weight); }

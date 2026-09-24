@@ -2099,18 +2099,18 @@
           <h3 class="subsection-title" id="h-modern">Modernisierung</h3>
           <div class="card-pad">
           <div class="grid">
-            <div class="field col-4"><label for="m-summe">Modernisierungssumme <span class="req" aria-hidden="true">*</span></label><div class="with-unit"><input class="input" id="m-summe" inputmode="decimal" required><span class="unit">€</span></div></div>
             <div class="field col-4">
-              <label for="m-art">Art der Maßnahmen</label>
-              <span class="select-wrap">
-                <select class="select" id="m-art">
-                  <option value="">Bitte wählen</option><option>Energetische Sanierung</option>
-                  <option>Umbau / Anbau</option><option>Modernisierung Bad / Küche</option><option>Sonstiges</option>
-                </select>
-              </span>
+              <label for="m-kosten">Modernisierungskosten <span class="req" aria-hidden="true">*</span></label>
+              <p class="help" id="h-m-kosten">Bitte geben Sie hier die Höhe der Kosten an, die z. B. durch den Einbau einer neuen Heizung entstehen.</p>
+              <div class="with-unit"><input class="input" id="m-kosten" inputmode="decimal" aria-describedby="h-m-kosten" required><span class="unit">€</span></div>
+            </div>
+            <div class="field col-4">
+              <label for="m-eigenleistung">Eigenleistung</label>
+              <p class="help" id="h-m-eigen">Durch erbrachte Eigenleistungen gesparte Lohnkosten, Materialkosten werden nicht berücksichtigt.</p>
+              <div class="with-unit"><input class="input" id="m-eigenleistung" inputmode="decimal" aria-describedby="h-m-eigen"><span class="unit">€</span></div>
             </div>
           </div>
-          <p class="note">Gerüst — Objektangaben und Maßnahmen-Detailfelder noch zu definieren.</p>
+          <p class="note">Gerüst — Objektangaben noch zu definieren.</p>
           </div>
         </section>
         </div></div></div>
