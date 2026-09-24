@@ -154,6 +154,7 @@
         "ds-layout.col-amount": "var(--ds-layout-measure-amount)",
         "ds-layout.measure-prose": "68ch",
         "ds-layout.measure-amount": "170px",
+        "ds-layout.measure-amount-label": "222px",
         "ds-layout.measure-tooltip": "32ch",
         "ds-layout.measure-modal": "52ch",
         "ds-layout.measure-review-term": "43ch",

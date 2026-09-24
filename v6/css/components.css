@@ -1127,7 +1127,6 @@ body { margin: 0; }
    taten (und an vier weiteren fehlten). */
 .grid ~ .grid { margin-top: var(--ds-field-gap-stack); }
 
-.col-2  { grid-column-end: span 2; }
 .col-3  { grid-column-end: span 3; }
 .col-4  { grid-column-end: span 4; }
 .col-6  { grid-column-end: span 6; }
@@ -1145,19 +1144,27 @@ body { margin: 0; }
    ohne Kappung, das seine Spalte füllt. Nebeneinander gelesen wirken die Felder
    dadurch nicht schmal, sondern verstreut.
 
-   .grid-tight kappt nicht den Kasten (das tut --ds-layout-measure-amount weiter
-   oben schon), sondern die Spanne: zwei der zwölf Spalten sind 173px und damit
-   genau die gekappte Breite. Das Zwölferraster bleibt stehen, weil in demselben
-   Raster die Ja/Nein-Gruppen und das Textfeld mit col-12 über die ganze Karte
-   gehen — ein Raster mit inhaltsbreiten Spuren bräche die.
+   Gekappt wird deshalb das Raster und nicht die Spanne. Die Felder behalten col-4,
+   also Drittel — nur eben Drittel von 698px statt von 1116px, was 222px je Spalte
+   ergibt. 222px, weil zwei Dinge hineinpassen müssen: die längste Frage des Blocks
+   samt Stern und i-Icon ("Eingesetztes Eigenkapital", gemessen 197px) und der
+   längste Wert des Selects, das hier als einziges Bedienelement keine Kappung trägt
+   ("Länger als 20 Jahre", 212px). Darunter bräche die Beschriftung um und das
+   Select schnitte seinen eigenen Wert ab.
 
-   Bei 173px bricht eine lange Frage um ("Eingesetztes Eigenkapital" braucht zwei
-   Zeilen, "Tilgungssatz" eine). Ohne Ausgleich säßen die Kästen einer Reihe
-   deshalb auf verschiedenen Höhen — also hängt das Bedienelement am unteren Rand
-   seiner Zelle und alle stehen auf einer Linie, gleich wie viele Zeilen die Frage
-   darüber braucht. Nur hier, nicht an .field allgemein: anderswo folgt einem Feld
-   ein .reveal, und der gehört dicht unter sein Bedienelement, nicht ans Zellenende. */
-.grid-tight > .field > :last-child { margin-top: auto; }
+   Über die Spanne ginge es nicht: col-2 wäre bei voller Breite genau die gekappten
+   170px, aber 1100px Karte sind dafür die Untergrenze — bei 950px Fenster blieben
+   76px übrig, ein Eingabefeld, in das keine Summe mehr passt. Eine Höchstbreite
+   kappt nur nach oben und lässt dem Raster darunter genau den Platz, den es vorher
+   auch hatte.
+
+   Nur über 900px, wie die Kappung der Felder selbst: darunter ist jedes Feld volle
+   Spaltenbreite, und ein schmaleres Raster wäre dort nur ein schmaleres Formular. */
+@media (min-width: 901px) {
+  .grid-tight {
+    max-width: calc(3 * var(--ds-layout-measure-amount-label) + 2 * var(--ds-spacing-16));
+  }
+}
 
 /* ------------------------------------------------------------------- field */
 
@@ -2708,7 +2715,7 @@ body { margin: 0; }
 }
 
 @media (max-width: 640px) {
-  .col-2, .col-3, .col-4, .col-6, .col-8, .col-9 { grid-column: auto / span 12; }
+  .col-3, .col-4, .col-6, .col-8, .col-9 { grid-column: auto / span 12; }
   /* The row gap changes job at this width. Two and three to a row, fields are grouped
      by sitting *beside* each other and the gap only has to part the bands; stacked, it
      is the sole thing telling "next question" from "next part of this one" — against

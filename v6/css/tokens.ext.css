@@ -161,6 +161,11 @@
   --ds-layout-col-amount: var(--ds-layout-measure-amount);
   --ds-layout-measure-prose: 68ch;
   --ds-layout-measure-amount: 170px;
+  /* Die Spalte, in der ein gekapptes Zahlenfeld steht — nicht die Breite des Feldes
+     (das ist --ds-layout-measure-amount), sondern die der Frage darueber und eines
+     Selects daneben, das als einziges Bedienelement keine Kappung traegt. Siehe
+     .grid-tight in components.css. */
+  --ds-layout-measure-amount-label: 222px;
   /* 288px/18rem ist die Hoechstbreite einer Sprechblase im Design System. Vorher stand
      hier ein Mass in ch, also in Zeichen der laufenden Schrift — das war die richtige
      Groesse fuer einen Satz, aber nicht die Zahl, gegen die gebaut wird. Wer mehr Platz
