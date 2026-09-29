@@ -24,6 +24,7 @@
      review read-back and the value formatting. */
   const CONTROL_SEL = ':scope > .input, :scope > .select, '
     + ':scope > .with-unit > .input, :scope > .with-picker > .input, '
+    + ':scope > .unit-row > .with-unit > .input, '
     + ':scope > .select-wrap > .select';
 
   /* Info.svg, Pfad fuer Pfad uebernommen; geaendert ist nur die eingebrannte #607D8B,
@@ -113,6 +114,7 @@
     wireEinkommen(root);
     wireRemovers(root);
     wireCurrency(root);
+    wireUnitPickers(root);
     buildDatePickers(root);
   }
 
@@ -444,6 +446,7 @@
         if (list && list.id === 'kredite-liste') renumberKredite();
         if (list && list.id === 'immobilien-liste') renumberImmobilien();
         if (list && list.classList.contains('darlehen-liste')) renumberDarlehen(list);
+        if (list && list.classList.contains('dl-liste')) renumberDarlehenListe(list);
         if (list && list.classList.contains('kinder-list')) syncKinderAdd(list);
         if (list && list.classList.contains('einkommen-liste')) renumberEinkommen(list);
         touched();
@@ -480,6 +483,30 @@
         input.value = value.toLocaleString('de-DE',
           { minimumFractionDigits: 2, maximumFractionDigits: 2 });
       });
+    });
+  }
+
+  /* ------------------------------------------------------ Einheit am Betrag */
+
+  /* Ein Betrag, dessen Einheit Teil der Antwort ist: die Maklerprovision wird mal als
+     Satz und mal als Summe genannt. Die Auswahl steht als eigenes Feld daneben statt
+     als Aufsatz auf dem Betragsfeld — so bleibt .with-unit das, was es ist, und beide
+     Angaben stehen in der Pruefliste. Das Suffix folgt der Auswahl, sonst behauptet
+     am Feld eine Einheit etwas anderes als die Auswahl daneben.
+
+     data-unit-for zeigt auf das Betragsfeld; dessen .unit ist das Geschwister im
+     selben .with-unit. Ein Template-Klon braeuchte hier einen Index im Selektor —
+     bisher gibt es dieses Paar nur einmal, in den Finanzierungsdetails. */
+  function wireUnitPickers(root) {
+    $$('select[data-unit-for]', root).forEach((select) => {
+      if (select.dataset.wiredUnit) return;
+      select.dataset.wiredUnit = '1';
+      const target = $(select.dataset.unitFor);
+      const unit = target && target.parentElement.querySelector(':scope > .unit');
+      if (!unit) return;
+      const sync = () => { unit.textContent = select.value; };
+      select.addEventListener('change', sync);
+      sync();
     });
   }
 
@@ -989,6 +1016,15 @@
     if (purpose === 'kauf') key = found === 'Ja' ? 'immobilie' : null;
 
     $$('.object-section').forEach((s) => openReveal(s, s.dataset.for === key));
+
+    /* Die Finanzierungsdetails fragen vor dem Darlehen nach dem, was finanziert wird, und
+       das ist je Zweck etwas anderes: ein Kaufpreis, oder ein Grundstueck plus Baukosten.
+       Bewusst am ROHEN purpose und nicht an key: SECTION_FOR wirft „Neubau vom
+       Bautraeger“ und „Eigenes Bauvorhaben“ auf denselben Objektabschnitt, hier fragen
+       die beiden Verschiedenes. Und anders als dort haengt der Block NICHT an
+       objectKnown — der Kaufpreis wird auch gefragt, solange noch keine Immobilie
+       gefunden ist; genau dafuer sagt sein Hilfetext „dann Ihr maximales Budget“. */
+    $$('.zweck-section').forEach((s) => openReveal(s, matchesAny(s.dataset.zweck, purpose)));
     /* The five object sub-sections all live in one card now, so with no object known
        the card has nothing left to show and goes away with them — an empty
        "Finanzierungsobjekt" header would otherwise sit there expanding into nothing.
@@ -1248,6 +1284,48 @@
     list.appendChild(node);
     hydrate(node);
     return node;
+  }
+
+  /* Anschlussfinanzierung und Kapitalbeschaffung fragen beide nach dem, was auf dem
+     Objekt noch laeuft, und fragen es gleich — eine Vorlage, eine Verdrahtung, zwei
+     Listen. Der Knopf sagt mit data-adds, welche Liste er fuellt, und mit data-gate,
+     welche Ja/Nein-Frage davor steht; damit kommt ein dritter Zweck ohne eine Zeile
+     hier aus. */
+  function renumberDarlehenListe(list) {
+    $$('.an-dl-title', list).forEach((title, index) => {
+      title.textContent = `Darlehen ${index + 1}`;
+    });
+    const add = $(`.add-btn[data-adds="#${list.id}"]`);
+    if (add) {
+      add.textContent = list.children.length
+        ? '+ Weiteres Darlehen ergänzen'
+        : '+ Darlehen erfassen';
+    }
+  }
+
+  function wireDarlehenListen(root) {
+    $$('.add-btn[data-adds]', root).forEach((button) => {
+      if (button.dataset.wired) return;
+      button.dataset.wired = '1';
+      const list = $(button.dataset.adds);
+      if (!list) return;
+      button.addEventListener('click', () => {
+        addFromTemplate('tpl-an-darlehen', list);
+        renumberDarlehenListe(list);
+      });
+      /* „Ja“ ist hier die Aussage, dass ein Darlehen laeuft — die erste Karte kommt
+         deshalb mit der Antwort und nicht erst mit einem weiteren Klick. Nur bei noch
+         leerer Liste: ein erneutes Oeffnen darf nichts ueberschreiben. Dieselbe Regel
+         wie bei den Verbindlichkeiten. */
+      $$(`input[type="radio"][name="${button.dataset.gate}"]`).forEach((radio) =>
+        radio.addEventListener('change', () => {
+          if (radio.checked && radio.value === 'Ja' && !list.children.length) {
+            addFromTemplate('tpl-an-darlehen', list);
+          }
+          renumberDarlehenListe(list);
+        }));
+      renumberDarlehenListe(list);
+    });
   }
 
   function renumberStellplaetze() {
@@ -2214,7 +2292,8 @@
       value = control.value ? labelText(control.selectedOptions[0]) : '';
     } else if (control) {
       value = control.value.trim();
-      const unit = field.querySelector(':scope > .with-unit > .unit');
+      const unit = field.querySelector(':scope > .with-unit > .unit, '
+        + ':scope > .unit-row > .with-unit > .unit');
       if (value && unit) value += ` ${unit.textContent.trim()}`;
     } else {
       // a choice group: only its own chips answer for it, not a group nested in a
@@ -2438,6 +2517,7 @@
   /* ------------------------------------------------------------------ init */
 
   hydrate(document);
+  wireDarlehenListen(document);
   wireCards();
   wireToggles();
   wireNav();

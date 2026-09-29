@@ -2174,42 +2174,364 @@
       <div class="card-body" id="body-details">
         <div class="card-body-inner">
           <div class="card-pad">
-      <div class="grid grid-tight">
-        <div class="field col-4">
+      <!-- Was vor dem Darlehen steht, haengt am Finanzierungszweck: ein Kauf hat einen
+           Kaufpreis, ein eigenes Bauvorhaben ein Grundstueck und Baukosten. Jeder Fall
+           ist eine .zweck-section, und updateStart() macht genau eine davon auf —
+           dieselbe Mechanik wie die Objektabschnitte, aber am ROHEN Zweck statt an
+           SECTION_FOR: dort teilen sich „Neubau vom Bautraeger“ und „Eigenes
+           Bauvorhaben“ einen Schluessel, hier fragen sie Verschiedenes.
+           Die Angaben darunter — Eigenkapital, Rate, Laufzeit, Zins — gelten fuer
+           jeden Zweck und stehen deshalb ausserhalb der Bloecke. -->
+      <div class="reveal zweck-section" data-zweck="kauf|neubau-bautraeger"><div class="reveal-inner"><div class="pad">
+        <div class="grid">
+          <div class="field col-4 col-start">
+            <label for="d-kaufpreis">Wie hoch ist der Kaufpreis? <span class="req" aria-hidden="true">*</span></label>
+            <p class="help" id="h-d-kaufpreis">Wenn Sie den konkreten Kaufpreis noch nicht kennen, tragen Sie
+              bitte hier Ihr maximales Budget ein — nur der Preis der Immobilie, ohne Nebenkosten.</p>
+            <div class="with-unit"><input class="input" id="d-kaufpreis" inputmode="decimal" placeholder="400.000" aria-describedby="h-d-kaufpreis" required><span class="unit">€</span></div>
+          </div>
+          <div class="field col-12 col-start" role="group" aria-labelledby="lbl-d-belastet" data-required>
+            <span class="group-label" id="lbl-d-belastet">Ist die Immobilie aktuell mit einer Finanzierung belastet? <span class="req" aria-hidden="true">*</span></span>
+            <div class="choices">
+              <label class="choice"><input type="radio" name="d-belastet" value="Ja"><span>Ja</span></label>
+              <label class="choice"><input type="radio" name="d-belastet" value="Nein"><span>Nein</span></label>
+            </div>
+          </div>
+          <div class="field col-12 col-start" role="group" aria-labelledby="lbl-d-makler" aria-describedby="h-d-makler"
+               data-controls="#c-d-makler" data-show-when="Ja" data-required>
+            <span class="group-label" id="lbl-d-makler">Fällt beim Kauf eine Maklergebühr an? <span class="req" aria-hidden="true">*</span></span>
+            <p class="help" id="h-d-makler">Sollten Sie sich nicht sicher sein, werden wir die ortsüblichen
+              Maklergebühren unterstellen.</p>
+            <div class="choices">
+              <label class="choice"><input type="radio" name="d-makler" value="Ja"><span>Ja</span></label>
+              <label class="choice"><input type="radio" name="d-makler" value="Nein"><span>Nein</span></label>
+              <label class="choice"><input type="radio" name="d-makler" value="Weiß nicht"><span>Weiß nicht</span></label>
+            </div>
+          </div>
+          <!-- Prozent oder Euro: die Provision wird mal als Satz, mal als Summe genannt, und welche
+               der beiden gemeint ist, muss am Feld stehen und nicht im Kopf des Lesers. Die Auswahl
+               ist ein eigenes Feld statt eines Aufsatzes auf dem Betragsfeld — so bleibt .with-unit
+               das, was es ist, und beide Angaben stehen in der Prüfliste. Das Suffix folgt der
+               Auswahl (siehe wireUnitPickers in app.js).
+               col-12 col-start, weil ein Reveal im Raster sonst EINE Spalte breit ist: .grid hat
+               zwoelf, und ohne Spannweite nimmt ein Kind genau eine davon. -->
+          <div class="reveal col-12 col-start" id="c-d-makler"><div class="reveal-inner"><div class="pad">
+            <div class="grid">
+              <div class="field col-6 col-start">
+                <label for="d-makler-wert">Wie hoch sind die Maklergebühren?</label>
+                <p class="help" id="h-d-makler-wert">Die Provision für den Immobilienmakler wird vom Käufer
+                  bezahlt und variiert je nach Lage der Immobilie.</p>
+                <div class="unit-row">
+                  <span class="select-wrap">
+                    <select class="select" id="d-makler-einheit" data-unit-for="#d-makler-wert"
+                            aria-label="Maklergebühren in Prozent oder in Euro">
+                      <option>%</option><option>€</option>
+                    </select>
+                  </span>
+                  <div class="with-unit"><input class="input" id="d-makler-wert" inputmode="decimal" placeholder="z. B. 3" aria-describedby="h-d-makler-wert"><span class="unit">%</span></div>
+                </div>
+              </div>
+            </div>
+          </div></div></div>
+        </div>
+      </div></div></div>
+
+      <!-- Eigenes Bauvorhaben: zwei Betraege statt einem, weil Grundstueck und Bau
+           getrennt kalkuliert werden, und der Makler gehoert zum Grundstueck. Die
+           Maklerfrage ist hier kein Pflichtfeld — wer noch kein Grundstueck hat, kann
+           sie nicht beantworten. -->
+      <div class="reveal zweck-section" data-zweck="bauvorhaben"><div class="reveal-inner"><div class="pad">
+        <div class="grid">
+          <div class="field col-12 col-start" role="group" aria-labelledby="lbl-db-grund" data-required>
+            <span class="group-label" id="lbl-db-grund">Besitzen Sie das Grundstück bereits? <span class="req" aria-hidden="true">*</span></span>
+            <div class="choices">
+              <label class="choice"><input type="radio" name="db-grund" value="Ja"><span>Ja</span></label>
+              <label class="choice"><input type="radio" name="db-grund" value="Nein"><span>Nein</span></label>
+            </div>
+          </div>
+          <div class="field col-4 col-start">
+            <label for="db-grundpreis">Wie hoch ist der Kaufpreis des Grundstücks? <span class="req" aria-hidden="true">*</span></label>
+            <p class="help" id="h-db-grundpreis">Hier ist der ungefähre Betrag gemeint, der für die Ausgaben
+              geplant ist — nur der Preis des Grundstücks.</p>
+            <div class="with-unit"><input class="input" id="db-grundpreis" inputmode="decimal" aria-describedby="h-db-grundpreis" required><span class="unit">€</span></div>
+          </div>
+          <div class="field col-4 col-start">
+            <label for="db-baukosten">Wie hoch sind die geschätzten Baukosten? <span class="req" aria-hidden="true">*</span></label>
+            <div class="with-unit"><input class="input" id="db-baukosten" inputmode="decimal" required><span class="unit">€</span></div>
+          </div>
+          <div class="field col-12 col-start" role="group" aria-labelledby="lbl-db-belastet" data-required>
+            <span class="group-label" id="lbl-db-belastet">Ist die Immobilie aktuell mit einer Finanzierung belastet? <span class="req" aria-hidden="true">*</span></span>
+            <div class="choices">
+              <label class="choice"><input type="radio" name="db-belastet" value="Ja"><span>Ja</span></label>
+              <label class="choice"><input type="radio" name="db-belastet" value="Nein"><span>Nein</span></label>
+            </div>
+          </div>
+          <div class="field col-12 col-start" role="group" aria-labelledby="lbl-db-makler" aria-describedby="h-db-makler"
+               data-controls="#c-db-makler" data-show-when="Ja">
+            <span class="group-label" id="lbl-db-makler">Wissen Sie, wie hoch die Maklergebühren für das Grundstück sind?</span>
+            <p class="help" id="h-db-makler">Sobald Sie in der Kommunikation zum Kauf der Immobilie mit einem
+              Makler sprechen, ist in der Regel eine Maklergebühr fällig.</p>
+            <div class="choices">
+              <label class="choice"><input type="radio" name="db-makler" value="Ja"><span>Ja</span></label>
+              <label class="choice"><input type="radio" name="db-makler" value="Nein"><span>Nein</span></label>
+              <label class="choice"><input type="radio" name="db-makler" value="Weiß nicht"><span>Weiß nicht</span></label>
+            </div>
+          </div>
+          <div class="reveal col-12 col-start" id="c-db-makler"><div class="reveal-inner"><div class="pad">
+            <div class="grid">
+              <div class="field col-6 col-start">
+                <label for="db-makler-wert">Wie hoch sind die Maklergebühren?</label>
+                <p class="help" id="h-db-makler-wert">Die Provision für den Immobilienmakler wird vom Käufer
+                  bezahlt und variiert je nach Lage der Immobilie.</p>
+                <div class="unit-row">
+                  <span class="select-wrap">
+                    <select class="select" id="db-makler-einheit" data-unit-for="#db-makler-wert"
+                            aria-label="Maklergebühren in Prozent oder in Euro">
+                      <option>%</option><option>€</option>
+                    </select>
+                  </span>
+                  <div class="with-unit"><input class="input" id="db-makler-wert" inputmode="decimal" placeholder="z. B. 3" aria-describedby="h-db-makler-wert"><span class="unit">%</span></div>
+                </div>
+              </div>
+            </div>
+          </div></div></div>
+        </div>
+      </div></div></div>
+
+      <!-- Modernisierung: nichts wird gekauft, also gibt es keinen Kaufpreis im
+           Praesens. Gefragt wird, was das Objekt heute wert ist und was es damals
+           gekostet hat — der Wert traegt die Beleihung, der alte Kaufpreis die
+           steuerliche Seite. -->
+      <div class="reveal zweck-section" data-zweck="modernisierung"><div class="reveal-inner"><div class="pad">
+        <div class="grid">
+          <div class="field col-4 col-start">
+            <label for="dm-wert">Was ist der aktuelle Wert der Immobilie? <span class="req" aria-hidden="true">*</span></label>
+            <p class="help" id="h-dm-wert">Bitte geben Sie den Kaufpreis an, falls Ihnen der aktuelle Wert
+              nicht bekannt ist.</p>
+            <div class="with-unit"><input class="input" id="dm-wert" inputmode="decimal" aria-describedby="h-dm-wert" required><span class="unit">€</span></div>
+          </div>
+          <div class="field col-4 col-start">
+            <label for="dm-kaufpreis">Wie hoch war der Kaufpreis der Immobilie? <span class="req" aria-hidden="true">*</span></label>
+            <p class="help" id="h-dm-kaufpreis">Bei eigenen Bauvorhaben geben Sie bitte die gesamten
+              Baukosten an.</p>
+            <div class="with-unit"><input class="input" id="dm-kaufpreis" inputmode="decimal" aria-describedby="h-dm-kaufpreis" required><span class="unit">€</span></div>
+          </div>
+          <div class="field col-12 col-start" role="group" aria-labelledby="lbl-dm-belastet" data-required>
+            <span class="group-label" id="lbl-dm-belastet">Ist die Immobilie aktuell mit einer Finanzierung belastet? <span class="req" aria-hidden="true">*</span></span>
+            <div class="choices">
+              <label class="choice"><input type="radio" name="dm-belastet" value="Ja"><span>Ja</span></label>
+              <label class="choice"><input type="radio" name="dm-belastet" value="Nein"><span>Nein</span></label>
+            </div>
+          </div>
+          <div class="field col-4 col-start">
+            <label for="dm-kosten">Wie hoch sind die Modernisierungskosten?</label>
+            <p class="help" id="h-dm-kosten">Bitte geben Sie hier die Höhe der Kosten an, die z. B. durch den
+              Einbau einer neuen Heizung entstehen.</p>
+            <div class="with-unit"><input class="input" id="dm-kosten" inputmode="decimal" aria-describedby="h-dm-kosten"><span class="unit">€</span></div>
+          </div>
+        </div>
+      </div></div></div>
+
+      <!-- Anschlussfinanzierung: das Objekt steht und ist bezahlt worden, gefragt wird
+           nach dem, was noch darauf laeuft. „Belastet = Ja“ ist hier die Regel und nicht
+           die Ausnahme, also bringt die Antwort das erste Darlehen gleich mit — dieselbe
+           Handhabung wie bei den Verbindlichkeiten. Mehrere Darlehen sind moeglich, weil
+           ein abzuloesendes Objekt oft ein Haupt- und ein KfW-Darlehen traegt. -->
+      <div class="reveal zweck-section" data-zweck="anschluss"><div class="reveal-inner"><div class="pad">
+        <div class="grid">
+          <div class="field col-4 col-start">
+            <label for="dan-wert">Was ist der aktuelle Wert der Immobilie? <span class="req" aria-hidden="true">*</span></label>
+            <p class="help" id="h-dan-wert">Bitte geben Sie den Kaufpreis an, falls Ihnen der aktuelle Wert
+              nicht bekannt ist.</p>
+            <div class="with-unit"><input class="input" id="dan-wert" inputmode="decimal" aria-describedby="h-dan-wert" required><span class="unit">€</span></div>
+          </div>
+          <div class="field col-4 col-start">
+            <label for="dan-kaufpreis">Wie hoch war der Kaufpreis der Immobilie? <span class="req" aria-hidden="true">*</span></label>
+            <p class="help" id="h-dan-kaufpreis">Bei eigenen Bauvorhaben geben Sie bitte die gesamten
+              Baukosten an.</p>
+            <div class="with-unit"><input class="input" id="dan-kaufpreis" inputmode="decimal" aria-describedby="h-dan-kaufpreis" required><span class="unit">€</span></div>
+          </div>
+          <div class="field col-12 col-start" role="group" aria-labelledby="lbl-dan-belastet"
+               data-controls="#c-dan-darlehen" data-show-when="Ja" data-required>
+            <span class="group-label" id="lbl-dan-belastet">Ist die Immobilie aktuell mit einer Finanzierung belastet? <span class="req" aria-hidden="true">*</span></span>
+            <div class="choices">
+              <label class="choice"><input type="radio" name="dan-belastet" value="Ja"><span>Ja</span></label>
+              <label class="choice"><input type="radio" name="dan-belastet" value="Nein"><span>Nein</span></label>
+            </div>
+          </div>
+          <div class="reveal col-12 col-start" id="c-dan-darlehen"><div class="reveal-inner"><div class="pad">
+            <h3 class="subhead">Darlehen</h3>
+            <div class="dl-liste" id="dan-darlehen-liste"></div>
+            <button type="button" class="add-btn" data-adds="#dan-darlehen-liste" data-gate="dan-belastet">+ Darlehen erfassen</button>
+          </div></div></div>
+          <div class="field col-4 col-start">
+            <label for="dan-auszahlung">Zu welchem Datum wird die Auszahlung an den Verkäufer geschehen?</label>
+            <input class="input" id="dan-auszahlung" type="text" placeholder="tt.mm.jjjj" inputmode="numeric">
+          </div>
+          <div class="field col-4 col-start">
+            <label for="dan-bedarf">Wie hoch ist der Gesamtbedarf für die Anschlussfinanzierung? <span class="req" aria-hidden="true">*</span></label>
+            <div class="with-unit"><input class="input" id="dan-bedarf" inputmode="decimal" required><span class="unit">€</span></div>
+          </div>
+        </div>
+      </div></div></div>
+
+      <!-- Kapitalbeschaffung: die Immobilie ist da und bezahlt, aufgenommen wird Geld
+           gegen sie. Wie bei der Anschlussfinanzierung zaehlt, was noch auf ihr laeuft —
+           dieselbe Darlehensliste aus derselben Vorlage. Dazu das Erwerbsdatum: fuer die
+           Spekulationsfrist ist nicht der Wert entscheidend, sondern wann gekauft wurde. -->
+      <div class="reveal zweck-section" data-zweck="kapitalbeschaffung"><div class="reveal-inner"><div class="pad">
+        <div class="grid">
+          <div class="field col-4 col-start">
+            <label for="dk-wert">Was ist der aktuelle Wert der Immobilie? <span class="req" aria-hidden="true">*</span></label>
+            <p class="help" id="h-dk-wert">Bitte geben Sie den Kaufpreis an, falls Ihnen der aktuelle Wert
+              nicht bekannt ist.</p>
+            <div class="with-unit"><input class="input" id="dk-wert" inputmode="decimal" aria-describedby="h-dk-wert" required><span class="unit">€</span></div>
+          </div>
+          <div class="field col-4 col-start">
+            <label for="dk-erworben">Wann haben Sie die Immobilie erworben? <span class="req" aria-hidden="true">*</span></label>
+            <input class="input" id="dk-erworben" type="text" placeholder="tt.mm.jjjj" inputmode="numeric" required>
+          </div>
+          <div class="field col-4 col-start">
+            <label for="dk-kaufpreis">Wie hoch war der Kaufpreis der Immobilie? <span class="req" aria-hidden="true">*</span></label>
+            <p class="help" id="h-dk-kaufpreis">Bei eigenen Bauvorhaben geben Sie bitte die gesamten
+              Baukosten an.</p>
+            <div class="with-unit"><input class="input" id="dk-kaufpreis" inputmode="decimal" aria-describedby="h-dk-kaufpreis" required><span class="unit">€</span></div>
+          </div>
+          <div class="field col-12 col-start" role="group" aria-labelledby="lbl-dk-belastet"
+               data-controls="#c-dk-darlehen" data-show-when="Ja" data-required>
+            <span class="group-label" id="lbl-dk-belastet">Ist die Immobilie aktuell mit einer Finanzierung belastet? <span class="req" aria-hidden="true">*</span></span>
+            <div class="choices">
+              <label class="choice"><input type="radio" name="dk-belastet" value="Ja"><span>Ja</span></label>
+              <label class="choice"><input type="radio" name="dk-belastet" value="Nein"><span>Nein</span></label>
+            </div>
+          </div>
+          <div class="reveal col-12 col-start" id="c-dk-darlehen"><div class="reveal-inner"><div class="pad">
+            <h3 class="subhead">Darlehen</h3>
+            <div class="dl-liste" id="dk-darlehen-liste"></div>
+            <button type="button" class="add-btn" data-adds="#dk-darlehen-liste" data-gate="dk-belastet">+ Darlehen erfassen</button>
+          </div></div></div>
+          <div class="field col-4 col-start">
+            <label for="dk-auszahlung">Zu welchem Datum wird die Auszahlung an den Verkäufer geschehen?</label>
+            <input class="input" id="dk-auszahlung" type="text" placeholder="tt.mm.jjjj" inputmode="numeric">
+          </div>
+          <div class="field col-4 col-start">
+            <label for="dk-kapital">Wie viel Kapital wollen Sie aufnehmen? <span class="req" aria-hidden="true">*</span></label>
+            <div class="with-unit"><input class="input" id="dk-kapital" inputmode="decimal" required><span class="unit">€</span></div>
+          </div>
+        </div>
+      </div></div></div>
+
+      <!-- Eine Frage pro Zeile: die Fragen sind hier ganze Saetze, und drei nebeneinander
+           brechen alle drei zweizeilig um, waehrend die Bedienelemente darunter auf
+           170px stehenbleiben. .col-start setzt jedes Feld an Spalte 1, die Breite
+           bleibt col-4 — also dieselben Kaesten, nur untereinander. -->
+      <div class="grid">
+        <div class="field col-4 col-start">
           <label for="d-eigenkapital">Eingesetztes Eigenkapital <span class="req" aria-hidden="true">*</span></label>
-          <p class="help" id="h-d-ek">Ersparnisse, Bausparguthaben oder Eigenleistungen.</p>
+          <p class="help" id="h-d-ek">Ersparnisse, Bausparguthaben oder Wertpapiere — alles, was Sie an
+            eigenem Geld einbringen.</p>
           <div class="with-unit"><input class="input" id="d-eigenkapital" inputmode="decimal" aria-describedby="h-d-ek" required><span class="unit">€</span></div>
         </div>
-        <div class="field col-4">
+        <div class="field col-4 col-start">
+          <label for="d-rate">Wie hoch soll Ihre monatliche Rate sein?</label>
+          <p class="help" id="h-d-rate">Eine niedrige monatliche Rate vergrößert Ihren finanziellen Spielraum,
+            etwa um Rücklagen zu bilden. Mit einer höheren Rate verringern Sie die Laufzeit des Darlehens
+            sowie den Betrag der Zinsen, den Sie bis zum Ende der Zinsbindung gezahlt haben. Sollten Sie sich
+            nicht sicher sein, geben Sie bitte den maximalen Betrag an, den Sie für die monatliche Rate
+            aufbringen könnten.</p>
+          <div class="with-unit"><input class="input" id="d-rate" inputmode="decimal" placeholder="400" aria-describedby="h-d-rate"><span class="unit">€</span></div>
+        </div>
+        <div class="field col-4 col-start">
           <label for="d-laufzeit">Gewünschte Laufzeit <span class="req" aria-hidden="true">*</span></label>
           <div class="with-unit"><input class="input" id="d-laufzeit" inputmode="numeric" required><span class="unit">Jahre</span></div>
         </div>
-        <div class="field col-4">
-          <label for="d-zinsbindung">Gewünschte Zinsbindung <span class="req" aria-hidden="true">*</span></label>
+        <div class="field col-4 col-start">
+          <label for="d-zinsbindung">Wie lange möchten Sie den Zinssatz sichern? <span class="req" aria-hidden="true">*</span></label>
+          <p class="help" id="h-d-zins">Die Dauer der Zinsbindung sollte zu Ihrer geplanten Lebensgestaltung im
+            Finanzierungszeitraum passen. Keine Sorge, Sie können diese Eingabe später ändern.</p>
           <span class="select-wrap">
-            <select class="select" id="d-zinsbindung" required>
-              <option value="">Bitte wählen</option><option>5 Jahre</option><option>10 Jahre</option>
-              <option>15 Jahre</option><option>20 Jahre</option><option>Länger als 20 Jahre</option>
+            <select class="select" id="d-zinsbindung" aria-describedby="h-d-zins" required>
+              <option value="">Bitte wählen</option>
+              <option>5 Jahre</option><option>10 Jahre</option><option>15 Jahre</option>
+              <option>20 Jahre</option><option>25 Jahre</option><option>30 Jahre</option>
             </select>
           </span>
         </div>
-        <div class="field col-4">
+        <div class="field col-4 col-start">
           <label for="d-tilgung">Tilgungssatz <span class="req" aria-hidden="true">*</span></label>
           <p class="help" id="h-d-tilg">Anfänglicher Tilgungssatz pro Jahr, üblich sind 2 bis 3 %.</p>
           <div class="with-unit"><input class="input" id="d-tilgung" inputmode="decimal" aria-describedby="h-d-tilg" required><span class="unit">%</span></div>
         </div>
-        <div class="field col-4">
-          <label for="d-rate">Gewünschte monatliche Rate</label>
-          <div class="with-unit"><input class="input" id="d-rate" inputmode="decimal"><span class="unit">€</span></div>
+        <!-- Aus der Ja/Nein-Frage „Wünschen Sie eine Sondertilgung?“ geworden: die Höhe ist die
+             eigentliche Angabe, und „keine“ ist einer ihrer Werte — zwei Fragen für eine Antwort
+             waren eine zu viel. -->
+        <div class="field col-4 col-start">
+          <label for="d-sondertilgung">Wie hoch soll die gewünschte Sondertilgung sein?</label>
+          <p class="help" id="h-d-sonder">Anteil der Darlehenssumme, den Sie zusätzlich zur Rate einmal im Jahr
+            zurückzahlen dürfen, ohne dafür eine Gebühr zu zahlen.</p>
+          <span class="select-wrap">
+            <select class="select" id="d-sondertilgung" aria-describedby="h-d-sonder">
+              <option value="">Bitte wählen</option>
+              <option>0 %</option><option>5 %</option><option>10 %</option>
+            </select>
+          </span>
         </div>
       </div>
-      <!-- Zweites Raster statt col-12-Feldern im ersten: .grid-tight ist schmaler
-           als die Karte, und die Ja/Nein-Fragen und das Textfeld gehen über die
-           ganze Breite. Der Abstand dazwischen kommt von .grid ~ .grid. -->
+      <!-- Zweites Raster statt col-12-Feldern im ersten: die Ja/Nein-Fragen und das
+           Textfeld gehen über die ganze Breite. Der Abstand dazwischen kommt von
+           .grid ~ .grid. Eine Ja/Nein-Frage pro Zeile: nebeneinander steht die zweite
+           Frage weit rechts von ihren eigenen Knöpfen und liest sich als Überschrift
+           der ersten Reihe mit. -->
+      <!-- Wer bereits modernisiert, wird nicht gefragt, ob er modernisieren moechte:
+           fuer diesen Zweck steht die Angabe oben im eigenen Block. Deshalb haengt die
+           Frage an denselben Bloecken wie der Kaufpreis. -->
+      <div class="reveal zweck-section" data-zweck="kauf|neubau-bautraeger|bauvorhaben"><div class="reveal-inner"><div class="pad">
       <div class="grid">
-        <!-- Eine Ja/Nein-Frage pro Zeile: nebeneinander steht die zweite Frage weit
-             rechts von ihren eigenen Knöpfen und liest sich als Überschrift der
-             ersten Reihe mit. -->
+        <div class="field col-12 col-start" role="group" aria-labelledby="lbl-d-modern"
+             data-controls="#c-d-modern" data-show-when="Ja" data-required>
+          <span class="group-label" id="lbl-d-modern">Möchten Sie an der Immobilie Modernisierungen durchführen? <span class="req" aria-hidden="true">*</span></span>
+          <div class="choices">
+            <label class="choice"><input type="radio" name="d-modern" value="Ja"><span>Ja</span></label>
+            <label class="choice"><input type="radio" name="d-modern" value="Nein"><span>Nein</span></label>
+          </div>
+        </div>
+        <div class="reveal col-12 col-start" id="c-d-modern"><div class="reveal-inner"><div class="pad">
+          <div class="grid">
+            <div class="field col-4">
+              <label for="d-modern-kosten">Wie hoch sind die Modernisierungskosten? <span class="req" aria-hidden="true">*</span></label>
+              <p class="help" id="h-d-modern-kosten">Bitte geben Sie hier die Höhe der Kosten an, die z. B.
+                durch den Einbau einer neuen Heizung entstehen.</p>
+              <div class="with-unit"><input class="input" id="d-modern-kosten" inputmode="decimal" aria-describedby="h-d-modern-kosten" required><span class="unit">€</span></div>
+            </div>
+          </div>
+        </div></div></div>
+      </div>
+      </div></div></div>
+
+      <div class="grid">
+        <div class="field col-12 col-start" role="group" aria-labelledby="lbl-d-eigenleistung"
+             aria-describedby="h-d-eigenleistung" data-required>
+          <span class="group-label" id="lbl-d-eigenleistung">Möchten Sie Eigenleistung einbringen? <span class="req" aria-hidden="true">*</span></span>
+          <p class="help" id="h-d-eigenleistung">Durch eigene Arbeit gesparte Lohnkosten — Materialkosten
+            werden nicht berücksichtigt. Eigenleistung ist kein Eigenkapital: sie senkt die Kosten des
+            Vorhabens, nicht den Betrag, den Sie einbringen.</p>
+          <div class="choices">
+            <label class="choice"><input type="radio" name="d-eigenleistung" value="Ja"><span>Ja</span></label>
+            <label class="choice"><input type="radio" name="d-eigenleistung" value="Nein"><span>Nein</span></label>
+          </div>
+        </div>
+
+        <div class="field col-12 col-start" role="group" aria-labelledby="lbl-d-tilgwechsel"
+             aria-describedby="h-d-tilgwechsel">
+          <span class="group-label" id="lbl-d-tilgwechsel">Ist ein Tilgungssatzwechsel gewünscht?</span>
+          <p class="help" id="h-d-tilgwechsel">Das Recht, den Tilgungssatz während der Zinsbindung zu ändern —
+            in der Regel ein- bis zweimal und innerhalb der im Vertrag vereinbarten Grenzen.</p>
+          <div class="choices">
+            <label class="choice"><input type="radio" name="d-tilgwechsel" value="Ja"><span>Ja</span></label>
+            <label class="choice"><input type="radio" name="d-tilgwechsel" value="Nein"><span>Nein</span></label>
+          </div>
+        </div>
+
         <div class="field col-12 col-start" role="group" aria-labelledby="lbl-d-bauspar" data-required>
           <span class="group-label" id="lbl-d-bauspar">Möchten Sie einen Bausparvertrag einsetzen? <span class="req" aria-hidden="true">*</span></span>
           <div class="choices">
@@ -2217,14 +2539,7 @@
             <label class="choice"><input type="radio" name="d-bauspar" value="Nein"><span>Nein</span></label>
           </div>
         </div>
-        <div class="field col-12 col-start" role="group" aria-labelledby="lbl-d-sonder" data-required>
-          <span class="group-label" id="lbl-d-sonder">Wünschen Sie eine Sondertilgung? <span class="req" aria-hidden="true">*</span></span>
-          <div class="choices">
-            <label class="choice"><input type="radio" name="d-sonder" value="Ja"><span>Ja</span></label>
-            <label class="choice"><input type="radio" name="d-sonder" value="Nein"><span>Nein</span></label>
-          </div>
-        </div>
-        <div class="field col-12" role="group" aria-labelledby="lbl-d-kfw" data-show-when="Ja" data-required>
+        <div class="field col-12 col-start" role="group" aria-labelledby="lbl-d-kfw" data-show-when="Ja" data-required>
           <span class="group-label" id="lbl-d-kfw">Möchten Sie KfW-Fördermittel einbeziehen? <span class="req" aria-hidden="true">*</span></span>
           <div class="choices">
             <label class="choice"><input type="radio" name="d-kfw" value="Ja"><span>Ja</span></label>
@@ -2235,10 +2550,9 @@
               und wird nach der Objektbewertung ergänzt.</p>
           </div></div></div>
         </div>
-        <div class="field col-12">
-          <label for="d-notizen">Zusätzliche Anmerkungen</label>
-          <p class="help" id="h-d-notizen">Alles, was für die Prüfung wichtig ist und in keinem
-            Feld dieses Antrags Platz gefunden hat.</p>
+        <div class="field col-12 col-start">
+          <label for="d-notizen">Möchten Sie uns weitere Details mitteilen oder Fragen stellen?</label>
+          <p class="help" id="h-d-notizen">Zum Beispiel: Notartermin am 05.10. oder Empfehlung von Frau Müller.</p>
           <textarea class="input textarea" id="d-notizen" rows="4" aria-describedby="h-d-notizen"></textarea>
         </div>
       </div>
@@ -2698,6 +3012,59 @@
         <label>Restschuld zum Ablösetermin</label>
         <p class="help">Ausstehender Betrag zum Ende der Sollzinsbindung bzw. zum Ablösetermin.</p>
         <div class="with-unit"><input class="input" inputmode="decimal"><span class="unit">€</span></div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<!-- template: Darlehen der Anschlussfinanzierung. Eigene Vorlage neben tpl-darlehen,
+     weil dort das Darlehen EINER besessenen Immobilie beschrieben wird und hier das
+     abzuloesende: andere Fragen, andere Pflichtfelder, dieselbe Mechanik. -->
+<template id="tpl-an-darlehen">
+  <div class="subcard">
+    <div class="subcard-head">
+      <span class="an-dl-title">Darlehen 1</span>
+      <button type="button" class="icon-btn" data-remove data-confirm="Darlehen"
+              aria-label="Darlehen entfernen">
+        <svg class="ico-trash" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M4 6h12M8 6V4.6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1V6M6.4 6l.6 9.4a1 1 0 0 0 1 .9h4a1 1 0 0 0 1-.9L13.6 6M8.7 9v4.6M11.3 9v4.6"/>
+        </svg>
+      </button>
+    </div>
+    <div class="grid grid-dl">
+      <div class="field col-4">
+        <label>Wie lautet der Name des Hauptkreditgebers? <span class="req" aria-hidden="true">*</span></label>
+        <input class="input" type="text" required>
+      </div>
+      <div class="field col-4">
+        <label>Wie hoch ist der aktuelle Zinssatz? <span class="req" aria-hidden="true">*</span></label>
+        <div class="with-unit"><input class="input" inputmode="decimal" required><span class="unit">%</span></div>
+      </div>
+      <div class="field col-4">
+        <label>Wie hoch war der anfängliche Darlehensbetrag? <span class="req" aria-hidden="true">*</span></label>
+        <div class="with-unit"><input class="input" inputmode="decimal" required><span class="unit">€</span></div>
+      </div>
+      <div class="field col-4">
+        <label>Wie hoch ist die aktuelle Rate? <span class="req" aria-hidden="true">*</span></label>
+        <div class="with-unit"><input class="input" inputmode="decimal" required><span class="unit">€</span></div>
+      </div>
+      <div class="field col-4">
+        <label>Wie hoch ist der offene Betrag dieses Darlehens? <span class="req" aria-hidden="true">*</span></label>
+        <div class="with-unit"><input class="input" inputmode="decimal" required><span class="unit">€</span></div>
+      </div>
+      <div class="field col-4">
+        <label>Wie hoch wird der ausstehende Darlehensbetrag zum Ende der Sollzinsbindung bzw. zum
+          Ablösungstermin sein? <span class="req" aria-hidden="true">*</span></label>
+        <div class="with-unit"><input class="input" inputmode="decimal" required><span class="unit">€</span></div>
+      </div>
+      <div class="field col-4">
+        <label>Bis wann ist der Zinssatz fixiert? <span class="req" aria-hidden="true">*</span></label>
+        <input class="input" type="text" placeholder="tt.mm.jjjj" inputmode="numeric" required>
+      </div>
+      <div class="field col-4">
+        <label>Wann wird die gesamte Summe voraussichtlich zurückgezahlt sein? <span class="req" aria-hidden="true">*</span></label>
+        <input class="input" type="text" placeholder="tt.mm.jjjj" inputmode="numeric" required>
       </div>
     </div>
   </div>

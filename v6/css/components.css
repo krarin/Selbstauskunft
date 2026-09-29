@@ -1914,6 +1914,92 @@ body { margin: 0; }
    the clip box on three sides. Same trade-off as .card-body-inner above. */
 .reveal.open.settled > .reveal-inner { overflow: visible; }
 
+/* Ein Zweck-Block in den Finanzierungsdetails steht ZWISCHEN Rastern und muss sich
+   wie eines verhalten. .pad gibt ihm oben Luft, unten keine — das naechste Raster stiess
+   bisher direkt an das letzte Feld des Blocks, waehrend zwei Felder innerhalb eines
+   Rasters eine volle Zeilenluecke auseinanderliegen.
+
+   Der Abstand haengt am FOLGENDEN Raster und nicht am Block: ein geschlossener Block ist
+   0px hoch und darf nichts hinterlassen, ein margin-top am Geschwister daneben kann das
+   nicht falsch machen. Derselbe Wert wie .grid ~ .grid, damit die Fuge zwischen den
+   Bloecken nicht anders misst als die zwischen zwei Fragen.
+
+   Beim ersten Block faellt die Luft von .pad mit der Polsterung der Karte zusammen —
+   dort wird sie zurueckgenommen, sonst faengt die Karte 20px zu tief an. */
+/* Betrag mit waehlbarer Einheit: die Maklerprovision wird mal als Satz und mal als
+   Summe genannt, also steht die Einheit als Auswahl links neben dem Betrag statt als
+   feste Beschriftung rechts daran.
+
+   Beide sitzen in EINEM .field, nicht in zwei Rasterspalten: zwei Spalten haetten die
+   Auswahl an den linken Rand ihrer eigenen Spalte gesetzt und den Betrag an den der
+   naechsten — mit der ganzen Restbreite der ersten dazwischen. Ein Feld traegt auch nur
+   eine Beschriftung, und nur einen Eintrag in der Pruefliste; die Einheit steht dort
+   ohnehin schon als Suffix am Betrag.
+
+   Der .unit-row-Zwischenkasten ist ausserdem das, was CONTROL_SEL vor der Auswahl
+   schuetzt: `:scope > .select-wrap > .select` greift nicht mehr, weil die Auswahl jetzt
+   eine Ebene tiefer liegt, und so bleibt der Betrag das Bedienelement des Feldes.
+
+   align-items: flex-end, weil die Auswahl keine eigene Beschriftung traegt und deshalb
+   auf der Grundlinie des Betrags sitzt. Die Breiten sind feste Basen ohne Wachstum:
+   ein Zeichen plus Pfeil braucht keine halbe Karte, und der Betrag behaelt sein Mass
+   auch unter 901px, wo die max-width-Regel oben nicht mehr greift. */
+.unit-row {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--ds-spacing-8);
+}
+.unit-row > .select-wrap { flex: 0 0 var(--ds-spacing-96); }
+.unit-row > .with-unit { flex: 0 1 var(--ds-layout-measure-amount); }
+
+/* Die Darlehenskarte der Anschlussfinanzierung ist eine Tabelle aus lauter Betraegen —
+   acht Fragen, die alle nach derselben Art Zahl fragen. Dort gelten zwei Regeln anders
+   als im uebrigen Formular.
+
+   1. Das Mass ist die SPALTE, nicht der einzelne Kasten. Die Regel weiter oben — ein
+      Zahlenfeld ist nicht so breit wie die Frage darueber — schuetzt ein einzelnes Feld
+      in einer breiten Zeile davor, "980,00 €" in einen 505px-Kasten zu setzen. Hier
+      stehen drei Felder nebeneinander, und jedes auf 170px zu kappen laesst jede Spalte
+      halb leer, waehrend die Frage darueber dreizeilig umbricht.
+
+   2. Ein Feld ist hier kein Block, sondern DREI ZEILEN: Frage, Kasten, Fehlermeldung.
+      Jedes .field spannt alle drei und uebernimmt sie per subgrid, damit die drei Teile
+      spaltenuebergreifend auf je einer Linie stehen.
+
+      align-items: end waere das Naheliegende und ist falsch: es richtet die UNTERKANTE
+      des ganzen Feldes aus. Sobald ein Nachbar eine Fehlermeldung bekommt, waechst
+      dessen Feld nach unten — und das fehlerfreie Feld daneben rutscht um genau die
+      Hoehe dieser Meldung tiefer, damit die Unterkanten wieder stimmen. Der Kasten ohne
+      Fehler stand dann tiefer als die beiden mit. Mit subgrid liegt die Meldung in einer
+      eigenen Zeile, die leer bleiben darf, und die Kaesten stehen unabhaengig davon auf
+      einer Linie.
+
+      Die Frage sitzt unten in ihrer Zeile, damit eine einzeilige an ihrem Kasten klebt
+      statt an der Oberkante einer dreizeiligen Nachbarin. Die Zeilenluecke ist deshalb
+      die kleine Beschriftungsluecke; den Abstand zwischen zwei FELDZEILEN traegt der
+      Aussenabstand der Felder, der sonst aus derselben Luecke kaeme und innen wie
+      aussen gleich gross waere. */
+.grid-dl {
+  row-gap: var(--ds-field-gap-label);
+  align-items: stretch;
+}
+.grid-dl > .field {
+  display: grid;
+  grid-template-rows: subgrid;
+  grid-row: span 3;
+  margin-bottom: calc(var(--ds-field-gap-stack) - var(--ds-field-gap-label));
+}
+.grid-dl > .field > label { align-self: end; }
+.grid-dl > .field > .error-text { align-self: start; }
+
+@media (min-width: 901px) {
+  .grid-dl .with-unit,
+  .grid-dl .input.num { max-width: none; }
+}
+
+.zweck-section ~ .grid { margin-top: var(--ds-field-gap-stack); }
+.card-pad > .zweck-section:first-child > .reveal-inner > .pad { padding-top: 0; }
+
 @media (prefers-reduced-motion: reduce) {
   .reveal { transition: none; }
   /* No animation to hide, and no transitionend to wait for. */
