@@ -123,17 +123,16 @@
       </svg>
       Finanzierungsobjekt
     </a>
+    <!-- Neubau zuerst: auf der Seite steht der Neubau-Block ueber „Immobilie“, die
+         Navigation folgt der Reihenfolge der Abschnitte. -->
+    <a href="#neubau"    class="sub object-nav" data-navfor="neubau">Neubau</a>
     <!-- The Immobilienart is written into this entry once it is picked — "Immobilie ·
          Grundstück" — the same way the Antragsteller entry picks up the first name. -->
-    <a href="#immobilie" class="sub object-nav" data-navfor="immobilie"><span id="immo-nav-title">Immobilie</span></a>
+    <a href="#immobilie" class="sub object-nav" data-navfor="immobilie|anschluss|modernisierung|kapital|neubau"><span id="immo-nav-title">Immobilie</span></a>
     <!-- Zweiter Eintrag zum selben Objekt: der Abschnitt ist lang genug, dass man ihn
          gezielt ansteuern will. data-art nimmt ihn beim Grundstück mit dem Abschnitt
          zusammen weg — dafür muss .show unten dem hidden weichen. -->
-    <a href="#immobilienmerkmale" class="sub object-nav" data-navfor="immobilie" data-art="!Grundstück">Immobilienmerkmale</a>
-    <a href="#neubau"    class="sub object-nav" data-navfor="neubau">Neubau</a>
-    <a href="#anschluss" class="sub object-nav" data-navfor="anschluss">Anschlussfinanzierung</a>
-    <a href="#modern"    class="sub object-nav" data-navfor="modernisierung">Modernisierung</a>
-    <a href="#kapital"   class="sub object-nav" data-navfor="kapital">Kapitalbeschaffung</a>
+    <a href="#immobilienmerkmale" class="sub object-nav" data-navfor="immobilie|anschluss|modernisierung|kapital|neubau" data-art="!Grundstück" data-zweck-not="bauvorhaben">Immobilienmerkmale</a>
 
     <a href="#details">
       <svg class="nav-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"
@@ -439,11 +438,12 @@
       <div class="reveal" id="c-nutzung"><div class="reveal-inner"><div class="pad">
         <div class="grid">
           <div class="field col-6">
-            <label for="nutzung">Wie möchten Sie die Immobilie nutzen? <span class="req" aria-hidden="true">*</span></label>
+            <label for="nutzung"><span data-text-for="anschluss|kapitalbeschaffung|modernisierung" data-text="Wie wird die Immobilie genutzt?">Wie möchten Sie die Immobilie nutzen?</span> <span class="req" aria-hidden="true">*</span></label>
             <p class="help" id="h-nutzung">Einige Banken gewähren einen Zinsnachlass, wenn die Immobilie
               eigengenutzt wird. Eine KfW-Förderung ist bei vermieteten Objekten teilweise möglich.</p>
             <span class="select-wrap">
-              <select class="select" id="nutzung" aria-describedby="h-nutzung" required>
+              <select class="select" id="nutzung" aria-describedby="h-nutzung" required
+                      data-show-when="Vermieten|Teilweise vermieten" data-controls="#c-i-vermietung">
                 <option value="">Bitte wählen</option>
                 <option>Selbst nutzen</option>
                 <option>Vermieten</option>
@@ -1574,6 +1574,12 @@
           <div class="field" role="group" aria-labelledby="lbl-immobesitz" id="immo-toggle"
                data-show-when="Ja" data-required>
             <span class="group-label" id="lbl-immobesitz">Sind Immobilien vorhanden? <span class="req" aria-hidden="true">*</span></span>
+            <!-- Bei Anschlussfinanzierung, Modernisierung und Kapitalbeschaffung gehoert das
+                 Finanzierungsobjekt selbst zum Immobilienvermoegen — es wird aber mit seinen
+                 Darlehen im Abschnitt Finanzierungsobjekt erfasst. Der Hinweis sagt, was
+                 hierher gehoert, damit es nicht zweimal eingetragen wird. -->
+            <p class="help" id="h-immobesitz" data-zweck-not="kauf|neubau-bautraeger|bauvorhaben">Das Finanzierungsobjekt
+              selbst erfassen Sie im Abschnitt Finanzierungsobjekt. Bitte geben Sie hier Ihre weiteren Immobilien an.</p>
             <div class="choices">
               <label class="choice"><input type="radio" name="immobesitz" value="Ja"><span>Ja</span></label>
               <label class="choice"><input type="radio" name="immobesitz" value="Nein"><span>Nein</span></label>
@@ -1632,8 +1638,57 @@
       <div class="card-body" id="body-objekt">
         <div class="card-body-inner">
           <div class="subsections">
+        <!-- ============ OBJEKTABSCHNITT: NEUBAU ============ -->
+        <div class="reveal object-section" data-for="neubau"><div class="reveal-inner"><div class="pad">
+        <section class="subsection-static" id="neubau" aria-labelledby="h-neubau">
+          <h3 class="subsection-title" id="h-neubau">Neubau</h3>
+          <div class="card-pad">
+          <!-- Freiwillig wie in der Vorlage: beim Neubau steht oft noch keine Hausnummer,
+               manchmal noch nicht einmal die Strasse fest. -->
+          <h3 class="subhead">Wo befindet sich das Grundstück?</h3>
+          <div class="grid">
+            <div class="field col-3"><label for="n-strasse">Straße</label><input class="input" id="n-strasse" type="text"></div>
+            <div class="field col-3"><label for="n-hausnr">Nr.</label><input class="input" id="n-hausnr" type="text"></div>
+            <div class="field col-3"><label for="n-plz">PLZ</label><input class="input" id="n-plz" type="text" inputmode="numeric"></div>
+            <div class="field col-3"><label for="n-ort">Ort</label><input class="input" id="n-ort" type="text"></div>
+          </div>
+          <!-- grid-fill: die drei Felder teilen sich die Zeile ganz, deshalb nimmt das
+               m²-Feld hier die restliche Spaltenbreite statt der 170px-Kappe der Zahlenfelder
+               (wie .grid-dl in den Darlehenskarten). KfW bekommt col-5, damit Frage und
+               Info-Symbol auf eine Zeile passen. -->
+          <div class="grid grid-fill">
+            <div class="field col-3"><label for="n-fertig">Wann ist die Fertigstellung geplant? <span class="req" aria-hidden="true">*</span></label><input class="input" id="n-fertig" type="text" placeholder="mm.jjjj" inputmode="numeric" required></div>
+            <div class="field col-5">
+              <label for="n-standard">Welche KfW-Energieeffizienzklasse hat die Immobilie?</label>
+              <p class="help" id="h-n-standard">Der KfW-Energieeffizienzstandard hat Einfluss auf die Höhe der
+                Fördermittel. Den Energieeffizienzstandard können Sie aus dem Exposé Ihrer Immobilie entnehmen.</p>
+              <span class="select-wrap">
+                <!-- Same list as the Bestand field (#i-kfw), down to the wording: it is the
+                     same standard being named, and two spellings of "Effizienzhaus 40" across
+                     two sections would read as two different things. "Kein Förderstandard"
+                     stays on top of it — a new build can be planned without aiming for one,
+                     which none of the shared entries covers. -->
+                <select class="select" id="n-standard" aria-describedby="h-n-standard">
+                  <option value="">Bitte wählen</option>
+                  <option>Effizienzhaus-Standard 55</option><option>Effizienzhaus-Standard 40</option>
+                  <option>Effizienzhaus-Standard 40 plus</option><option>Effizienzhaus-Standard 40 QNG</option>
+                  <option>Kein Förderstandard</option>
+                  <option>Ich bin mir nicht sicher</option><option>Andere</option>
+                </select>
+              </span>
+            </div>
+            <div class="field col-4"><label for="n-grund">Wie groß ist oder wäre die Grundstücksfläche? <span class="req" aria-hidden="true">*</span></label><div class="with-unit"><input class="input" id="n-grund" inputmode="decimal" required><span class="unit">m²</span></div></div>
+          </div>
+          </div>
+        </section>
+        </div></div></div>
+        <!-- Kein Objektabschnitt fuer die Anschlussfinanzierung mehr: das abzuloesende
+             Darlehen wird in den Finanzierungsdetails erfasst, pro Darlehen und mit
+             acht statt drei Angaben, und die Objektangaben kommen aus dem
+             Immobilien-Block darueber, dessen data-for "anschluss" mitfuehrt. Offen
+             bleibt allein, welche Sondertilgungsrechte das bestehende Darlehen hat. -->
         <!-- ============ OBJEKTABSCHNITT: IMMOBILIE (Kauf, Standard) ============ -->
-        <div class="reveal object-section open" data-for="immobilie"><div class="reveal-inner"><div class="pad">
+        <div class="reveal object-section open" data-for="immobilie|anschluss|modernisierung|kapital|neubau"><div class="reveal-inner"><div class="pad">
         <section class="subsection-static" id="immobilie" aria-labelledby="h-immo">
           <h3 class="subsection-title" id="h-immo">Immobilie</h3>
           <div class="card-pad">
@@ -1650,17 +1705,20 @@
                and syncImmobilienart opens the block for it. Related to "Wie möchten Sie die Immobilie nutzen?" in
                the Start section but not the same question: Nutzung splits eigengenutzt
                from vermietet, this one says whether they move in themselves. -->
+          <!-- Doppelung bzw. am Neubau unmoeglich — siehe die data-zweck-not weiter unten.
+               Der Neubau-Abschnitt bringt Adresse, Fertigstellung, KfW-Standard und
+               Grundstuecksflaeche selbst mit. -->
           <div class="field" role="group" aria-labelledby="lbl-i-wohnort" id="i-wohnort-toggle"
-               data-art="!Grundstück" data-controls="#c-objektadresse" data-show-when="Nein" data-required>
-            <span class="group-label" id="lbl-i-wohnort">Ist das zu finanzierende Objekt Ihr Wohnort? <span class="req" aria-hidden="true">*</span></span>
+               data-art="!Grundstück" data-controls="#c-objektadresse" data-show-when="Nein" data-required data-zweck-not="neubau-bautraeger|bauvorhaben|kauf">
+            <span class="group-label" id="lbl-i-wohnort">Entspricht die Adresse der Immobilie Ihrer Wohnadresse? <span class="req" aria-hidden="true">*</span></span>
             <div class="choices">
               <label class="choice"><input type="radio" name="i-wohnort" value="Ja"><span>Ja</span></label>
               <label class="choice"><input type="radio" name="i-wohnort" value="Nein"><span>Nein</span></label>
             </div>
           </div>
 
-          <div class="reveal" id="c-objektadresse"><div class="reveal-inner"><div class="pad">
-            <h3 class="subhead">Objektadresse</h3>
+          <div class="reveal" id="c-objektadresse" data-zweck-not="neubau-bautraeger|bauvorhaben"><div class="reveal-inner"><div class="pad">
+            <h3 class="subhead">Wie lautet die Adresse des zu finanzierenden Objekts?</h3>
             <div class="grid">
               <div class="field col-3"><label for="i-strasse">Straße <span class="req" aria-hidden="true">*</span></label><input class="input" id="i-strasse" type="text" required></div>
               <div class="field col-3"><label for="i-hausnr">Nr. <span class="req" aria-hidden="true">*</span></label><input class="input" id="i-hausnr" type="text" required></div>
@@ -1674,44 +1732,41 @@
                Wohnfläche, Zimmer, Geschosse, Etage — is not asked, and what is left is the
                plot's own two figures. `data-art` carries which arts an element belongs to;
                "!" is the arts it does not. See syncImmobilienart. -->
-          <h3 class="subhead">Objektdaten</h3>
+          <h3 class="subhead" data-zweck-not="neubau-bautraeger|bauvorhaben">Objektdaten</h3>
           <div class="grid">
-            <div class="field col-3" data-art="!Grundstück">
-              <label for="i-baujahr">Baujahr <span class="req" aria-hidden="true">*</span></label>
+            <div class="field col-3" data-art="!Grundstück" data-zweck-not="neubau-bautraeger|bauvorhaben">
+              <label for="i-baujahr">Wann wurde die Immobilie erbaut? <span class="req" aria-hidden="true">*</span></label>
               <input class="input" id="i-baujahr" type="text" placeholder="jjjj" inputmode="numeric" required>
             </div>
             <!-- The year says how old the building is, this says whether that still
                  describes it: a 1960s flat modernised in 2015 is a different object to
-                 the bank than one that was never touched. Beside the Baujahr, because it
-                 is the same question asked twice. "Ja" then asks for the year: work done
-                 in 2007 and work done in 2024 are not the same fact, and the second
-                 Baujahr is what the bank actually values. -->
-            <div class="field col-9" role="group" aria-labelledby="lbl-i-modern" data-art="!Grundstück"
-                 data-controls="#c-modern-jahr" data-show-when="Ja">
+                 the bank than one that was never touched. Eigene Zeile, weil die Frage
+                 ein ganzer Satz ist und neben dem Baujahr zweizeilig umbrach.
+                 "Ja" fragt dann nach dem Jahr, als eigene Frage darunter wie in der
+                 Vorlage. Das Reveal bleibt ein Geschwister im selben Raster
+                 (data-controls). -->
+            <div class="field col-6 col-start" role="group" aria-labelledby="lbl-i-modern" data-art="!Grundstück"
+                 data-controls="#c-modern-jahr" data-show-when="Ja" data-zweck-not="neubau-bautraeger|bauvorhaben">
               <span class="group-label" id="lbl-i-modern">Wurde die Immobilie in den letzten 20 Jahren modernisiert?</span>
               <div class="choices">
                 <label class="choice"><input type="radio" name="i-modernisiert" value="Ja"><span>Ja</span></label>
                 <label class="choice"><input type="radio" name="i-modernisiert" value="Nein"><span>Nein</span></label>
               </div>
-              <div class="reveal" id="c-modern-jahr"><div class="reveal-inner"><div class="pad">
-                <div class="grid">
-                  <div class="field col-4">
-                    <label for="i-modern-jahr">Jahr der Modernisierung</label>
-                    <input class="input" id="i-modern-jahr" type="text" placeholder="jjjj" inputmode="numeric">
-                  </div>
-                </div>
-              </div></div></div>
             </div>
-            <div class="field col-6" data-art="!Grundstück">
-              <label for="i-kfw">
-                KfW-Energieeffizienzklasse
-                <span class="info-wrap">
-                  <button type="button" class="info-btn" aria-describedby="tip-kfw" aria-expanded="false" aria-label="Erläuterung zur KfW-Energieeffizienzklasse"><svg class="ico-info" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" d="M10 1.66667C5.4 1.66667 1.66667 5.4 1.66667 10C1.66667 14.6 5.4 18.3333 10 18.3333C14.6 18.3333 18.3333 14.6 18.3333 10C18.3333 5.4 14.6 1.66667 10 1.66667ZM9.16667 14.1667V9.16667H10.8333V14.1667H9.16667ZM9.16667 5.83333V7.5H10.8333V5.83333H9.16667Z"/></svg></button>
-                  <span class="info-bubble" role="tooltip" id="tip-kfw">Den Energieeffizienzstandard entnehmen Sie dem Exposé Ihrer Immobilie oder dem Energieausweis.</span>
-                </span>
-              </label>
+            <div class="reveal col-12 col-start" id="c-modern-jahr" data-art="!Grundstück" data-zweck-not="neubau-bautraeger|bauvorhaben"><div class="reveal-inner"><div class="pad">
+              <div class="grid">
+                <div class="field col-4">
+                  <label for="i-modern-jahr">Wann wurde die Immobilie modernisiert?</label>
+                  <input class="input" id="i-modern-jahr" type="text" placeholder="z. B. 2000" inputmode="numeric">
+                </div>
+              </div>
+            </div></div></div>
+            <div class="field col-6 col-start" data-art="!Grundstück" data-zweck-not="neubau-bautraeger|bauvorhaben">
+              <label for="i-kfw">Welche KfW-Energieeffizienzklasse hat die Immobilie?</label>
+              <p class="help" id="h-i-kfw">Der KfW-Energieeffizienzstandard hat Einfluss auf die Höhe der
+                Fördermittel. Den Energieeffizienzstandard können Sie aus dem Exposé Ihrer Immobilie entnehmen.</p>
               <span class="select-wrap">
-                <select class="select" id="i-kfw">
+                <select class="select" id="i-kfw" aria-describedby="h-i-kfw">
                   <option value="">Bitte wählen</option>
                   <option>Effizienzhaus-Standard 55</option><option>Effizienzhaus-Standard 40</option>
                   <option>Effizienzhaus-Standard 40 plus</option><option>Effizienzhaus-Standard 40 QNG</option>
@@ -1719,8 +1774,8 @@
                 </select>
               </span>
             </div>
-            <div class="field col-3">
-              <label for="i-grund">Grundstücksfläche <span class="req" aria-hidden="true">*</span></label>
+            <div class="field col-3" data-zweck-not="neubau-bautraeger|bauvorhaben">
+              <label for="i-grund">Wie groß ist die Grundstücksfläche? <span class="req" aria-hidden="true">*</span></label>
               <div class="with-unit"><input class="input" id="i-grund" inputmode="decimal" required><span class="unit">m²</span></div>
             </div>
           </div>
@@ -1730,8 +1785,10 @@
                Zweifamilienhaus two — asking there reads as a question about the wrong
                building. What is left is the flat in a block of unknown size, the
                Mehrfamilienhaus, and the mixed-use house. -->
+          <!-- In einem eigenen Raster, damit die Frage den normalen Abstand zur Zeile
+               darueber bekommt (.grid ~ .grid) statt direkt am KfW-Feld zu kleben. -->
+          <div class="grid" data-art="Eigentumswohnung|Mehrfamilienhaus|Wohn- und Geschäftshaus">
           <div class="field col-12" role="group" aria-labelledby="lbl-wohnungen"
-               data-art="Eigentumswohnung|Mehrfamilienhaus|Wohn- und Geschäftshaus"
                data-controls="#c-wohnungen" data-show-when="Ja">
             <span class="group-label" id="lbl-wohnungen">Kennen Sie die Gesamtanzahl der Wohnungen im Gebäude?</span>
             <div class="choices">
@@ -1741,49 +1798,75 @@
             <div class="reveal" id="c-wohnungen"><div class="reveal-inner"><div class="pad">
               <div class="grid">
                 <div class="field col-3">
-                  <label for="i-wohnungen">Anzahl Wohnungen im Gebäude <span class="req" aria-hidden="true">*</span></label>
+                  <label for="i-wohnungen">Wie viele Wohnungen befinden sich im gesamten Gebäude? <span class="req" aria-hidden="true">*</span></label>
                   <input class="input num" id="i-wohnungen" inputmode="numeric" required>
                 </div>
               </div>
             </div></div></div>
           </div>
+          </div>
 
           <div class="grid">
-            <div class="field col-3" data-art="!Grundstück">
-              <label for="i-wohn">Wohnfläche</label>
-              <p class="help" id="h-i-wohn">Gesamte nachweisbare Fläche aller Räume.</p>
+            <div class="field col-4 col-start" data-art="!Grundstück">
+              <label for="i-wohn"><span data-text-for="neubau-bautraeger|bauvorhaben" data-text="Wie groß ist oder wäre die Wohnfläche?">Wie groß ist die Wohnfläche der Immobilie?</span></label>
+              <p class="help" id="h-i-wohn">Bitte geben Sie die gesamte nachweisbare Fläche aller Räume in Quadratmeter an.</p>
               <div class="with-unit"><input class="input" id="i-wohn" inputmode="decimal" aria-describedby="h-i-wohn"><span class="unit">m²</span></div>
             </div>
+            <div class="field col-4" data-art="!Grundstück"><label for="i-zimmer"><span data-text-for="neubau-bautraeger|bauvorhaben" data-text="Wie viele Zimmer hat oder wird die Immobilie haben?">Wie viele Zimmer hat die Immobilie?</span></label><input class="input num" id="i-zimmer" inputmode="numeric"></div>
+            <div class="field col-4" data-art="!Grundstück">
+              <label for="i-geschosse">Wie viele Geschosse hat das Gebäude?</label>
+              <p class="help" id="h-i-gesch">Bitte geben Sie die Anzahl der Geschosse ohne den Keller und das Dachgeschoss an.</p>
+              <input class="input num" id="i-geschosse" inputmode="numeric" aria-describedby="h-i-gesch">
+            </div>
+            <!-- Wohnfläche, Zimmer und Geschosse stehen als eine Zeile; der Vermietungsblock
+                 folgt darunter. Stand er zwischen Wohnfläche und Zimmer, nahm er auch
+                 geschlossen eine Rasterzeile ein und verdoppelte den Abstand. -->
+            <!-- Vermietete Flaeche und erwartete Miete gehoeren zusammen und ergeben nur
+                 Sinn, wenn ueberhaupt vermietet wird. Danach fragt der Finanzbedarf
+                 bereits, also haengt der Block an JENER Antwort (data-controls an
+                 #nutzung) statt an einer zweiten Ja/Nein-Frage hier. Wer selbst einzieht,
+                 sieht beide Felder gar nicht erst — die Produktionsmaske fragt die Miete
+                 dort als Pflichtfeld, was niemand beantworten kann.
+                 data-zweck-not deckt die zwei Zwecke ab, bei denen die Nutzung nicht
+                 gefragt wird: ein stehengebliebenes „Vermieten" aus einem frueheren Zweck
+                 wuerde den Block sonst offen lassen. -->
+            <div class="reveal col-12 col-start" id="c-i-vermietung"><div class="reveal-inner"><div class="pad">
+              <div class="grid">
+                <div class="field col-4 col-start" data-art="!Grundstück">
+                  <label for="i-wohn-vermietet">Wie groß ist die vermietete Wohnfläche der Immobilie?</label>
+                  <div class="with-unit"><input class="input" id="i-wohn-vermietet" inputmode="decimal"><span class="unit">m²</span></div>
+                </div>
+                <div class="field col-4" data-art="!Grundstück">
+                  <label for="i-miete">Wie hoch ist die zu erwartende Netto-Monatsmiete? <span class="req" aria-hidden="true">*</span></label>
+                  <div class="with-unit"><input class="input" id="i-miete" inputmode="decimal" required><span class="unit">€</span></div>
+                </div>
+              </div>
+            </div></div></div>
             <!-- The mixed-use house is the one art whose building is not all flats, so
                  it is the one art asked what the rest of it is: how many commercial
-                 units, and how much floor they take. Beside Wohnfläche, because the two
-                 areas are read off the same plan and only make sense together. Neither
-                 is a Pflichtfeld — the split is often not known to the buyer yet. -->
-            <div class="field col-3" data-art="Wohn- und Geschäftshaus">
+                 units, and how much floor they take. Eine eigene Zeile unter Zimmer und
+                 Geschosse statt dazwischen, damit die beiden ihr Paar bleiben.
+                 Neither is a Pflichtfeld — the split is often not known to the buyer yet. -->
+            <div class="field col-4 col-start" data-art="Wohn- und Geschäftshaus">
               <label for="i-gewerbeeinheiten">Gewerbeeinheiten</label>
               <input class="input num" id="i-gewerbeeinheiten" inputmode="numeric">
             </div>
-            <div class="field col-3" data-art="Wohn- und Geschäftshaus">
+            <div class="field col-4" data-art="Wohn- und Geschäftshaus">
               <label for="i-gewerbe">Gewerbefläche</label>
               <div class="with-unit"><input class="input" id="i-gewerbe" inputmode="decimal"><span class="unit">m²</span></div>
-            </div>
-            <div class="field col-3" data-art="!Grundstück"><label for="i-zimmer">Zimmer</label><input class="input num" id="i-zimmer" inputmode="numeric"></div>
-            <div class="field col-3" data-art="!Grundstück">
-              <label for="i-geschosse">Geschosse</label>
-              <p class="help" id="h-i-gesch">Ohne Keller und Dachgeschoss.</p>
-              <input class="input num" id="i-geschosse" inputmode="numeric" aria-describedby="h-i-gesch">
             </div>
             <!-- The one field that belongs to a single art rather than to all but one:
                  only a flat sits on a floor of a building, and for a flat it is a
                  Pflichtfeld — the storey is part of what is being valued. -->
-            <div class="field col-3" data-art="Eigentumswohnung">
-              <label for="i-etage">Etage der Immobilie <span class="req" aria-hidden="true">*</span></label>
+            <div class="field col-4 col-start" data-art="Eigentumswohnung">
+              <label for="i-etage">Auf welcher Etage befindet sich die Immobilie? <span class="req" aria-hidden="true">*</span></label>
               <span class="select-wrap">
                 <select class="select" id="i-etage" required>
                   <option value="">Bitte wählen</option>
                   <option>Untergeschoss</option><option>Erdgeschoss</option><option>Erstes Obergeschoss</option>
                   <option>Zweites Obergeschoss</option><option>Drittes Obergeschoss</option><option>Viertes Obergeschoss</option>
-                  <option>Fünftes Obergeschoss</option><option>Sechstes Obergeschoss oder höher</option>
+                  <option>Fünftes Obergeschoss</option><option>Sechstes Obergeschoss</option>
+                  <option>Siebtes Obergeschoss</option><option>Achtes Obergeschoss oder höher</option>
                 </select>
               </span>
             </div>
@@ -1801,10 +1884,10 @@
             <div class="reveal" id="c-bauweise"><div class="reveal-inner"><div class="pad">
               <div class="grid">
                 <div class="field col-6">
-                  <label for="i-bauweise">In welcher Bauweise ist die Immobilie gebaut? <span class="req" aria-hidden="true">*</span></label>
-                  <p class="help" id="h-i-bauweise">Für eine akkurate Bewertung des Verkehrswertes erforderlich.</p>
+                  <label for="i-bauweise">In welcher Bauweise ist die Immobilie gebaut?</label>
+                  <p class="help" id="h-i-bauweise">Banken müssen die Bauweise der Immobilie für eine akkurate Bewertung des Verkehrswertes erfahren.</p>
                   <span class="select-wrap">
-                    <select class="select" id="i-bauweise" aria-describedby="h-i-bauweise" required>
+                    <select class="select" id="i-bauweise" aria-describedby="h-i-bauweise">
                       <option value="">Bitte wählen</option>
                       <option>Plattenbauweise</option><option>Holzbauweise</option><option>Blockbauweise</option>
                       <option>Fachwerkbauweise</option><option>Fertigbauweise</option><option>Andere</option>
@@ -1824,8 +1907,9 @@
           <div class="field" role="group" aria-labelledby="lbl-i-erbbau" aria-describedby="h-i-erbbau"
                data-controls="#c-erbbau" data-show-when="Ja">
             <span class="group-label" id="lbl-i-erbbau">Besteht ein Erbbaurecht für die Immobilie?</span>
-            <p class="help" id="h-i-erbbau">Ein Erbbaurecht ist ein im Grundbuch eingetragenes Recht, meist gegen
-              Zahlung eines Erbbauzinses, auf fremdem Grundstück ein Bauwerk zu errichten.</p>
+            <p class="help" id="h-i-erbbau">Ein Erbbaurecht ist ein in das Grundbuch eingetragenes Recht, meist gegen
+              Zahlung eines regelmäßigen sogenannten Erbbauzinses, auf einem Grundstück ein Bauwerk zu errichten
+              oder zu unterhalten.</p>
             <div class="choices">
               <label class="choice"><input type="radio" name="i-erbbau" value="Ja"><span>Ja</span></label>
               <label class="choice"><input type="radio" name="i-erbbau" value="Nein"><span>Nein</span></label>
@@ -1835,21 +1919,21 @@
           <div class="reveal" id="c-erbbau"><div class="reveal-inner"><div class="pad">
             <div class="grid">
               <div class="field col-3">
-                <label for="i-erbbauzins">Jährlicher Erbbauzins <span class="req" aria-hidden="true">*</span></label>
-                <div class="with-unit"><input class="input" id="i-erbbauzins" inputmode="decimal" required><span class="unit">€</span></div>
+                <label for="i-erbbauzins">Wie hoch ist der jährlich zu zahlende Erbbauzins?</label>
+                <div class="with-unit"><input class="input" id="i-erbbauzins" inputmode="decimal"><span class="unit">€</span></div>
               </div>
               <div class="field col-4">
-                <label for="i-eigentuemer">Grundstückseigentümer <span class="req" aria-hidden="true">*</span></label>
+                <label for="i-eigentuemer">Wer ist der Grundstückseigentümer?</label>
                 <span class="select-wrap">
-                  <select class="select" id="i-eigentuemer" required>
+                  <select class="select" id="i-eigentuemer">
                     <option value="">Bitte wählen</option><option>Kirche</option><option>Kommune / Stadt</option>
-                    <option>Stiftung</option><option>Privatperson</option><option>Sonstige</option>
+                    <option>Stiftung</option><option>Privatperson</option><option>Unternehmen</option><option>Sonstige</option>
                   </select>
                 </span>
               </div>
               <div class="field col-4">
-                <label for="i-erbbau-ende">Ende des Erbbaurechtsvertrags <span class="req" aria-hidden="true">*</span></label>
-                <input class="input" id="i-erbbau-ende" type="text" placeholder="tt.mm.jjjj" inputmode="numeric" required>
+                <label for="i-erbbau-ende">Wann endet der Erbbaurechtsvertrag?</label>
+                <input class="input" id="i-erbbau-ende" type="text" placeholder="tt.mm.jjjj" inputmode="numeric">
               </div>
             </div>
           </div></div></div>
@@ -1872,10 +1956,14 @@
                Energieausweis rather than off the object. Which is also why a Grundstück
                is not asked for it — an empty plot has no Energieausweis to read it off. -->
           <div class="grid">
-            <div class="field col-4" data-art="!Grundstück">
-              <label for="i-energie">Endenergiebedarf</label>
-              <p class="help" id="h-i-energie">Laut Energieausweis.</p>
-              <div class="with-unit"><input class="input" id="i-energie" inputmode="decimal" aria-describedby="h-i-energie"><span class="unit">kWh/m²</span></div>
+            <!-- Ausgeschriebene Frage statt des Stichworts „Endenergiebedarf": der Wert
+                 steht im Energieausweis und ist leicht mit dem Primaerenergiebedarf
+                 daneben zu verwechseln — die Frage sagt, welcher der beiden gemeint ist
+                 und woher er kommt. Deshalb col-6 statt col-4, sonst bricht sie dreimal
+                 um. Der Hinweistext ist in die Frage gewandert und entfaellt. -->
+            <div class="field col-6" data-art="!Grundstück">
+              <label for="i-energie">Wie hoch ist der jährliche Endenergiebedarf (in kWh/m²) der zu finanzierenden Immobilie laut Energieausweis?</label>
+              <div class="with-unit"><input class="input" id="i-energie" inputmode="decimal"><span class="unit">kWh/m²</span></div>
             </div>
           </div>
           </div>
@@ -1897,7 +1985,7 @@
              Ein Grundstück wird nach keiner davon gefragt — es hat kein Bad, keine
              Heizung und keinen Keller. -->
         <section class="subsection-static" id="immobilienmerkmale" aria-labelledby="h-merkmale"
-                 data-art="!Grundstück">
+                 data-art="!Grundstück" data-zweck-not="bauvorhaben">
           <h3 class="subsection-title" id="h-merkmale">Immobilienmerkmale</h3>
           <div class="card-pad">
           <div class="grid">
@@ -1921,14 +2009,21 @@
                 <label class="choice"><input type="radio" name="i-gaeste-wc" value="Nein"><span>Nein</span></label>
               </div>
             </div>
-            <div class="field col-3" role="group" aria-labelledby="lbl-i-familienverkauf">
+            <!-- Familienverkauf und Zwangsversteigerung beschreiben den ERWERB. Bei
+                 Anschlussfinanzierung, Modernisierung und Kapitalbeschaffung gehoert das
+                 Objekt der Antragstellerin schon — da gibt es keinen Erwerb, nach dem sich
+                 fragen liesse. Sie standen dort nur mit, weil der Merkmale-Block seit dem
+                 data-for-Umbau fuer diese Zwecke mit aufgeht. -->
+            <div class="field col-3" role="group" aria-labelledby="lbl-i-familienverkauf"
+                 data-zweck-not="anschluss|modernisierung|kapitalbeschaffung|neubau-bautraeger">
               <span class="group-label" id="lbl-i-familienverkauf">Familienverkauf</span>
               <div class="choices">
                 <label class="choice"><input type="radio" name="i-familienverkauf" value="Ja"><span>Ja</span></label>
                 <label class="choice"><input type="radio" name="i-familienverkauf" value="Nein"><span>Nein</span></label>
               </div>
             </div>
-            <div class="field col-3" role="group" aria-labelledby="lbl-i-zwangsversteigerung">
+            <div class="field col-3" role="group" aria-labelledby="lbl-i-zwangsversteigerung"
+                 data-zweck-not="anschluss|modernisierung|kapitalbeschaffung|neubau-bautraeger">
               <span class="group-label" id="lbl-i-zwangsversteigerung">Erwerb Zwangsversteigerung</span>
               <div class="choices">
                 <label class="choice"><input type="radio" name="i-zwangsversteigerung" value="Ja"><span>Ja</span></label>
@@ -1939,7 +2034,10 @@
             <!-- Die neun Listen mit mehr als zwei Einträgen bleiben Listen, drei je Zeile:
                  col-4 mal drei ergibt wieder volle Zeilen, die Spalten fluchten also über
                  alle drei hinweg. -->
-            <div class="field col-4">
+            <!-- col-start: wenn Familienverkauf und Zwangsversteigerung fuer den Zweck wegfallen,
+                 bleibt in der Chip-Zeile Platz, und die erste Liste rutschte hinauf. Die neun
+                 Listen beginnen immer in einer eigenen Zeile. -->
+            <div class="field col-4 col-start">
               <label for="i-fenster">Fenster</label>
               <span class="select-wrap">
                 <select class="select" id="i-fenster">
@@ -2070,94 +2168,12 @@
           </div>
         </section>
         </div></div></div>
-        <!-- ============ OBJEKTABSCHNITT: NEUBAU ============ -->
-        <div class="reveal object-section" data-for="neubau"><div class="reveal-inner"><div class="pad">
-        <section class="subsection-static" id="neubau" aria-labelledby="h-neubau">
-          <h3 class="subsection-title" id="h-neubau">Neubau</h3>
-          <div class="card-pad">
-          <h3 class="subhead">Objektadresse</h3>
-          <div class="grid">
-            <div class="field col-3"><label for="n-strasse">Straße <span class="req" aria-hidden="true">*</span></label><input class="input" id="n-strasse" type="text" required></div>
-            <div class="field col-3"><label for="n-hausnr">Nr.</label><input class="input" id="n-hausnr" type="text"></div>
-            <div class="field col-3"><label for="n-plz">PLZ <span class="req" aria-hidden="true">*</span></label><input class="input" id="n-plz" type="text" inputmode="numeric" required></div>
-            <div class="field col-3"><label for="n-ort">Ort <span class="req" aria-hidden="true">*</span></label><input class="input" id="n-ort" type="text" required></div>
-          </div>
-          <h3 class="subhead">Bauvorhaben</h3>
-          <div class="grid">
-            <div class="field col-4"><label for="n-fertig">Geplante Fertigstellung <span class="req" aria-hidden="true">*</span></label><input class="input" id="n-fertig" type="text" placeholder="mm.jjjj" inputmode="numeric" required></div>
-            <div class="field col-4">
-              <label for="n-standard">Angestrebter KfW-Neubaustandard</label>
-              <span class="select-wrap">
-                <!-- Same list as the Bestand field (#i-kfw), down to the wording: it is the
-                     same standard being named, and two spellings of "Effizienzhaus 40" across
-                     two sections would read as two different things. "Kein Förderstandard"
-                     stays on top of it — a new build can be planned without aiming for one,
-                     which none of the shared entries covers. -->
-                <select class="select" id="n-standard">
-                  <option value="">Bitte wählen</option>
-                  <option>Effizienzhaus-Standard 55</option><option>Effizienzhaus-Standard 40</option>
-                  <option>Effizienzhaus-Standard 40 plus</option><option>Effizienzhaus-Standard 40 QNG</option>
-                  <option>Kein Förderstandard</option>
-                  <option>Ich bin mir nicht sicher</option><option>Andere</option>
-                </select>
-              </span>
-            </div>
-            <div class="field col-4"><label for="n-grund">Grundstücksfläche <span class="req" aria-hidden="true">*</span></label><div class="with-unit"><input class="input" id="n-grund" inputmode="decimal" required><span class="unit">m²</span></div></div>
-          </div>
-          <p class="note">Gerüst — finanzierungsspezifische Neubau-Felder (Baukosten, Eigenleistung,
-            Grundstückskauf) noch zu definieren.</p>
-          </div>
-        </section>
-        </div></div></div>
-        <!-- ============ OBJEKTABSCHNITT: ANSCHLUSSFINANZIERUNG ============ -->
-        <div class="reveal object-section" data-for="anschluss"><div class="reveal-inner"><div class="pad">
-        <section class="subsection-static" id="anschluss" aria-labelledby="h-ansch">
-          <h3 class="subsection-title" id="h-ansch">Anschlussfinanzierung</h3>
-          <div class="card-pad">
-          <div class="grid">
-            <div class="field col-4"><label for="an-geber">Aktueller Darlehensgeber <span class="req" aria-hidden="true">*</span></label><input class="input" id="an-geber" type="text" placeholder="tippen zum Filtern…" required></div>
-            <div class="field col-4"><label for="an-restschuld">Aktuelle Restschuld <span class="req" aria-hidden="true">*</span></label><div class="with-unit"><input class="input" id="an-restschuld" inputmode="decimal" required><span class="unit">€</span></div></div>
-            <div class="field col-4"><label for="an-zinsbindung">Ende der Zinsbindung <span class="req" aria-hidden="true">*</span></label><input class="input" id="an-zinsbindung" type="text" placeholder="tt.mm.jjjj" inputmode="numeric" required></div>
-          </div>
-          <p class="note">Gerüst — weitere Felder (aktueller Sollzins, Sondertilgungsrechte,
-            Objektangaben) noch zu definieren.</p>
-          </div>
-        </section>
-        </div></div></div>
         <!-- ============ OBJEKTABSCHNITT: MODERNISIERUNG ============ -->
-        <div class="reveal object-section" data-for="modernisierung"><div class="reveal-inner"><div class="pad">
-        <section class="subsection-static" id="modern" aria-labelledby="h-modern">
-          <h3 class="subsection-title" id="h-modern">Modernisierung</h3>
-          <div class="card-pad">
-          <div class="grid">
-            <div class="field col-4">
-              <label for="m-kosten">Modernisierungskosten <span class="req" aria-hidden="true">*</span></label>
-              <p class="help" id="h-m-kosten">Bitte geben Sie hier die Höhe der Kosten an, die z. B. durch den Einbau einer neuen Heizung entstehen.</p>
-              <div class="with-unit"><input class="input" id="m-kosten" inputmode="decimal" aria-describedby="h-m-kosten" required><span class="unit">€</span></div>
-            </div>
-            <div class="field col-4">
-              <label for="m-eigenleistung">Eigenleistung</label>
-              <p class="help" id="h-m-eigen">Durch erbrachte Eigenleistungen gesparte Lohnkosten, Materialkosten werden nicht berücksichtigt.</p>
-              <div class="with-unit"><input class="input" id="m-eigenleistung" inputmode="decimal" aria-describedby="h-m-eigen"><span class="unit">€</span></div>
-            </div>
-          </div>
-          <p class="note">Gerüst — Objektangaben noch zu definieren.</p>
-          </div>
-        </section>
-        </div></div></div>
-        <!-- ============ OBJEKTABSCHNITT: KAPITALBESCHAFFUNG ============ -->
-        <div class="reveal object-section" data-for="kapital"><div class="reveal-inner"><div class="pad">
-        <section class="subsection-static" id="kapital" aria-labelledby="h-kap">
-          <h3 class="subsection-title" id="h-kap">Kapitalbeschaffung</h3>
-          <div class="card-pad">
-          <div class="grid">
-            <div class="field col-4"><label for="k-betrag">Gewünschter Kapitalbetrag <span class="req" aria-hidden="true">*</span></label><div class="with-unit"><input class="input" id="k-betrag" inputmode="decimal" required><span class="unit">€</span></div></div>
-            <div class="field col-4"><label for="k-zweck">Verwendungszweck <span class="req" aria-hidden="true">*</span></label><input class="input" id="k-zweck" type="text" required></div>
-          </div>
-          <p class="note">Gerüst — Objektangaben und Angaben zu bestehenden Belastungen noch zu definieren.</p>
-          </div>
-        </section>
-        </div></div></div>
+        <!-- Kein Objektabschnitt fuer die Kapitalbeschaffung mehr: der Betrag wird in
+             den Finanzierungsdetails erfragt („Wie viel Kapital wollen Sie aufnehmen?"),
+             der Verwendungszweck steht jetzt daneben statt hier — er beschreibt das
+             Darlehen und nicht die Immobilie. Die Objektangaben kommen aus dem
+             Immobilien-Block darueber, dessen data-for "kapital" mitfuehrt. -->
           </div>
         </div>
       </div>
@@ -2190,15 +2206,39 @@
               bitte hier Ihr maximales Budget ein — nur der Preis der Immobilie, ohne Nebenkosten.</p>
             <div class="with-unit"><input class="input" id="d-kaufpreis" inputmode="decimal" placeholder="400.000" aria-describedby="h-d-kaufpreis" required><span class="unit">€</span></div>
           </div>
-          <div class="field col-12 col-start" role="group" aria-labelledby="lbl-d-belastet" data-required>
+          <!-- Nur beim Kauf: das Darlehen des Verkaeufers ist nicht die Schuld der Kaeuferin,
+               aber die Beratung muss frueh wissen, dass eine Lastenfreistellung zu
+               koordinieren ist — und ob die eingetragene Grundschuld uebernommen werden
+               kann, das spart Notar- und Grundbuchkosten. Deshalb fragt „Ja" weiter.
+               Beim Neubau vom Bautraeger ist die Globalgrundschuld samt MaBV-Freistellung
+               der Normalfall, den die Kaeuferin nicht beantworten kann: data-zweck-not. -->
+          <div class="field col-12 col-start" role="group" aria-labelledby="lbl-d-belastet" data-required
+               data-controls="#c-d-grundschuld" data-show-when="Ja" data-zweck-not="neubau-bautraeger" data-needs-object>
             <span class="group-label" id="lbl-d-belastet">Ist die Immobilie aktuell mit einer Finanzierung belastet? <span class="req" aria-hidden="true">*</span></span>
             <div class="choices">
               <label class="choice"><input type="radio" name="d-belastet" value="Ja"><span>Ja</span></label>
               <label class="choice"><input type="radio" name="d-belastet" value="Nein"><span>Nein</span></label>
             </div>
           </div>
+          <div class="reveal col-12 col-start" id="c-d-grundschuld" data-zweck-not="neubau-bautraeger" data-needs-object><div class="reveal-inner"><div class="pad">
+            <div class="grid">
+              <div class="field col-12 col-start" role="group" aria-labelledby="lbl-d-grundschuld" aria-describedby="h-d-grundschuld">
+                <span class="group-label" id="lbl-d-grundschuld">Soll die bestehende Grundschuld übernommen werden?</span>
+                <p class="help" id="h-d-grundschuld">Eine Übernahme der eingetragenen Grundschuld kann Notar- und
+                  Grundbuchkosten sparen. Wir klären das mit dem Verkäufer und der Bank.</p>
+                <div class="choices">
+                  <label class="choice"><input type="radio" name="d-grundschuld-uebernahme" value="Ja"><span>Ja</span></label>
+                  <label class="choice"><input type="radio" name="d-grundschuld-uebernahme" value="Nein"><span>Nein</span></label>
+                  <label class="choice"><input type="radio" name="d-grundschuld-uebernahme" value="Weiß nicht"><span>Weiß nicht</span></label>
+                </div>
+              </div>
+            </div>
+          </div></div></div>
+          <!-- data-needs-object: solange beim Kauf noch keine Immobilie gefunden ist, gibt es
+               nichts, wofuer eine Maklergebuehr anfallen koennte — die Frage wartet wie die
+               Objektkarte auf „Immobilie gefunden = Ja" (siehe hiddenByObject). -->
           <div class="field col-12 col-start" role="group" aria-labelledby="lbl-d-makler" aria-describedby="h-d-makler"
-               data-controls="#c-d-makler" data-show-when="Ja" data-required>
+               data-controls="#c-d-makler" data-show-when="Ja" data-required data-needs-object>
             <span class="group-label" id="lbl-d-makler">Fällt beim Kauf eine Maklergebühr an? <span class="req" aria-hidden="true">*</span></span>
             <p class="help" id="h-d-makler">Sollten Sie sich nicht sicher sein, werden wir die ortsüblichen
               Maklergebühren unterstellen.</p>
@@ -2215,7 +2255,7 @@
                Auswahl (siehe wireUnitPickers in app.js).
                col-12 col-start, weil ein Reveal im Raster sonst EINE Spalte breit ist: .grid hat
                zwoelf, und ohne Spannweite nimmt ein Kind genau eine davon. -->
-          <div class="reveal col-12 col-start" id="c-d-makler"><div class="reveal-inner"><div class="pad">
+          <div class="reveal col-12 col-start" id="c-d-makler" data-needs-object><div class="reveal-inner"><div class="pad">
             <div class="grid">
               <div class="field col-6 col-start">
                 <label for="d-makler-wert">Wie hoch sind die Maklergebühren?</label>
@@ -2242,30 +2282,60 @@
            sie nicht beantworten. -->
       <div class="reveal zweck-section" data-zweck="bauvorhaben"><div class="reveal-inner"><div class="pad">
         <div class="grid">
-          <div class="field col-12 col-start" role="group" aria-labelledby="lbl-db-grund" data-required>
+          <!-- Die Antwort tauscht zwei Fragen: wer das Grundstueck noch kauft, nennt den
+               geplanten Preis (Pflicht) und wird nach dem Makler gefragt; wer es schon
+               besitzt, nennt den damaligen Preis, freiwillig, und ein Makler faellt nicht
+               mehr an. Die Makler-Frage steht hinter Baukosten und Belastung, deshalb
+               trifft data-switch die Faelle ueber eine Klasse statt ueber einen Container. -->
+          <div class="field col-12 col-start" role="group" aria-labelledby="lbl-db-grund" data-required
+               data-switch=".db-grund-case">
             <span class="group-label" id="lbl-db-grund">Besitzen Sie das Grundstück bereits? <span class="req" aria-hidden="true">*</span></span>
             <div class="choices">
               <label class="choice"><input type="radio" name="db-grund" value="Ja"><span>Ja</span></label>
               <label class="choice"><input type="radio" name="db-grund" value="Nein"><span>Nein</span></label>
             </div>
           </div>
-          <div class="field col-4 col-start">
-            <label for="db-grundpreis">Wie hoch ist der Kaufpreis des Grundstücks? <span class="req" aria-hidden="true">*</span></label>
-            <p class="help" id="h-db-grundpreis">Hier ist der ungefähre Betrag gemeint, der für die Ausgaben
-              geplant ist — nur der Preis des Grundstücks.</p>
-            <div class="with-unit"><input class="input" id="db-grundpreis" inputmode="decimal" aria-describedby="h-db-grundpreis" required><span class="unit">€</span></div>
-          </div>
+          <div class="reveal col-12 col-start db-grund-case" data-when="Nein"><div class="reveal-inner"><div class="pad">
+            <div class="grid">
+              <div class="field col-4 col-start">
+                <label for="db-grundpreis">Wie hoch ist der Kaufpreis des Grundstücks? <span class="req" aria-hidden="true">*</span></label>
+                <p class="help" id="h-db-grundpreis">Hier ist der ungefähre Betrag gemeint, der für die Ausgaben
+                  geplant ist (nur der Preis des Grundstücks).</p>
+                <div class="with-unit"><input class="input" id="db-grundpreis" inputmode="decimal" aria-describedby="h-db-grundpreis" required><span class="unit">€</span></div>
+              </div>
+            </div>
+          </div></div></div>
+          <div class="reveal col-12 col-start db-grund-case" data-when="Ja"><div class="reveal-inner"><div class="pad">
+            <div class="grid">
+              <div class="field col-4 col-start">
+                <label for="db-grundpreis-alt">Wie hoch war der Kaufpreis des Grundstücks?</label>
+                <p class="help" id="h-db-grundpreis-alt">Wenn Sie sich nicht sicher sind, nennen Sie uns bitte den ungefähren Wert.</p>
+                <div class="with-unit"><input class="input" id="db-grundpreis-alt" inputmode="decimal" aria-describedby="h-db-grundpreis-alt"><span class="unit">€</span></div>
+              </div>
+              <!-- Eine Belastung gibt es nur auf einem Grundstueck, das einem schon gehoert —
+                   deshalb steht die Frage im „Ja"-Fall und nicht davor. „Ja" bringt dieselbe
+                   Darlehensliste wie bei Modernisierung und Kapitalbeschaffung. -->
+              <div class="field col-12 col-start" role="group" aria-labelledby="lbl-db-belastet" data-required
+                   data-controls="#c-db-darlehen" data-show-when="Ja">
+                <span class="group-label" id="lbl-db-belastet">Ist das Grundstück aktuell mit einer Finanzierung belastet? <span class="req" aria-hidden="true">*</span></span>
+                <div class="choices">
+                  <label class="choice"><input type="radio" name="db-belastet" value="Ja"><span>Ja</span></label>
+                  <label class="choice"><input type="radio" name="db-belastet" value="Nein"><span>Nein</span></label>
+                </div>
+              </div>
+              <div class="reveal col-12 col-start" id="c-db-darlehen"><div class="reveal-inner"><div class="pad">
+                <h3 class="subhead">Darlehen</h3>
+                <div class="dl-liste" id="db-darlehen-liste"></div>
+                <button type="button" class="add-btn" data-adds="#db-darlehen-liste" data-gate="db-belastet">+ Darlehen erfassen</button>
+              </div></div></div>
+            </div>
+          </div></div></div>
           <div class="field col-4 col-start">
             <label for="db-baukosten">Wie hoch sind die geschätzten Baukosten? <span class="req" aria-hidden="true">*</span></label>
             <div class="with-unit"><input class="input" id="db-baukosten" inputmode="decimal" required><span class="unit">€</span></div>
           </div>
-          <div class="field col-12 col-start" role="group" aria-labelledby="lbl-db-belastet" data-required>
-            <span class="group-label" id="lbl-db-belastet">Ist die Immobilie aktuell mit einer Finanzierung belastet? <span class="req" aria-hidden="true">*</span></span>
-            <div class="choices">
-              <label class="choice"><input type="radio" name="db-belastet" value="Ja"><span>Ja</span></label>
-              <label class="choice"><input type="radio" name="db-belastet" value="Nein"><span>Nein</span></label>
-            </div>
-          </div>
+          <div class="reveal col-12 col-start db-grund-case" data-when="Nein"><div class="reveal-inner"><div class="pad">
+          <div class="grid">
           <div class="field col-12 col-start" role="group" aria-labelledby="lbl-db-makler" aria-describedby="h-db-makler"
                data-controls="#c-db-makler" data-show-when="Ja">
             <span class="group-label" id="lbl-db-makler">Wissen Sie, wie hoch die Maklergebühren für das Grundstück sind?</span>
@@ -2290,10 +2360,12 @@
                       <option>%</option><option>€</option>
                     </select>
                   </span>
-                  <div class="with-unit"><input class="input" id="db-makler-wert" inputmode="decimal" placeholder="z. B. 3" aria-describedby="h-db-makler-wert"><span class="unit">%</span></div>
+                  <div class="with-unit"><input class="input" id="db-makler-wert" inputmode="decimal" placeholder="0" aria-describedby="h-db-makler-wert"><span class="unit">%</span></div>
                 </div>
               </div>
             </div>
+          </div></div></div>
+          </div>
           </div></div></div>
         </div>
       </div></div></div>
@@ -2316,18 +2388,28 @@
               Baukosten an.</p>
             <div class="with-unit"><input class="input" id="dm-kaufpreis" inputmode="decimal" aria-describedby="h-dm-kaufpreis" required><span class="unit">€</span></div>
           </div>
-          <div class="field col-12 col-start" role="group" aria-labelledby="lbl-dm-belastet" data-required>
+          <div class="field col-12 col-start" role="group" aria-labelledby="lbl-dm-belastet"
+               data-controls="#c-dm-darlehen" data-show-when="Ja" data-required>
             <span class="group-label" id="lbl-dm-belastet">Ist die Immobilie aktuell mit einer Finanzierung belastet? <span class="req" aria-hidden="true">*</span></span>
             <div class="choices">
               <label class="choice"><input type="radio" name="dm-belastet" value="Ja"><span>Ja</span></label>
               <label class="choice"><input type="radio" name="dm-belastet" value="Nein"><span>Nein</span></label>
             </div>
           </div>
+          <!-- Was noch auf dem Objekt laeuft, wie bei der Kapitalbeschaffung: dieselbe
+               Darlehensliste aus derselben Vorlage, die erste Karte kommt mit dem „Ja“.
+               Kein Auszahlungsdatum an den Verkaeufer — modernisiert wird, was einem
+               schon gehoert. -->
+          <div class="reveal col-12 col-start" id="c-dm-darlehen"><div class="reveal-inner"><div class="pad">
+            <h3 class="subhead">Darlehen</h3>
+            <div class="dl-liste" id="dm-darlehen-liste"></div>
+            <button type="button" class="add-btn" data-adds="#dm-darlehen-liste" data-gate="dm-belastet">+ Darlehen erfassen</button>
+          </div></div></div>
           <div class="field col-4 col-start">
-            <label for="dm-kosten">Wie hoch sind die Modernisierungskosten?</label>
+            <label for="dm-kosten">Wie hoch sind die Modernisierungskosten? <span class="req" aria-hidden="true">*</span></label>
             <p class="help" id="h-dm-kosten">Bitte geben Sie hier die Höhe der Kosten an, die z. B. durch den
               Einbau einer neuen Heizung entstehen.</p>
-            <div class="with-unit"><input class="input" id="dm-kosten" inputmode="decimal" aria-describedby="h-dm-kosten"><span class="unit">€</span></div>
+            <div class="with-unit"><input class="input" id="dm-kosten" inputmode="decimal" aria-describedby="h-dm-kosten" required><span class="unit">€</span></div>
           </div>
         </div>
       </div></div></div>
@@ -2351,22 +2433,17 @@
               Baukosten an.</p>
             <div class="with-unit"><input class="input" id="dan-kaufpreis" inputmode="decimal" aria-describedby="h-dan-kaufpreis" required><span class="unit">€</span></div>
           </div>
-          <div class="field col-12 col-start" role="group" aria-labelledby="lbl-dan-belastet"
-               data-controls="#c-dan-darlehen" data-show-when="Ja" data-required>
-            <span class="group-label" id="lbl-dan-belastet">Ist die Immobilie aktuell mit einer Finanzierung belastet? <span class="req" aria-hidden="true">*</span></span>
-            <div class="choices">
-              <label class="choice"><input type="radio" name="dan-belastet" value="Ja"><span>Ja</span></label>
-              <label class="choice"><input type="radio" name="dan-belastet" value="Nein"><span>Nein</span></label>
-            </div>
-          </div>
-          <div class="reveal col-12 col-start" id="c-dan-darlehen"><div class="reveal-inner"><div class="pad">
+          <!-- Keine Vorfrage: eine Anschlussfinanzierung IST die Abloesung eines laufenden
+               Darlehens — „Ist die Immobilie belastet?" haette nur eine wahre Antwort, und ein
+               „Nein" fuehrte an der Liste vorbei, womit Kreditgeber, Restschuld und Ende der
+               Zinsbindung nie erfasst wuerden. Die Liste steht deshalb sofort da, mitsamt der
+               ersten Karte: ein Knopf ohne data-gate legt sie beim Verdrahten an (siehe
+               wireDarlehenListen). Bei der Kapitalbeschaffung bleibt die Vorfrage stehen,
+               dort ist sie echt offen. -->
+          <div class="col-12 col-start" id="c-dan-darlehen">
             <h3 class="subhead">Darlehen</h3>
             <div class="dl-liste" id="dan-darlehen-liste"></div>
-            <button type="button" class="add-btn" data-adds="#dan-darlehen-liste" data-gate="dan-belastet">+ Darlehen erfassen</button>
-          </div></div></div>
-          <div class="field col-4 col-start">
-            <label for="dan-auszahlung">Zu welchem Datum wird die Auszahlung an den Verkäufer geschehen?</label>
-            <input class="input" id="dan-auszahlung" type="text" placeholder="tt.mm.jjjj" inputmode="numeric">
+            <button type="button" class="add-btn" data-adds="#dan-darlehen-liste">+ Darlehen erfassen</button>
           </div>
           <div class="field col-4 col-start">
             <label for="dan-bedarf">Wie hoch ist der Gesamtbedarf für die Anschlussfinanzierung? <span class="req" aria-hidden="true">*</span></label>
@@ -2410,15 +2487,44 @@
             <div class="dl-liste" id="dk-darlehen-liste"></div>
             <button type="button" class="add-btn" data-adds="#dk-darlehen-liste" data-gate="dk-belastet">+ Darlehen erfassen</button>
           </div></div></div>
-          <div class="field col-4 col-start">
-            <label for="dk-auszahlung">Zu welchem Datum wird die Auszahlung an den Verkäufer geschehen?</label>
-            <input class="input" id="dk-auszahlung" type="text" placeholder="tt.mm.jjjj" inputmode="numeric">
-          </div>
+          <!-- Kein Auszahlungsdatum an den Verkaeufer: bei der Kapitalbeschaffung gehoert
+               die Immobilie schon der Antragstellerin, es gibt keinen Verkaeufer. -->
           <div class="field col-4 col-start">
             <label for="dk-kapital">Wie viel Kapital wollen Sie aufnehmen? <span class="req" aria-hidden="true">*</span></label>
             <div class="with-unit"><input class="input" id="dk-kapital" inputmode="decimal" required><span class="unit">€</span></div>
           </div>
+          <div class="field col-6 col-start">
+            <label for="dk-zweck">Wofür wird das Kapital verwendet? <span class="req" aria-hidden="true">*</span></label>
+            <p class="help" id="h-dk-zweck">Zum Beispiel: Ablösung eines Privatkredits, Umbau einer anderen Immobilie, Einlage ins eigene Unternehmen.</p>
+            <input class="input" id="dk-zweck" type="text" aria-describedby="h-dk-zweck" required>
+          </div>
         </div>
+      </div></div></div>
+
+      <!-- Wer bereits modernisiert, wird nicht gefragt, ob er modernisieren moechte:
+           fuer diesen Zweck steht die Angabe oben im eigenen Block. Ein Neubau wird
+           nicht modernisiert, also bleibt allein der Kauf. -->
+      <div class="reveal zweck-section" data-zweck="kauf"><div class="reveal-inner"><div class="pad">
+      <div class="grid">
+        <div class="field col-12 col-start" role="group" aria-labelledby="lbl-d-modern"
+             data-controls="#c-d-modern" data-show-when="Ja" data-required data-needs-object>
+          <span class="group-label" id="lbl-d-modern">Möchten Sie an der Immobilie Modernisierungen durchführen? <span class="req" aria-hidden="true">*</span></span>
+          <div class="choices">
+            <label class="choice"><input type="radio" name="d-modern" value="Ja"><span>Ja</span></label>
+            <label class="choice"><input type="radio" name="d-modern" value="Nein"><span>Nein</span></label>
+          </div>
+        </div>
+        <div class="reveal col-12 col-start" id="c-d-modern" data-needs-object><div class="reveal-inner"><div class="pad">
+          <div class="grid">
+            <div class="field col-4">
+              <label for="d-modern-kosten">Wie hoch sind die Modernisierungskosten?</label>
+              <p class="help" id="h-d-modern-kosten">Bitte geben Sie hier die Höhe der Kosten an, die z. B.
+                durch den Einbau einer neuen Heizung entstehen.</p>
+              <div class="with-unit"><input class="input" id="d-modern-kosten" inputmode="decimal" aria-describedby="h-d-modern-kosten"><span class="unit">€</span></div>
+            </div>
+          </div>
+        </div></div></div>
+      </div>
       </div></div></div>
 
       <!-- Eine Frage pro Zeile: die Fragen sind hier ganze Saetze, und drei nebeneinander
@@ -2426,7 +2532,7 @@
            170px stehenbleiben. .col-start setzt jedes Feld an Spalte 1, die Breite
            bleibt col-4 — also dieselben Kaesten, nur untereinander. -->
       <div class="grid">
-        <div class="field col-4 col-start">
+        <div class="field col-4 col-start" data-zweck-not="anschluss">
           <label for="d-eigenkapital">Eingesetztes Eigenkapital <span class="req" aria-hidden="true">*</span></label>
           <p class="help" id="h-d-ek">Ersparnisse, Bausparguthaben oder Wertpapiere — alles, was Sie an
             eigenem Geld einbringen.</p>
@@ -2441,23 +2547,59 @@
             aufbringen könnten.</p>
           <div class="with-unit"><input class="input" id="d-rate" inputmode="decimal" placeholder="400" aria-describedby="h-d-rate"><span class="unit">€</span></div>
         </div>
-        <div class="field col-4 col-start">
+        <!-- Nur die Anschlussfinanzierung hat keine Wunschlaufzeit: dort wird ein laufendes
+             Darlehen abgeloest. Alle anderen Zwecke bauen eines auf. -->
+        <div class="field col-4 col-start" data-zweck-not="anschluss">
           <label for="d-laufzeit">Gewünschte Laufzeit <span class="req" aria-hidden="true">*</span></label>
           <div class="with-unit"><input class="input" id="d-laufzeit" inputmode="numeric" required><span class="unit">Jahre</span></div>
         </div>
-        <div class="field col-4 col-start">
-          <label for="d-zinsbindung">Wie lange möchten Sie den Zinssatz sichern? <span class="req" aria-hidden="true">*</span></label>
+        <!-- Kacheln statt Liste: sechs feste Laufzeiten sind schneller angeklickt als
+             aus einem Dropdown gesucht, und die Auswahl bleibt sichtbar. -->
+        <div class="field col-12 col-start" role="group" aria-labelledby="lbl-d-zinsbindung"
+             aria-describedby="h-d-zins" data-required>
+          <span class="group-label" id="lbl-d-zinsbindung">Wie lange möchten Sie den Zinssatz sichern? <span class="req" aria-hidden="true">*</span></span>
           <p class="help" id="h-d-zins">Die Dauer der Zinsbindung sollte zu Ihrer geplanten Lebensgestaltung im
             Finanzierungszeitraum passen. Keine Sorge, Sie können diese Eingabe später ändern.</p>
-          <span class="select-wrap">
-            <select class="select" id="d-zinsbindung" aria-describedby="h-d-zins" required>
-              <option value="">Bitte wählen</option>
-              <option>5 Jahre</option><option>10 Jahre</option><option>15 Jahre</option>
-              <option>20 Jahre</option><option>25 Jahre</option><option>30 Jahre</option>
-            </select>
-          </span>
+          <div class="choices">
+            <label class="choice"><input type="radio" name="d-zinsbindung" value="5 Jahre"><span>5 Jahre</span></label>
+            <label class="choice"><input type="radio" name="d-zinsbindung" value="10 Jahre"><span>10 Jahre</span></label>
+            <label class="choice"><input type="radio" name="d-zinsbindung" value="15 Jahre"><span>15 Jahre</span></label>
+            <label class="choice"><input type="radio" name="d-zinsbindung" value="20 Jahre"><span>20 Jahre</span></label>
+            <label class="choice"><input type="radio" name="d-zinsbindung" value="25 Jahre"><span>25 Jahre</span></label>
+            <label class="choice"><input type="radio" name="d-zinsbindung" value="30 Jahre"><span>30 Jahre</span></label>
+          </div>
         </div>
-        <div class="field col-4 col-start">
+        <div class="field col-12 col-start" role="group" aria-labelledby="lbl-d-eigenleistung"
+             aria-describedby="h-d-eigenleistung" data-required data-zweck-not="anschluss|kapitalbeschaffung|neubau-bautraeger"
+             data-controls="#c-d-eigenleistung" data-show-when="Ja">
+          <span class="group-label" id="lbl-d-eigenleistung">Möchten Sie Eigenleistung einbringen? <span class="req" aria-hidden="true">*</span></span>
+          <p class="help" id="h-d-eigenleistung">Wenn Sie beim Bauen selbst mit anpacken, sparen Sie Geld und
+            können damit Ihre Baufinanzierung entlasten.</p>
+          <div class="choices">
+            <label class="choice"><input type="radio" name="d-eigenleistung" value="Ja"><span>Ja</span></label>
+            <label class="choice"><input type="radio" name="d-eigenleistung" value="Nein"><span>Nein</span></label>
+          </div>
+        </div>
+
+        <!-- „Ja“ allein ist keine Angabe: die Bank rechnet mit einem Betrag, nicht mit
+             einer Absicht. Das Feld haengt deshalb an der Antwort — dieselbe Mechanik wie
+             bei Makler- und Modernisierungsfrage. data-zweck-not steht auch hier, sonst
+             bliebe das Reveal offen stehen, wenn unter einem anderen Zweck „Ja“ gewaehlt
+             war und dann auf Anschlussfinanzierung gewechselt wird. Bei der
+             Kapitalbeschaffung wird nicht gebaut, also auch nichts selbst geleistet. -->
+        <!-- Beim eigenen Bauvorhaben ist die Eigenleistung der klassische Fall — nur der
+             Bautraeger-Neubau, die Anschlussfinanzierung und die Kapitalbeschaffung fragen
+             nicht danach. -->
+        <div class="reveal col-12 col-start" id="c-d-eigenleistung" data-zweck-not="anschluss|kapitalbeschaffung|neubau-bautraeger"><div class="reveal-inner"><div class="pad">
+          <div class="grid">
+            <div class="field col-4">
+              <label for="d-eigenleistung-betrag">Wie viel Eigenleistung möchten Sie einbringen?</label>
+              <p class="help" id="h-d-eigenleistung-betrag">Eigenleistungen werden von Banken genau geprüft. Die Ersparnisse müssen nachgewiesen werden.</p>
+              <div class="with-unit"><input class="input" id="d-eigenleistung-betrag" inputmode="decimal" aria-describedby="h-d-eigenleistung-betrag"><span class="unit">€</span></div>
+            </div>
+          </div>
+        </div></div></div>
+        <div class="field col-4 col-start" data-zweck-not="kauf|modernisierung|neubau-bautraeger|bauvorhaben">
           <label for="d-tilgung">Tilgungssatz <span class="req" aria-hidden="true">*</span></label>
           <p class="help" id="h-d-tilg">Anfänglicher Tilgungssatz pro Jahr, üblich sind 2 bis 3 %.</p>
           <div class="with-unit"><input class="input" id="d-tilgung" inputmode="decimal" aria-describedby="h-d-tilg" required><span class="unit">%</span></div>
@@ -2472,7 +2614,7 @@
           <span class="select-wrap">
             <select class="select" id="d-sondertilgung" aria-describedby="h-d-sonder">
               <option value="">Bitte wählen</option>
-              <option>0 %</option><option>5 %</option><option>10 %</option>
+              <option>0%</option><option>5%</option><option>10%</option>
             </select>
           </span>
         </div>
@@ -2482,56 +2624,24 @@
            .grid ~ .grid. Eine Ja/Nein-Frage pro Zeile: nebeneinander steht die zweite
            Frage weit rechts von ihren eigenen Knöpfen und liest sich als Überschrift
            der ersten Reihe mit. -->
-      <!-- Wer bereits modernisiert, wird nicht gefragt, ob er modernisieren moechte:
-           fuer diesen Zweck steht die Angabe oben im eigenen Block. Deshalb haengt die
-           Frage an denselben Bloecken wie der Kaufpreis. -->
-      <div class="reveal zweck-section" data-zweck="kauf|neubau-bautraeger|bauvorhaben"><div class="reveal-inner"><div class="pad">
-      <div class="grid">
-        <div class="field col-12 col-start" role="group" aria-labelledby="lbl-d-modern"
-             data-controls="#c-d-modern" data-show-when="Ja" data-required>
-          <span class="group-label" id="lbl-d-modern">Möchten Sie an der Immobilie Modernisierungen durchführen? <span class="req" aria-hidden="true">*</span></span>
-          <div class="choices">
-            <label class="choice"><input type="radio" name="d-modern" value="Ja"><span>Ja</span></label>
-            <label class="choice"><input type="radio" name="d-modern" value="Nein"><span>Nein</span></label>
-          </div>
-        </div>
-        <div class="reveal col-12 col-start" id="c-d-modern"><div class="reveal-inner"><div class="pad">
-          <div class="grid">
-            <div class="field col-4">
-              <label for="d-modern-kosten">Wie hoch sind die Modernisierungskosten? <span class="req" aria-hidden="true">*</span></label>
-              <p class="help" id="h-d-modern-kosten">Bitte geben Sie hier die Höhe der Kosten an, die z. B.
-                durch den Einbau einer neuen Heizung entstehen.</p>
-              <div class="with-unit"><input class="input" id="d-modern-kosten" inputmode="decimal" aria-describedby="h-d-modern-kosten" required><span class="unit">€</span></div>
-            </div>
-          </div>
-        </div></div></div>
-      </div>
-      </div></div></div>
 
       <div class="grid">
-        <div class="field col-12 col-start" role="group" aria-labelledby="lbl-d-eigenleistung"
-             aria-describedby="h-d-eigenleistung" data-required>
-          <span class="group-label" id="lbl-d-eigenleistung">Möchten Sie Eigenleistung einbringen? <span class="req" aria-hidden="true">*</span></span>
-          <p class="help" id="h-d-eigenleistung">Durch eigene Arbeit gesparte Lohnkosten — Materialkosten
-            werden nicht berücksichtigt. Eigenleistung ist kein Eigenkapital: sie senkt die Kosten des
-            Vorhabens, nicht den Betrag, den Sie einbringen.</p>
-          <div class="choices">
-            <label class="choice"><input type="radio" name="d-eigenleistung" value="Ja"><span>Ja</span></label>
-            <label class="choice"><input type="radio" name="d-eigenleistung" value="Nein"><span>Nein</span></label>
-          </div>
-        </div>
 
         <div class="field col-12 col-start" role="group" aria-labelledby="lbl-d-tilgwechsel"
              aria-describedby="h-d-tilgwechsel">
           <span class="group-label" id="lbl-d-tilgwechsel">Ist ein Tilgungssatzwechsel gewünscht?</span>
-          <p class="help" id="h-d-tilgwechsel">Das Recht, den Tilgungssatz während der Zinsbindung zu ändern —
-            in der Regel ein- bis zweimal und innerhalb der im Vertrag vereinbarten Grenzen.</p>
+          <div class="help" id="h-d-tilgwechsel">
+            <p>Anpassungen auf einen Tilgungssatz in der Bandbreite von 1% bis 5%</p>
+            <p>Anpassung zweimal während Zinsbindungsfrist und einmal pro Jahr</p>
+            <p>Erstmalig 12 Monate nach Vollauszahlung</p>
+          </div>
           <div class="choices">
             <label class="choice"><input type="radio" name="d-tilgwechsel" value="Ja"><span>Ja</span></label>
             <label class="choice"><input type="radio" name="d-tilgwechsel" value="Nein"><span>Nein</span></label>
           </div>
         </div>
 
+        <!-- Ein Bausparvertrag kann in jede Finanzierung eingebracht werden: keine Ausnahme. -->
         <div class="field col-12 col-start" role="group" aria-labelledby="lbl-d-bauspar" data-required>
           <span class="group-label" id="lbl-d-bauspar">Möchten Sie einen Bausparvertrag einsetzen? <span class="req" aria-hidden="true">*</span></span>
           <div class="choices">
@@ -2539,16 +2649,16 @@
             <label class="choice"><input type="radio" name="d-bauspar" value="Nein"><span>Nein</span></label>
           </div>
         </div>
-        <div class="field col-12 col-start" role="group" aria-labelledby="lbl-d-kfw" data-show-when="Ja" data-required>
+        <!-- KfW foerdert Bauen, Kaufen und Modernisieren — nicht die Kapitalbeschaffung
+             gegen ein bezahltes Haus und nicht die Abloesung eines laufenden Darlehens.
+             Die Programmauswahl folgt spaeter aus dem Effizienzstandard des Objekts. -->
+        <div class="field col-12 col-start" role="group" aria-labelledby="lbl-d-kfw" data-required
+             data-zweck-not="anschluss|kapitalbeschaffung">
           <span class="group-label" id="lbl-d-kfw">Möchten Sie KfW-Fördermittel einbeziehen? <span class="req" aria-hidden="true">*</span></span>
           <div class="choices">
             <label class="choice"><input type="radio" name="d-kfw" value="Ja"><span>Ja</span></label>
             <label class="choice"><input type="radio" name="d-kfw" value="Nein"><span>Nein</span></label>
           </div>
-          <div class="reveal"><div class="reveal-inner"><div class="pad">
-            <p class="note">Gerüst — die KfW-Programmauswahl hängt vom Effizienzstandard des Objekts ab
-              und wird nach der Objektbewertung ergänzt.</p>
-          </div></div></div>
         </div>
         <div class="field col-12 col-start">
           <label for="d-notizen">Möchten Sie uns weitere Details mitteilen oder Fragen stellen?</label>
@@ -3034,8 +3144,38 @@
     </div>
     <div class="grid grid-dl">
       <div class="field col-4">
-        <label>Wie lautet der Name des Hauptkreditgebers? <span class="req" aria-hidden="true">*</span></label>
-        <input class="input" type="text" required>
+        <label>Wer ist der Darlehensgeber? <span class="req" aria-hidden="true">*</span></label>
+        <span class="select-wrap">
+          <!-- Dieselbe Liste wie im Darlehen unter Immobilienvermoegen (tpl-darlehen):
+               ein Kreditgeber, eine Schreibweise, egal in welchem Abschnitt er steht. -->
+          <select class="select" required>
+                <option value="">Bitte wählen</option>
+                <option>Sonstiger Darlehensgeber</option>
+                <option>Aachener Bank eG</option>
+                <option>Aachener Bausparkasse AG</option>
+                <option>Allianz Lebensversicherung AG</option>
+                <option>ALTE LEIPZIGER Bauspar AG</option>
+                <option>Augsburger Aktienbank AG</option>
+                <option>auxmoney GmbH</option>
+                <option>BHW Bausparkasse AG</option>
+                <option>Commerzbank AG</option>
+                <option>Debeka Bausparkasse AG</option>
+                <option>Deutsche Apotheker- und Ärztebank eG</option>
+                <option>Deutsche Bank AG</option>
+                <option>DSL Bank</option>
+                <option>ING-DiBa AG</option>
+                <option>KfW</option>
+                <option>Landesbank Baden-Württemberg</option>
+                <option>LBS Bausparkasse</option>
+                <option>Münchener Hypothekenbank eG</option>
+                <option>Postbank</option>
+                <option>Santander Consumer Bank AG</option>
+                <option>Sparda-Bank</option>
+                <option>Sparkasse</option>
+                <option>Volksbank / Raiffeisenbank</option>
+                <option>Wüstenrot Bausparkasse AG</option>
+          </select>
+        </span>
       </div>
       <div class="field col-4">
         <label>Wie hoch ist der aktuelle Zinssatz? <span class="req" aria-hidden="true">*</span></label>

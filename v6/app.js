@@ -7,8 +7,10 @@
      data-show-when="A|B"                      any of these answers opens it
      select[data-switch="#id"]                 one block per answer, in that container:
        > .reveal[data-when="A|B"]              a case, open while an answer matches it
+     .field[data-switch=".cls"]                the same for a radio group; the selector
+                                               hits the .reveal[data-when] cases directly
      .object-section[data-for]                 mutually exclusive finance-type section
-     .nav a.object-nav[data-navfor]            nav entry for the above
+     .nav a.object-nav[data-navfor="A|B"]      nav entry for the above
    ========================================================================== */
 (() => {
   'use strict';
@@ -181,7 +183,33 @@
 
       wrap.append(button, bubble);
       label.appendChild(wrap);
+      glueToLastWord(label, wrap);
     });
+  }
+
+  /* Bricht eine Beschriftung um, darf das Zeichen nicht allein in die zweite Zeile
+     fallen: es gehoert zur Frage, nicht unter sie. Das letzte Wort, ein Sternchen
+     dahinter und das Zeichen kommen deshalb in eine Klammer, die nicht umbricht — so
+     wandert das Zeichen hoechstens mit seinem Wort.
+     Nur wenn das letzte Wort ein eigener Textknoten der Beschriftung ist. Steht es in
+     einem Element (die Textweiche data-text-for tauscht den Inhalt eines <span>),
+     bleibt alles, wie es ist: das Herausloesen eines Worts wuerde den Tausch brechen. */
+  function glueToLastWord(label, wrap) {
+    const tail = [wrap];
+    let node = wrap.previousSibling;
+    while (node && ((node.nodeType === 3 && !node.textContent.trim())
+      || (node.nodeType === 1 && node.classList.contains('req')))) {
+      tail.unshift(node);
+      node = node.previousSibling;
+    }
+    if (!node || node.nodeType !== 3) return;
+    const match = node.textContent.match(/^([\s\S]*?)(\S+)(\s*)$/);
+    if (!match) return;
+    node.textContent = match[1];
+    const glue = document.createElement('span');
+    glue.className = 'info-glue';
+    glue.append(document.createTextNode(match[2] + match[3]), ...tail);
+    label.appendChild(glue);
   }
 
   /* --------------------------------------------------------- conditionals */
@@ -252,6 +280,25 @@
       const sync = () => cases.forEach((branch) =>
         openReveal(branch, matchesAny(branch.dataset.when, select.value)));
       select.addEventListener('change', sync);
+      sync();
+    });
+
+    /* Dieselbe Weiche an einer Ja/Nein-Gruppe, fuer den Fall, dass die Antwort nicht
+       einen Block oeffnet, sondern einen gegen einen anderen tauscht — und die Faelle
+       nicht beieinander stehen, weil zwischen ihnen Felder liegen, die jede Antwort
+       fragt. data-switch ist deshalb hier kein Container, sondern ein Selektor, der
+       die Faelle selbst trifft. Ohne Antwort ist keiner offen. */
+    $$('.field[data-switch]', root).forEach((field) => {
+      if (field.dataset.wiredSwitch) return;
+      field.dataset.wiredSwitch = '1';
+      const own = field.querySelector(':scope > .choices');
+      const cases = $$(field.dataset.switch).filter((el) => el.matches('.reveal[data-when]'));
+      const sync = () => {
+        const checked = own.querySelector('input[type="radio"]:checked');
+        cases.forEach((branch) =>
+          openReveal(branch, !!checked && matchesAny(branch.dataset.when, checked.value)));
+      };
+      own.addEventListener('change', sync);
       sync();
     });
   }
@@ -1005,8 +1052,13 @@
     const found = (gefunden.querySelector('input:checked') || {}).value;
     // A concrete object exists for new-builds and own projects outright, and for
     // a purchase only once the buyer has actually found the property.
-    const objectKnown = purpose === 'neubau-bautraeger' || purpose === 'bauvorhaben' ||
-      (purpose === 'kauf' && found === 'Ja');
+    // A modernisation is of a property already owned, so it is known too: its art
+    // decides Etage and Wohnungsanzahl, its Nutzung whether a rent is asked.
+    // Anschlussfinanzierung und Kapitalbeschaffung ebenso: das Objekt steht und gehoert
+    // der Antragstellerin, also sind Art und Nutzung bekannt — und die Bank braucht beide
+    // fuer jede Beleihung. Unbekannt ist ein Objekt nur beim Kauf, solange keines
+    // gefunden ist.
+    const objectKnown = purpose !== 'kauf' || found === 'Ja';
 
     openReveal($('#c-gefunden'), purpose === 'kauf');
     openReveal($('#c-immobilienart'), objectKnown);
@@ -1015,7 +1067,13 @@
     let key = SECTION_FOR[purpose] || null;
     if (purpose === 'kauf') key = found === 'Ja' ? 'immobilie' : null;
 
-    $$('.object-section').forEach((s) => openReveal(s, s.dataset.for === key));
+    /* data-for ist eine „|“-Liste wie jedes andere „when“ im Formular, nicht ein
+       einzelner Schluessel: der Objektblock „immobilie“ beschreibt ein BESTEHENDES
+       Gebaeude, und das gibt es bei Anschlussfinanzierung, Modernisierung und
+       Kapitalbeschaffung genauso wie beim Kauf — nur beim Neubau noch nicht. Vorher
+       stand hier ===, also sah genau ein Zweck die 39 Objektfragen und die anderen
+       drei ein Geruest aus zwei, drei Feldern. */
+    $$('.object-section').forEach((s) => openReveal(s, matchesAny(s.dataset.for || '', key)));
 
     /* Die Finanzierungsdetails fragen vor dem Darlehen nach dem, was finanziert wird, und
        das ist je Zweck etwas anderes: ein Kaufpreis, oder ein Grundstueck plus Baukosten.
@@ -1025,6 +1083,27 @@
        objectKnown — der Kaufpreis wird auch gefragt, solange noch keine Immobilie
        gefunden ist; genau dafuer sagt sein Hilfetext „dann Ihr maximales Budget“. */
     $$('.zweck-section').forEach((s) => openReveal(s, matchesAny(s.dataset.zweck, purpose)));
+
+    /* Einzelne Felder im geteilten Teil gelten nicht fuer jeden Zweck: Eigenkapital und
+       Laufzeit sind bei einer Anschlussfinanzierung keine Frage, weil dort ein laufendes
+       Darlehen abgeloest und nicht eines aufgebaut wird. Ein ganzer Zweck-Block waere
+       dafuer zu viel — das Feld traegt die Ausnahme selbst, genau wie [data-art] im
+       Immobilienabschnitt, und `hidden` ist eine der drei Arten, auf die ein Feld nicht
+       gefragt ist (siehe isAsked). Damit faellt es auch aus Pflichtfeldzaehlung und
+       Pruefliste. */
+    $$('[data-zweck-not]').forEach((el) => syncHidden(el));
+    /* Fragen, die ein konkretes Objekt voraussetzen (Maklergebuehr, geplante
+       Modernisierung): beim Kauf ohne gefundene Immobilie warten sie wie die
+       Objektkarte, statt als Pflichtfeld nach etwas zu fragen, das es noch nicht gibt. */
+    $$('[data-needs-object]').forEach((el) => syncHidden(el));
+    /* Manche geteilten Fragen sind beim Neubau anders formuliert („ist oder waere“),
+       gefragt wird dasselbe. Getauscht wird der Text selbst, nicht ein zweites Feld
+       gezeigt: so lesen Pruefliste, Info-Icon und Beispieldaten immer die Fassung,
+       die gerade dasteht. */
+    $$('[data-text-for]').forEach((el) => {
+      if (!('defaultText' in el.dataset)) el.dataset.defaultText = el.textContent;
+      el.textContent = matchesAny(el.dataset.textFor, purpose) ? el.dataset.text : el.dataset.defaultText;
+    });
     /* The five object sub-sections all live in one card now, so with no object known
        the card has nothing left to show and goes away with them — an empty
        "Finanzierungsobjekt" header would otherwise sit there expanding into nothing.
@@ -1032,7 +1111,36 @@
        object applies, so it shows whenever any of them does. */
     $('#objekt').hidden = !key;
     $$('.nav a.object-nav').forEach((a) => a.classList.toggle('show',
-      'navfor' in a.dataset ? a.dataset.navfor === key : !!key));
+      'navfor' in a.dataset ? matchesAny(a.dataset.navfor, key) : !!key));
+  }
+
+  /* Zwei Schalter koennen an DEMSELBEN Feld haengen: die Immobilienart (data-art) und
+     der Finanzierungszweck (data-zweck-not). Beide setzen `hidden`, also faellt die
+     Entscheidung hier an einer Stelle — sonst ueberschreibt der zuletzt gelaufene den
+     anderen, und ein Feld, das der Zweck wegnimmt, kommt beim naechsten Artwechsel
+     zurueck. Versteckt ist, was EINE der beiden Bedingungen verlangt. */
+  function hiddenByArt(el) {
+    const list = el.dataset.art;
+    if (!list) return false;
+    const inverted = list.startsWith('!');
+    const listed = matchesAny(inverted ? list.slice(1) : list, immobilienart.value);
+    return inverted ? listed : !listed;
+  }
+
+  function hiddenByZweck(el) {
+    return !!el.dataset.zweckNot && matchesAny(el.dataset.zweckNot, zweck.value);
+  }
+
+  /* Ein Feld, das ein konkretes Objekt braucht, ist beim Kauf ohne gefundene Immobilie
+     nicht gefragt — dieselbe Bedingung, die die Objektkarte versteckt. */
+  function hiddenByObject(el) {
+    if (!('needsObject' in el.dataset)) return false;
+    const found = (gefunden.querySelector('input:checked') || {}).value;
+    return zweck.value === 'kauf' && found !== 'Ja';
+  }
+
+  function syncHidden(el) {
+    el.hidden = hiddenByArt(el) || hiddenByZweck(el) || hiddenByObject(el);
   }
 
   /* ------------------------------------------------------- Immobilienart */
@@ -1056,20 +1164,18 @@
 
   function syncImmobilienart() {
     const art = immobilienart.value;
-    $$('[data-art]').forEach((el) => {
-      const list = el.dataset.art;
-      const inverted = list.startsWith('!');
-      const listed = matchesAny(inverted ? list.slice(1) : list, art);
-      el.hidden = inverted ? listed : !listed;
-    });
+    $$('[data-art]').forEach((el) => syncHidden(el));
     /* Objektadresse hangs off the Wohnort answer, but the Wohnort question is one of
        the fields an art can take away — a Grundstück is not asked it. So the block has
        two ways to open, the answer and the art, and both are re-read here: switching
        away from Grundstück has to hand the block back to whatever the answer says,
        not leave it standing open. */
     const wohnort = $('input[name="i-wohnort"]:checked');
+    /* Beim Kauf wohnt noch niemand im Objekt, also gibt es keine Adresse, die man
+       uebernehmen koennte: die Objektadresse wird immer gefragt. Die Ja/Nein-Frage
+       davor ist fuer den Kauf per data-zweck-not weg. */
     openReveal($('#c-objektadresse'),
-      art === 'Grundstück' || (!!wohnort && wohnort.value === 'Nein'));
+      art === 'Grundstück' || zweck.value === 'kauf' || (!!wohnort && wohnort.value === 'Nein'));
 
     /* The sidebar says which art is being described, the same way the Antragsteller
        entry picks up the first name — see refreshTitles. The section heading keeps
@@ -1313,17 +1419,22 @@
         addFromTemplate('tpl-an-darlehen', list);
         renumberDarlehenListe(list);
       });
-      /* „Ja“ ist hier die Aussage, dass ein Darlehen laeuft — die erste Karte kommt
-         deshalb mit der Antwort und nicht erst mit einem weiteren Klick. Nur bei noch
-         leerer Liste: ein erneutes Oeffnen darf nichts ueberschreiben. Dieselbe Regel
-         wie bei den Verbindlichkeiten. */
-      $$(`input[type="radio"][name="${button.dataset.gate}"]`).forEach((radio) =>
-        radio.addEventListener('change', () => {
-          if (radio.checked && radio.value === 'Ja' && !list.children.length) {
-            addFromTemplate('tpl-an-darlehen', list);
-          }
-          renumberDarlehenListe(list);
-        }));
+      /* Ohne data-gate steht keine Vorfrage davor: die Liste gehoert zum Zweck selbst
+         (Anschlussfinanzierung), also kommt die erste Karte gleich mit. Mit Vorfrage ist
+         „Ja“ die Aussage, dass ein Darlehen laeuft — dann kommt die erste Karte mit der
+         Antwort und nicht erst mit einem weiteren Klick. Beides nur bei leerer Liste:
+         ein erneutes Oeffnen darf nichts ueberschreiben. */
+      if (!button.dataset.gate) {
+        if (!list.children.length) addFromTemplate('tpl-an-darlehen', list);
+      } else {
+        $$(`input[type="radio"][name="${button.dataset.gate}"]`).forEach((radio) =>
+          radio.addEventListener('change', () => {
+            if (radio.checked && radio.value === 'Ja' && !list.children.length) {
+              addFromTemplate('tpl-an-darlehen', list);
+            }
+            renumberDarlehenListe(list);
+          }));
+      }
       renumberDarlehenListe(list);
     });
   }
@@ -2530,7 +2641,9 @@
   wireAdvisorMenu();
   initEmbed();
 
-  zweck.addEventListener('change', updateStart);
+  /* Der Zweck entscheidet mit, ob die Objektadresse offen steht (Kauf) — deshalb laeuft
+     nach jeder Zweckaenderung auch syncImmobilienart. */
+  zweck.addEventListener('change', () => { updateStart(); syncImmobilienart(); });
   gefunden.addEventListener('change', updateStart);
   updateStart();
 
@@ -2609,7 +2722,7 @@
     addFromTemplate('tpl-stellplatz', stellplaetze);
     renumberStellplaetze();
   });
-  addFromTemplate('tpl-stellplatz', stellplaetze);
+  // Kein Stellplatz von Anfang an: „Ja“ zeigt nur den Knopf, wie in der Vorlage.
 
   /* Immobilienvermögen. The properties are added from the card itself, but the loan
      buttons arrive with each property, so those are handled by delegation on the list

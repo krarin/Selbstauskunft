@@ -1129,6 +1129,7 @@ body { margin: 0; }
 
 .col-3  { grid-column-end: span 3; }
 .col-4  { grid-column-end: span 4; }
+.col-5  { grid-column-end: span 5; }
 .col-6  { grid-column-end: span 6; }
 .col-8  { grid-column-end: span 8; }
 .col-9  { grid-column-end: span 9; }
@@ -1582,6 +1583,11 @@ body { margin: 0; }
    a .group-label, or a heading referenced by aria-labelledby. */
 :has(> .info-wrap) { position: relative; }
 
+/* Letztes Wort + Sternchen + Zeichen bleiben zusammen (siehe glueToLastWord in app.js).
+   Die Blase steckt mit in der Klammer und erbt sonst das nowrap — sie bricht wieder um. */
+.info-glue { white-space: nowrap; }
+.info-glue .info-bubble { white-space: normal; }
+
 .info-bubble {
   position: absolute;
   /* 16px vom AUSLOESER, nicht vom Kasten, in dem er steht. Gemessen wird gegen die
@@ -1914,6 +1920,22 @@ body { margin: 0; }
    the clip box on three sides. Same trade-off as .card-body-inner above. */
 .reveal.open.settled > .reveal-inner { overflow: visible; }
 
+/* Ein Reveal, das NEBEN seiner Frage steht statt darunter — „Jahr der Modernisierung"
+   neben „Wurde die Immobilie modernisiert?". .pad setzt sonst oben eine volle
+   Zeilenluecke, die das Feld gegen die Knoepfe daneben nach unten schiebt; nebeneinander
+   sollen beide auf derselben Oberkante beginnen. Als Rasterkind braucht es ausserdem
+   eine Spannweite (col-N), sonst nimmt es genau eine der zwoelf Spalten. */
+.reveal-beside > .reveal-inner > .pad { padding-top: 0; }
+
+/* Ein Reveal als Rasterkind (col-12 unter einer Frage im selben .grid). Geschlossen
+   darf es keine Rasterzeile belegen: eine Zeile der Hoehe 0 bekommt trotzdem die
+   Zeilenluecke davor und danach, und zwischen zwei Fragen stand dann der doppelte
+   Abstand. Absolut gesetzt faellt es aus dem Raster. Offen traegt die Zeilenluecke
+   des Rasters den Abstand, die .pad gibt keinen zweiten dazu. Beim Schliessen faellt
+   das Zusammenziehen der Hoehe weg, das Ausblenden bleibt. */
+.grid > .reveal:not(.open) { position: absolute; }
+.grid > .reveal > .reveal-inner > .pad { padding-top: 0; }
+
 /* Ein Zweck-Block in den Finanzierungsdetails steht ZWISCHEN Rastern und muss sich
    wie eines verhalten. .pad gibt ihm oben Luft, unten keine — das naechste Raster stiess
    bisher direkt an das letzte Feld des Blocks, waehrend zwei Felder innerhalb eines
@@ -1995,6 +2017,14 @@ body { margin: 0; }
 @media (min-width: 901px) {
   .grid-dl .with-unit,
   .grid-dl .input.num { max-width: none; }
+}
+
+/* Eine Zeile, deren Felder die ganze Breite unter sich aufteilen (Neubau: Fertigstellung,
+   KfW-Standard, Grundstücksfläche): das Zahlenfeld füllt seine Spalte, statt nach 170px
+   eine Lücke bis zum Zeilenende zu lassen. */
+@media (min-width: 901px) {
+  .grid-fill .with-unit,
+  .grid-fill .input.num { max-width: none; }
 }
 
 .zweck-section ~ .grid { margin-top: var(--ds-field-gap-stack); }
@@ -2801,7 +2831,7 @@ body { margin: 0; }
 }
 
 @media (max-width: 640px) {
-  .col-3, .col-4, .col-6, .col-8, .col-9 { grid-column: auto / span 12; }
+  .col-3, .col-4, .col-5, .col-6, .col-8, .col-9 { grid-column: auto / span 12; }
   /* The row gap changes job at this width. Two and three to a row, fields are grouped
      by sitting *beside* each other and the gap only has to part the bands; stacked, it
      is the sole thing telling "next question" from "next part of this one" — against

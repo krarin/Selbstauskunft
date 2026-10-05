@@ -87,23 +87,22 @@
     [/^Gewünschte Laufzeit/,                '30'],
     [/^Tilgungssatz/,                       '2,5'],
 
-    [/^Baujahr/,                            '1998'],
-    [/^Grundstücksfläche/,                  '210'],
-    [/^Wohnfläche/,                         '86'],
-    [/^Zimmer/,                             '3'],
-    [/^Geschosse/,                          '4'],
-    [/^Anzahl Wohnungen/,                   '12'],
-    [/^Endenergiebedarf/,                   '95'],
+    [/^Wann wurde die Immobilie erbaut/,     '1998'],
+    [/Grundstücksfläche/,                   '210'],
+    [/^Wie groß ist (oder wäre )?die Wohnfläche/, '86'],
+    [/^Wie viele Zimmer/,                    '3'],
+    [/^Wie viele Geschosse/,                 '4'],
+    [/^Wie viele Wohnungen/,                 '12'],
+    [/Endenergiebedarf/,                    '95'],
     [/Erbbauzins/,                          '1.200,00'],
-    [/^Geplante Fertigstellung/,            '06.2027'],
+    [/Netto-Monatsmiete/,                   '1.450,00'],
 
-    [/^Aktueller Darlehensgeber/,           'Sparkasse KölnBonn'],
     [/^Aktuelle Restschuld/,                '145.000,00'],
-    [/^Ende der Zinsbindung|^Ende des Erbbaurechtsvertrags/, '31.12.2031'],
+    [/^Ende der Zinsbindung|^Wann endet der Erbbaurechtsvertrag/, '31.12.2031'],
     [/Modernisierungskosten/,               '60.000,00'],
     [/Maklergebühren/,                      '3,57'],
-    [/Kapitalbetrag/,                       '50.000,00'],
-    [/^Verwendungszweck/,                   'Ablösung Privatkredit'],
+    [/Kapital(betrag| wollen Sie aufnehmen)/, '50.000,00'],
+    [/^Verwendungszweck|Wofür wird das Kapital/, 'Ablösung Privatkredit'],
   ];
 
   /* Zwei Stellen im Formular fragen mit denselben Worten nach etwas anderem und
@@ -114,6 +113,12 @@
   const CHILD_VALUES = [
     [/^Name/,         'Lena Mustermann'],
     [/^Geburtsdatum/, '12.06.2019'],
+  ];
+
+  /* Bestand und Neubau fragen das Baujahr mit denselben Worten; beim Neubau liegt es
+     in der Zukunft. */
+  const NEUBAU_VALUES = [
+    [/^Wann ist die Fertigstellung geplant/, '06.2027'],
   ];
 
   const OBJECT_VALUES = [
@@ -138,6 +143,7 @@
     [/Gesamtanzahl der Wohnungen/,  'Ja'],
     [/Maklergebühr an/,             'Ja'],
     [/Maklergebühren für das Grundstück/, 'Ja'],
+    [/Zinssatz sichern/,            '10 Jahre'],
   ];
 
   /* Bevorzugte Einträge in Auswahllisten, über den Text erkannt statt über die
@@ -148,7 +154,7 @@
   const OPTIONS = [
     'Kauf einer bestehenden Immobilie', 'Eigentumswohnung', 'Selbst nutzen',
     'deutsch', 'ledig', 'Angestellt', 'IT', '12',
-    'Erstes Obergeschoss', 'Effizienzhaus-Standard 55', '10 Jahre', 'Stellplatz', '5 %',
+    'Erstes Obergeschoss', 'Effizienzhaus-Standard 55', 'Stellplatz', '5%',
     // Immobilienmerkmale: neun freiwillige Listen, die ohne Eintrag hier alle leer
     // blieben — und dann fehlt der ganze Abschnitt in der Prüfliste. „Mittel“ deckt
     // Ausstattung und Zustand zugleich: ein unauffälliger Beispielfall, kein besonders
@@ -234,6 +240,7 @@
       // Der Katalog der Stelle zuerst, der allgemeine danach.
       const tables = [
         input.closest('.child-row') ? CHILD_VALUES : null,
+        input.closest('#neubau') ? NEUBAU_VALUES : null,
         input.closest('#objekt') ? OBJECT_VALUES : null,
         VALUES,
       ].filter(Boolean);
@@ -253,9 +260,20 @@
   /* Eine Antwort öffnet den nächsten Zweig, also wird in Durchgängen gefüllt,
      bis ein Durchgang nichts mehr findet. Die Obergrenze ist eine Notbremse:
      die tiefste Kette im Formular ist drei Ebenen tief. */
+  /* „Parkplätze: Ja“ zeigt nur den Knopf; ein Stellplatz entsteht erst durch einen
+     Klick. Die Beispielbefüllung klickt einmal, wie ein Mensch es täte. */
+  function fillStellplatz() {
+    const yes = $('input[name="parkplaetze"][value="Ja"]', form);
+    const add = $('#add-stellplatz', form);
+    if (!yes || !yes.checked || !add || !asked(add)) return 0;
+    if ($('#stellplaetze', form).children.length) return 0;
+    add.click();
+    return 1;
+  }
+
   function prefill() {
     for (let pass = 0; pass < 6; pass++) {
-      if (!(fillChoices() + fillSelects() + fillInputs())) break;
+      if (!(fillChoices() + fillStellplatz() + fillSelects() + fillInputs())) break;
     }
     status.textContent = 'Beispieldaten eingefügt. Jetzt „Weiter zu Zusammenfassung“.';
   }
