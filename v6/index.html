@@ -1733,8 +1733,8 @@
                plot's own two figures. `data-art` carries which arts an element belongs to;
                "!" is the arts it does not. See syncImmobilienart. -->
           <h3 class="subhead" data-zweck-not="neubau-bautraeger|bauvorhaben">Objektdaten</h3>
-          <div class="grid">
-            <div class="field col-3" data-art="!Grundstück" data-zweck-not="neubau-bautraeger|bauvorhaben">
+          <div class="grid grid-row">
+            <div class="field col-4" data-art="!Grundstück" data-zweck-not="neubau-bautraeger|bauvorhaben">
               <label for="i-baujahr">Wann wurde die Immobilie erbaut? <span class="req" aria-hidden="true">*</span></label>
               <input class="input" id="i-baujahr" type="text" placeholder="jjjj" inputmode="numeric" required>
             </div>
@@ -1745,7 +1745,7 @@
                  "Ja" fragt dann nach dem Jahr, als eigene Frage darunter wie in der
                  Vorlage. Das Reveal bleibt ein Geschwister im selben Raster
                  (data-controls). -->
-            <div class="field col-6 col-start" role="group" aria-labelledby="lbl-i-modern" data-art="!Grundstück"
+            <div class="field col-8" role="group" aria-labelledby="lbl-i-modern" data-art="!Grundstück"
                  data-controls="#c-modern-jahr" data-show-when="Ja" data-zweck-not="neubau-bautraeger|bauvorhaben">
               <span class="group-label" id="lbl-i-modern">Wurde die Immobilie in den letzten 20 Jahren modernisiert?</span>
               <div class="choices">
@@ -1753,6 +1753,8 @@
                 <label class="choice"><input type="radio" name="i-modernisiert" value="Nein"><span>Nein</span></label>
               </div>
             </div>
+          </div>
+          <div class="grid">
             <div class="reveal col-12 col-start" id="c-modern-jahr" data-art="!Grundstück" data-zweck-not="neubau-bautraeger|bauvorhaben"><div class="reveal-inner"><div class="pad">
               <div class="grid">
                 <div class="field col-4">
@@ -1761,7 +1763,9 @@
                 </div>
               </div>
             </div></div></div>
-            <div class="field col-6 col-start" data-art="!Grundstück" data-zweck-not="neubau-bautraeger|bauvorhaben">
+          </div>
+          <div class="grid grid-row">
+            <div class="field col-4" data-art="!Grundstück" data-zweck-not="neubau-bautraeger|bauvorhaben">
               <label for="i-kfw">Welche KfW-Energieeffizienzklasse hat die Immobilie?</label>
               <p class="help" id="h-i-kfw">Der KfW-Energieeffizienzstandard hat Einfluss auf die Höhe der
                 Fördermittel. Den Energieeffizienzstandard können Sie aus dem Exposé Ihrer Immobilie entnehmen.</p>
@@ -1774,7 +1778,7 @@
                 </select>
               </span>
             </div>
-            <div class="field col-3" data-zweck-not="neubau-bautraeger|bauvorhaben">
+            <div class="field col-4" data-zweck-not="neubau-bautraeger|bauvorhaben">
               <label for="i-grund">Wie groß ist die Grundstücksfläche? <span class="req" aria-hidden="true">*</span></label>
               <div class="with-unit"><input class="input" id="i-grund" inputmode="decimal" required><span class="unit">m²</span></div>
             </div>
@@ -1806,8 +1810,8 @@
           </div>
           </div>
 
-          <div class="grid">
-            <div class="field col-4 col-start" data-art="!Grundstück">
+          <div class="grid grid-row">
+            <div class="field col-4" data-art="!Grundstück">
               <label for="i-wohn"><span data-text-for="neubau-bautraeger|bauvorhaben" data-text="Wie groß ist oder wäre die Wohnfläche?">Wie groß ist die Wohnfläche der Immobilie?</span></label>
               <p class="help" id="h-i-wohn">Bitte geben Sie die gesamte nachweisbare Fläche aller Räume in Quadratmeter an.</p>
               <div class="with-unit"><input class="input" id="i-wohn" inputmode="decimal" aria-describedby="h-i-wohn"><span class="unit">m²</span></div>
@@ -1818,6 +1822,8 @@
               <p class="help" id="h-i-gesch">Bitte geben Sie die Anzahl der Geschosse ohne den Keller und das Dachgeschoss an.</p>
               <input class="input num" id="i-geschosse" inputmode="numeric" aria-describedby="h-i-gesch">
             </div>
+          </div>
+          <div class="grid">
             <!-- Wohnfläche, Zimmer und Geschosse stehen als eine Zeile; der Vermietungsblock
                  folgt darunter. Stand er zwischen Wohnfläche und Zimmer, nahm er auch
                  geschlossen eine Rasterzeile ein und verdoppelte den Abstand. -->
@@ -2257,7 +2263,7 @@
                zwoelf, und ohne Spannweite nimmt ein Kind genau eine davon. -->
           <div class="reveal col-12 col-start" id="c-d-makler" data-needs-object><div class="reveal-inner"><div class="pad">
             <div class="grid">
-              <div class="field col-6 col-start">
+              <div class="field col-4 col-start">
                 <label for="d-makler-wert">Wie hoch sind die Maklergebühren?</label>
                 <p class="help" id="h-d-makler-wert">Die Provision für den Immobilienmakler wird vom Käufer
                   bezahlt und variiert je nach Lage der Immobilie.</p>
@@ -2349,7 +2355,7 @@
           </div>
           <div class="reveal col-12 col-start" id="c-db-makler"><div class="reveal-inner"><div class="pad">
             <div class="grid">
-              <div class="field col-6 col-start">
+              <div class="field col-4 col-start">
                 <label for="db-makler-wert">Wie hoch sind die Maklergebühren?</label>
                 <p class="help" id="h-db-makler-wert">Die Provision für den Immobilienmakler wird vom Käufer
                   bezahlt und variiert je nach Lage der Immobilie.</p>
@@ -2375,19 +2381,21 @@
            gekostet hat — der Wert traegt die Beleihung, der alte Kaufpreis die
            steuerliche Seite. -->
       <div class="reveal zweck-section" data-zweck="modernisierung"><div class="reveal-inner"><div class="pad">
-        <div class="grid">
+        <div class="grid grid-row">
           <div class="field col-4 col-start">
             <label for="dm-wert">Was ist der aktuelle Wert der Immobilie? <span class="req" aria-hidden="true">*</span></label>
             <p class="help" id="h-dm-wert">Bitte geben Sie den Kaufpreis an, falls Ihnen der aktuelle Wert
               nicht bekannt ist.</p>
             <div class="with-unit"><input class="input" id="dm-wert" inputmode="decimal" aria-describedby="h-dm-wert" required><span class="unit">€</span></div>
           </div>
-          <div class="field col-4 col-start">
+          <div class="field col-4">
             <label for="dm-kaufpreis">Wie hoch war der Kaufpreis der Immobilie? <span class="req" aria-hidden="true">*</span></label>
             <p class="help" id="h-dm-kaufpreis">Bei eigenen Bauvorhaben geben Sie bitte die gesamten
               Baukosten an.</p>
             <div class="with-unit"><input class="input" id="dm-kaufpreis" inputmode="decimal" aria-describedby="h-dm-kaufpreis" required><span class="unit">€</span></div>
           </div>
+        </div>
+        <div class="grid">
           <div class="field col-12 col-start" role="group" aria-labelledby="lbl-dm-belastet"
                data-controls="#c-dm-darlehen" data-show-when="Ja" data-required>
             <span class="group-label" id="lbl-dm-belastet">Ist die Immobilie aktuell mit einer Finanzierung belastet? <span class="req" aria-hidden="true">*</span></span>
@@ -2420,19 +2428,21 @@
            Handhabung wie bei den Verbindlichkeiten. Mehrere Darlehen sind moeglich, weil
            ein abzuloesendes Objekt oft ein Haupt- und ein KfW-Darlehen traegt. -->
       <div class="reveal zweck-section" data-zweck="anschluss"><div class="reveal-inner"><div class="pad">
-        <div class="grid">
+        <div class="grid grid-row">
           <div class="field col-4 col-start">
             <label for="dan-wert">Was ist der aktuelle Wert der Immobilie? <span class="req" aria-hidden="true">*</span></label>
             <p class="help" id="h-dan-wert">Bitte geben Sie den Kaufpreis an, falls Ihnen der aktuelle Wert
               nicht bekannt ist.</p>
             <div class="with-unit"><input class="input" id="dan-wert" inputmode="decimal" aria-describedby="h-dan-wert" required><span class="unit">€</span></div>
           </div>
-          <div class="field col-4 col-start">
+          <div class="field col-4">
             <label for="dan-kaufpreis">Wie hoch war der Kaufpreis der Immobilie? <span class="req" aria-hidden="true">*</span></label>
             <p class="help" id="h-dan-kaufpreis">Bei eigenen Bauvorhaben geben Sie bitte die gesamten
               Baukosten an.</p>
             <div class="with-unit"><input class="input" id="dan-kaufpreis" inputmode="decimal" aria-describedby="h-dan-kaufpreis" required><span class="unit">€</span></div>
           </div>
+        </div>
+        <div class="grid">
           <!-- Keine Vorfrage: eine Anschlussfinanzierung IST die Abloesung eines laufenden
                Darlehens — „Ist die Immobilie belastet?" haette nur eine wahre Antwort, und ein
                „Nein" fuehrte an der Liste vorbei, womit Kreditgeber, Restschuld und Ende der
@@ -2457,23 +2467,25 @@
            dieselbe Darlehensliste aus derselben Vorlage. Dazu das Erwerbsdatum: fuer die
            Spekulationsfrist ist nicht der Wert entscheidend, sondern wann gekauft wurde. -->
       <div class="reveal zweck-section" data-zweck="kapitalbeschaffung"><div class="reveal-inner"><div class="pad">
-        <div class="grid">
+        <div class="grid grid-row">
           <div class="field col-4 col-start">
             <label for="dk-wert">Was ist der aktuelle Wert der Immobilie? <span class="req" aria-hidden="true">*</span></label>
             <p class="help" id="h-dk-wert">Bitte geben Sie den Kaufpreis an, falls Ihnen der aktuelle Wert
               nicht bekannt ist.</p>
             <div class="with-unit"><input class="input" id="dk-wert" inputmode="decimal" aria-describedby="h-dk-wert" required><span class="unit">€</span></div>
           </div>
-          <div class="field col-4 col-start">
+          <div class="field col-4">
             <label for="dk-erworben">Wann haben Sie die Immobilie erworben? <span class="req" aria-hidden="true">*</span></label>
             <input class="input" id="dk-erworben" type="text" placeholder="tt.mm.jjjj" inputmode="numeric" required>
           </div>
-          <div class="field col-4 col-start">
+          <div class="field col-4">
             <label for="dk-kaufpreis">Wie hoch war der Kaufpreis der Immobilie? <span class="req" aria-hidden="true">*</span></label>
             <p class="help" id="h-dk-kaufpreis">Bei eigenen Bauvorhaben geben Sie bitte die gesamten
               Baukosten an.</p>
             <div class="with-unit"><input class="input" id="dk-kaufpreis" inputmode="decimal" aria-describedby="h-dk-kaufpreis" required><span class="unit">€</span></div>
           </div>
+        </div>
+        <div class="grid">
           <div class="field col-12 col-start" role="group" aria-labelledby="lbl-dk-belastet"
                data-controls="#c-dk-darlehen" data-show-when="Ja" data-required>
             <span class="group-label" id="lbl-dk-belastet">Ist die Immobilie aktuell mit einer Finanzierung belastet? <span class="req" aria-hidden="true">*</span></span>
@@ -2489,11 +2501,13 @@
           </div></div></div>
           <!-- Kein Auszahlungsdatum an den Verkaeufer: bei der Kapitalbeschaffung gehoert
                die Immobilie schon der Antragstellerin, es gibt keinen Verkaeufer. -->
+        </div>
+        <div class="grid grid-row">
           <div class="field col-4 col-start">
             <label for="dk-kapital">Wie viel Kapital wollen Sie aufnehmen? <span class="req" aria-hidden="true">*</span></label>
             <div class="with-unit"><input class="input" id="dk-kapital" inputmode="decimal" required><span class="unit">€</span></div>
           </div>
-          <div class="field col-6 col-start">
+          <div class="field col-8">
             <label for="dk-zweck">Wofür wird das Kapital verwendet? <span class="req" aria-hidden="true">*</span></label>
             <p class="help" id="h-dk-zweck">Zum Beispiel: Ablösung eines Privatkredits, Umbau einer anderen Immobilie, Einlage ins eigene Unternehmen.</p>
             <input class="input" id="dk-zweck" type="text" aria-describedby="h-dk-zweck" required>
@@ -2531,14 +2545,14 @@
            brechen alle drei zweizeilig um, waehrend die Bedienelemente darunter auf
            170px stehenbleiben. .col-start setzt jedes Feld an Spalte 1, die Breite
            bleibt col-4 — also dieselben Kaesten, nur untereinander. -->
-      <div class="grid">
+      <div class="grid grid-row">
         <div class="field col-4 col-start" data-zweck-not="anschluss">
           <label for="d-eigenkapital">Eingesetztes Eigenkapital <span class="req" aria-hidden="true">*</span></label>
           <p class="help" id="h-d-ek">Ersparnisse, Bausparguthaben oder Wertpapiere — alles, was Sie an
             eigenem Geld einbringen.</p>
           <div class="with-unit"><input class="input" id="d-eigenkapital" inputmode="decimal" aria-describedby="h-d-ek" required><span class="unit">€</span></div>
         </div>
-        <div class="field col-4 col-start">
+        <div class="field col-4">
           <label for="d-rate">Wie hoch soll Ihre monatliche Rate sein?</label>
           <p class="help" id="h-d-rate">Eine niedrige monatliche Rate vergrößert Ihren finanziellen Spielraum,
             etwa um Rücklagen zu bilden. Mit einer höheren Rate verringern Sie die Laufzeit des Darlehens
@@ -2549,10 +2563,12 @@
         </div>
         <!-- Nur die Anschlussfinanzierung hat keine Wunschlaufzeit: dort wird ein laufendes
              Darlehen abgeloest. Alle anderen Zwecke bauen eines auf. -->
-        <div class="field col-4 col-start" data-zweck-not="anschluss">
+        <div class="field col-4" data-zweck-not="anschluss">
           <label for="d-laufzeit">Gewünschte Laufzeit <span class="req" aria-hidden="true">*</span></label>
           <div class="with-unit"><input class="input" id="d-laufzeit" inputmode="numeric" required><span class="unit">Jahre</span></div>
         </div>
+      </div>
+      <div class="grid">
         <!-- Kacheln statt Liste: sechs feste Laufzeiten sind schneller angeklickt als
              aus einem Dropdown gesucht, und die Auswahl bleibt sichtbar. -->
         <div class="field col-12 col-start" role="group" aria-labelledby="lbl-d-zinsbindung"
@@ -2599,6 +2615,8 @@
             </div>
           </div>
         </div></div></div>
+      </div>
+      <div class="grid grid-row">
         <div class="field col-4 col-start" data-zweck-not="kauf|modernisierung|neubau-bautraeger|bauvorhaben">
           <label for="d-tilgung">Tilgungssatz <span class="req" aria-hidden="true">*</span></label>
           <p class="help" id="h-d-tilg">Anfänglicher Tilgungssatz pro Jahr, üblich sind 2 bis 3 %.</p>
@@ -2607,7 +2625,7 @@
         <!-- Aus der Ja/Nein-Frage „Wünschen Sie eine Sondertilgung?“ geworden: die Höhe ist die
              eigentliche Angabe, und „keine“ ist einer ihrer Werte — zwei Fragen für eine Antwort
              waren eine zu viel. -->
-        <div class="field col-4 col-start">
+        <div class="field col-4">
           <label for="d-sondertilgung">Wie hoch soll die gewünschte Sondertilgung sein?</label>
           <p class="help" id="h-d-sonder">Anteil der Darlehenssumme, den Sie zusätzlich zur Rate einmal im Jahr
             zurückzahlen dürfen, ohne dafür eine Gebühr zu zahlen.</p>

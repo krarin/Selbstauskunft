@@ -2027,6 +2027,35 @@ body { margin: 0; }
   .grid-fill .input.num { max-width: none; }
 }
 
+/* Finanzierungsdetails: Betragsfelder zu zweit oder dritt in einer Zeile, jedes füllt
+   seine Drittelspalte. Fragen verschiedener Länge brechen verschieden um; per subgrid
+   sitzen Frage, Kasten und Fehlermeldung je in einer eigenen Zeile, die Kästen stehen
+   also auf einer Linie, auch wenn eine Nachbarin zweizeilig fragt oder einen Fehler
+   zeigt. Wie .grid-dl, aber ohne dessen Außenabstand: hier steht eine Zeile allein in
+   ihrem Raster, den Abstand zum nächsten trägt .grid ~ .grid.
+   Erst ab 641px — darunter stapelt das Raster ohnehin, und die Zeilenlücke muss dort
+   wieder Fragen trennen statt Frage und Kasten. */
+@media (min-width: 641px) {
+  .grid-row { row-gap: var(--ds-field-gap-label); }
+  .grid-row > .field {
+    display: grid;
+    grid-template-rows: subgrid;
+    grid-row: span 3;
+  }
+  .grid-row > .field > label,
+  .grid-row > .field > .group-label { align-self: end; }
+  .grid-row > .field > .error-text { align-self: start; }
+}
+@media (min-width: 901px) {
+  #details .with-unit,
+  #details .input.num,
+  #immobilie .with-unit,
+  #immobilie .input.num { max-width: none; }
+}
+/* Ein Raster, in dem gerade nichts zu sehen ist (alle Felder [hidden], das Reveal
+   zu), traegt auch keinen Abstand: sonst stuende an seiner Stelle eine leere Fuge. */
+.grid ~ .grid:not(:has(> :not([hidden], .reveal:not(.open)))) { margin-top: 0; }
+
 .zweck-section ~ .grid { margin-top: var(--ds-field-gap-stack); }
 .card-pad > .zweck-section:first-child > .reveal-inner > .pad { padding-top: 0; }
 
