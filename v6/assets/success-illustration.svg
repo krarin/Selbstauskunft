@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="160" viewBox="0 0 240 160" fill="none">
+  <!-- Erfolgsbild "Gesendet". Farben = Light-Theme-Werte der Tokens:
+       #ECEFF1 background/neutral/subtle-hovered   #B0BEC5 icon/neutral/subtlest
+       #607D8B icon/neutral/subtle                 #FFFFFF surface/card
+       #20BF6B background/success/bold -->
+  <circle cx="120" cy="84" r="64" fill="#ECEFF1"/>
+  <g fill="#B0BEC5" fill-opacity="0.6">
+    <circle cx="38" cy="44" r="5"/>
+    <circle cx="206" cy="36" r="4"/>
+    <circle cx="214" cy="118" r="6"/>
+    <circle cx="30" cy="122" r="3.5"/>
+  </g>
+  <path d="M58 76l6 6M64 76l-6 6M184 66l5 5M189 66l-5 5" stroke="#B0BEC5" stroke-width="2.5" stroke-linecap="round"/>
+  <rect x="88" y="34" width="64" height="84" rx="8" fill="#FFFFFF" stroke="#607D8B" stroke-width="2.5"/>
+  <path d="M100 54h40M100 66h40M100 78h28" stroke="#ECEFF1" stroke-width="4" stroke-linecap="round"/>
+  <circle cx="148" cy="112" r="20" fill="#20BF6B"/>
+  <path d="M139 112l6.5 6.5 12-13" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

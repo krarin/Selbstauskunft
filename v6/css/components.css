@@ -3177,3 +3177,125 @@ body { margin: 0; }
   --ds-color-background-brand-bold-hovered: var(--_ds-color-teal-600);
 }
 
+
+/* ------------------------------------------- Gesendet: Versionen A / B / C
+
+   Nur für den Prototyp. A ist die Seite wie bisher: Text links, Beraterblock rechts,
+   der Knopf in der Leiste unten. B stellt alles in die Mitte des Fensters — Text,
+   darunter der Knopf, darunter der Beraterblock — und lässt die Leiste weg, deren
+   einziger Inhalt der Knopf war. C ist B mit einem Bild unter dem Text, damit die
+   Seite nicht so leer steht. Der Umschalter liegt oben rechts, gegenüber von
+   „Darstellung“, auf derselben Höhe. */
+.sent-variant {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--ds-spacing-8);
+  margin-bottom: var(--ds-spacing-16);
+  color: var(--ds-color-text-neutral-subtle-default);
+}
+.sent-variant .seg { padding: 0; flex-wrap: nowrap; }
+.sent-variant .seg button { min-width: var(--ds-spacing-32); }
+@media (min-width: 901px) {
+  .sent-variant {
+    position: fixed;
+    top: var(--ds-spacing-40);
+    right: var(--ds-layout-gutter);
+    z-index: 6;
+    min-height: var(--ds-field-height);
+    margin: 0;
+  }
+}
+
+.sent-art,
+.sent-actions { display: none; }
+
+:root[data-sent-variant="b"] #bar-sent,
+:root[data-sent-variant="c"] #bar-sent { display: none; }
+
+:root[data-sent-variant="b"] #sent-view:not([hidden]),
+:root[data-sent-variant="c"] #sent-view:not([hidden]) {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  /* Das Fenster abzüglich des Bands oben, in dem Umschalter und „Darstellung“ stehen —
+     so liegt die Mitte des Inhalts auf der Mitte dessen, was man sieht. */
+  min-height: calc(100svh - 2 * (var(--ds-spacing-40) + var(--ds-field-height) + var(--ds-spacing-16)));
+}
+:root[data-sent-variant="b"] #sent-view .page-head,
+:root[data-sent-variant="c"] #sent-view .page-head {
+  flex-direction: column;
+  align-items: center;
+  gap: var(--ds-spacing-32);
+  margin-bottom: 0;
+  text-align: center;
+}
+/* Unter 900px steht der Umschalter im Fluss statt fest oben rechts. Ohne die
+   automatischen Ränder würde er mit dem Inhalt in die Mitte rutschen. */
+@media (max-width: 900px) {
+  :root[data-sent-variant="b"] #sent-view .sent-variant,
+  :root[data-sent-variant="c"] #sent-view .sent-variant { margin-bottom: auto; }
+  :root[data-sent-variant="b"] #sent-view .page-head,
+  :root[data-sent-variant="c"] #sent-view .page-head { margin-bottom: auto; }
+}
+:root[data-sent-variant="b"] #sent-view .lede,
+:root[data-sent-variant="c"] #sent-view .lede { margin-inline: auto; }
+:root[data-sent-variant="b"] #sent-view .sent-actions,
+:root[data-sent-variant="c"] #sent-view .sent-actions {
+  display: flex;
+  justify-content: center;
+  margin-top: var(--ds-spacing-32);
+}
+/* Der Beraterblock steht unter dem Knopf, abgesetzt durch eine Haarlinie über die
+   Breite des Blocks — er ist die Antwort auf „an wen wende ich mich“, nicht Teil
+   der Bestätigung. */
+:root[data-sent-variant="b"] #sent-view .advisor,
+:root[data-sent-variant="c"] #sent-view .advisor {
+  padding-top: var(--ds-spacing-32);
+  border-top: var(--ds-border-width-1) solid var(--ds-color-border-neutral-subtle-default);
+  text-align: left;
+}
+
+:root[data-sent-variant="c"] #sent-view .sent-art {
+  display: block;
+  width: 240px;
+  max-width: 100%;
+  height: auto;
+  margin: var(--ds-spacing-32) auto 0;
+}
+/* Nur Grautöne und das Erfolgsgrün des Hakens — keine Markenfarbe, damit das Bild
+   auch zu einem anderen Farbthema passt. */
+.sent-art .sa-halo     { fill: var(--ds-color-background-neutral-subtle-hovered); }
+.sent-art .sa-dot      { fill: var(--ds-color-icon-neutral-subtlest-default); opacity: .6; }
+.sent-art .sa-spark    { stroke: var(--ds-color-icon-neutral-subtlest-default); stroke-width: 2.5; stroke-linecap: round; }
+.sent-art .sa-paper    { fill: var(--ds-surface-card); stroke: var(--ds-color-icon-neutral-subtle-default); stroke-width: 2.5; }
+.sent-art .sa-line     { stroke: var(--ds-color-border-neutral-subtle-default); stroke-width: 4; stroke-linecap: round; }
+.sent-art .sa-check-bg { fill: var(--ds-color-background-success-bold-default); }
+.sent-art .sa-check    { stroke: var(--ds-surface-card); stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; }
+
+/* C: der Block bleibt in der Mitte des Fensters, liest sich aber linksbündig —
+   Überschrift, Text und Beraterblock auf einer linken Kante. Bild und Knopf stehen
+   mittig in der Spalte. */
+:root[data-sent-variant="c"] #sent-view .page-head {
+  align-items: flex-start;
+  width: 100%;
+  max-width: var(--ds-layout-measure-prose);
+  margin-inline: auto;
+  text-align: left;
+}
+:root[data-sent-variant="c"] #sent-view .lede { margin-inline: 0; }
+:root[data-sent-variant="c"] #sent-view .sent-art { margin-inline: auto; }
+:root[data-sent-variant="c"] #sent-view .sent-actions { justify-content: center; }
+:root[data-sent-variant="c"] #sent-view .advisor { align-self: stretch; }
+:root[data-sent-variant="c"] #sent-view .page-intro { align-self: stretch; }
+/* B: kürzere Zeilen im mittigen Satz — 30 % unter dem üblichen Zeilenmaß, damit der
+   zentrierte Text als Block steht statt als zwei lange Zeilen. */
+:root[data-sent-variant="b"] #sent-view .lede { max-width: calc(0.7 * var(--ds-layout-measure-prose)); }
+/* C: dieselben kürzeren Zeilen wie in B. Die Spalte nimmt die Breite ihres breitesten
+   Teils an — Text oder Beraterblock —, damit Bild und Knopf mittig über genau dem
+   Block stehen, an dessen linker Kante der Text beginnt. */
+:root[data-sent-variant="c"] #sent-view .page-head { width: fit-content; max-width: 100%; }
+:root[data-sent-variant="c"] #sent-view .lede { max-width: calc(0.7 * var(--ds-layout-measure-prose)); }
+/* C: Überschrift und Text doch mittig, wie in B. */
+:root[data-sent-variant="c"] #sent-view .page-intro { text-align: center; }
+:root[data-sent-variant="c"] #sent-view .lede { margin-inline: auto; }

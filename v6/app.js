@@ -2827,6 +2827,25 @@
   // Prototype only: in the real product the case ends on the sent screen.
   $('#restart').addEventListener('click', () => location.reload());
 
+  /* Gesendet-Seite in drei Fassungen, nur für den Prototyp. Die Wahl steht als
+     data-sent-variant auf <html> und bleibt über ein Neuladen hinweg stehen. */
+  (() => {
+    const KEY = 'selbstauskunft-sent-variant';
+    const buttons = $$('[data-sent-variant]');
+    const apply = (variant) => {
+      document.documentElement.setAttribute('data-sent-variant', variant);
+      buttons.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.sentVariant === variant)));
+    };
+    let saved = 'a';
+    try { saved = localStorage.getItem(KEY) || 'a'; } catch (e) { /* kein Speicher */ }
+    apply(saved);
+    buttons.forEach((b) => b.addEventListener('click', () => {
+      apply(b.dataset.sentVariant);
+      try { localStorage.setItem(KEY, b.dataset.sentVariant); } catch (e) { /* egal */ }
+    }));
+    $$('[data-restart]').forEach((b) => b.addEventListener('click', () => location.reload()));
+  })();
+
   // Ticking the box is the answer, so the complaint about it missing goes at once.
   consent.addEventListener('change', () => { if (consent.checked) validateConsent(); });
 

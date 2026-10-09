@@ -2766,6 +2766,17 @@
     <!-- Nach dem Senden bleibt genau das stehen, was noch gilt: dass es weg ist, und
          an wen man sich mit einer Frage wendet. Karten stuenden hier fuer Aufgaben,
          die es nicht mehr gibt. -->
+    <!-- Nur für den Prototyp: drei Fassungen der Seite zum Vergleichen.
+         A wie bisher (Beraterblock rechts, Leiste unten), B mittig mit dem Knopf
+         unter dem Text statt in der Leiste, C wie B mit einem Bild unter dem Text. -->
+    <div class="sent-variant" role="group" aria-label="Version der Gesendet-Seite">
+      <span class="sent-variant-label" aria-hidden="true">Version</span>
+      <div class="seg">
+        <button type="button" data-sent-variant="a" aria-pressed="true">A</button>
+        <button type="button" data-sent-variant="b" aria-pressed="false">B</button>
+        <button type="button" data-sent-variant="c" aria-pressed="false">C</button>
+      </div>
+    </div>
     <div class="page-head">
       <div class="page-intro">
         <h1 class="page-title" id="h-sent">Gesendet — vielen Dank</h1>
@@ -2773,6 +2784,25 @@
           Kunden</span> liegt jetzt bei der Beraterin oder dem Berater.</p>
         <p class="lede">Wenn Sie weitere Fragen haben, wenden Sie sich an die Beraterin
           oder den Berater.</p>
+        <!-- Version C: ein Dokument mit Haken. Schmuck, deshalb aria-hidden — was es
+             sagt, steht schon in der Überschrift. -->
+        <svg class="sent-art" viewBox="0 0 240 160" fill="none" aria-hidden="true" focusable="false">
+          <circle cx="120" cy="84" r="64" class="sa-halo"/>
+          <circle cx="38" cy="44" r="5" class="sa-dot"/>
+          <circle cx="206" cy="36" r="4" class="sa-dot"/>
+          <circle cx="214" cy="118" r="6" class="sa-dot"/>
+          <circle cx="30" cy="122" r="3.5" class="sa-dot"/>
+          <path d="M58 76l6 6M64 76l-6 6" class="sa-spark"/>
+          <path d="M184 66l5 5M189 66l-5 5" class="sa-spark"/>
+          <rect x="88" y="34" width="64" height="84" rx="8" class="sa-paper"/>
+          <path d="M100 54h40M100 66h40M100 78h28" class="sa-line"/>
+          <circle cx="148" cy="112" r="20" class="sa-check-bg"/>
+          <path d="M139 112l6.5 6.5 12-13" class="sa-check"/>
+        </svg>
+        <div class="sent-actions">
+          <!-- Derselbe Knopf wie in der Leiste, die in B und C wegfällt. -->
+          <button type="button" class="btn primary" data-restart>Prototyp neu starten</button>
+        </div>
       </div>
     </div>
 
