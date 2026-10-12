@@ -2393,9 +2393,11 @@
           </div>
         </div>
       </div></div></div>
-      <!-- Gemeinsamer Teil fuer alle Zwecke; einzelne Felder nehmen sich per data-zweck-not
-           heraus. Die Reihen sind .grid-row: die Kaesten stehen auf einer Linie, auch wenn
-           eine Nachbarin zweizeilig fragt. -->
+      <!-- Gemeinsamer Teil fuer alle Zwecke, im Muster der heutigen Partner-App: kurze
+           Beschriftungen, drei Spalten, Zinsbindung als Liste, Sondertilgung als Ja/Nein,
+           „Zusaetzliche Anmerkungen“. Einzelne Felder nehmen sich per data-zweck-not
+           heraus (Regeln aus MAVS-1388). Die Reihen sind .grid-row: die Kaesten stehen auf
+           einer Linie, auch wenn eine Nachbarin zweizeilig fragt. -->
       <div class="grid grid-row">
         <div class="field col-4 col-start" data-zweck-not="anschluss">
           <label for="d-eigenkapital">Eingesetztes Eigenkapital <span class="req" aria-hidden="true">*</span></label>
@@ -2403,38 +2405,22 @@
             eigenem Geld einbringen.</p>
           <div class="with-unit"><input class="input" id="d-eigenkapital" inputmode="decimal" aria-describedby="h-d-ek" required><span class="unit">€</span></div>
         </div>
-        <div class="field col-4">
-          <label for="d-rate">Wie hoch soll Ihre monatliche Rate sein?</label>
-          <p class="help" id="h-d-rate">Eine niedrige monatliche Rate vergrößert Ihren finanziellen Spielraum,
-            etwa um Rücklagen zu bilden. Mit einer höheren Rate verringern Sie die Laufzeit des Darlehens
-            sowie den Betrag der Zinsen, den Sie bis zum Ende der Zinsbindung gezahlt haben. Sollten Sie sich
-            nicht sicher sein, geben Sie bitte den maximalen Betrag an, den Sie für die monatliche Rate
-            aufbringen könnten.</p>
-          <div class="with-unit"><input class="input" id="d-rate" inputmode="decimal" placeholder="400" aria-describedby="h-d-rate"><span class="unit">€</span></div>
-        </div>
         <!-- Nur die Anschlussfinanzierung hat keine Wunschlaufzeit: dort wird ein laufendes
              Darlehen abgeloest. Alle anderen Zwecke bauen eines auf. -->
         <div class="field col-4" data-zweck-not="anschluss">
           <label for="d-laufzeit">Gewünschte Laufzeit <span class="req" aria-hidden="true">*</span></label>
           <div class="with-unit"><input class="input" id="d-laufzeit" inputmode="numeric" required><span class="unit">Jahre</span></div>
         </div>
-      </div>
-      <div class="grid">
-        <!-- Kacheln statt Liste: sechs feste Laufzeiten sind schneller angeklickt als
-             aus einem Dropdown gesucht, und die Auswahl bleibt sichtbar. -->
-        <div class="field col-12 col-start" role="group" aria-labelledby="lbl-d-zinsbindung"
-             aria-describedby="h-d-zins" data-required>
-          <span class="group-label" id="lbl-d-zinsbindung">Wie lange möchten Sie den Zinssatz sichern? <span class="req" aria-hidden="true">*</span></span>
+        <div class="field col-4">
+          <label for="d-zinsbindung">Gewünschte Zinsbindung <span class="req" aria-hidden="true">*</span></label>
           <p class="help" id="h-d-zins">Die Dauer der Zinsbindung sollte zu Ihrer geplanten Lebensgestaltung im
             Finanzierungszeitraum passen. Keine Sorge, Sie können diese Eingabe später ändern.</p>
-          <div class="choices">
-            <label class="choice"><input type="radio" name="d-zinsbindung" value="5 Jahre"><span>5 Jahre</span></label>
-            <label class="choice"><input type="radio" name="d-zinsbindung" value="10 Jahre"><span>10 Jahre</span></label>
-            <label class="choice"><input type="radio" name="d-zinsbindung" value="15 Jahre"><span>15 Jahre</span></label>
-            <label class="choice"><input type="radio" name="d-zinsbindung" value="20 Jahre"><span>20 Jahre</span></label>
-            <label class="choice"><input type="radio" name="d-zinsbindung" value="25 Jahre"><span>25 Jahre</span></label>
-            <label class="choice"><input type="radio" name="d-zinsbindung" value="30 Jahre"><span>30 Jahre</span></label>
-          </div>
+          <span class="select-wrap">
+            <select class="select" id="d-zinsbindung" aria-describedby="h-d-zins" required>
+              <option value="">Bitte wählen</option><option>5 Jahre</option><option>10 Jahre</option>
+              <option>15 Jahre</option><option>20 Jahre</option><option>Länger als 20 Jahre</option>
+            </select>
+          </span>
         </div>
       </div>
       <div class="grid grid-row">
@@ -2443,21 +2429,26 @@
           <p class="help" id="h-d-tilg">Anfänglicher Tilgungssatz pro Jahr, üblich sind 2 bis 3 %.</p>
           <div class="with-unit"><input class="input" id="d-tilgung" inputmode="decimal" aria-describedby="h-d-tilg" required><span class="unit">%</span></div>
         </div>
-        <!-- Aus der Ja/Nein-Frage „Wünschen Sie eine Sondertilgung?“ geworden: die Höhe ist die
-             eigentliche Angabe, und „keine“ ist einer ihrer Werte. -->
         <div class="field col-4">
-          <label for="d-sondertilgung">Wie hoch soll die gewünschte Sondertilgung sein?</label>
-          <p class="help" id="h-d-sonder">Anteil der Darlehenssumme, den Sie zusätzlich zur Rate einmal im Jahr
-            zurückzahlen dürfen, ohne dafür eine Gebühr zu zahlen.</p>
-          <span class="select-wrap">
-            <select class="select" id="d-sondertilgung" aria-describedby="h-d-sonder">
-              <option value="">Bitte wählen</option>
-              <option>0%</option><option>5%</option><option>10%</option>
-            </select>
-          </span>
+          <label for="d-rate">Gewünschte monatliche Rate</label>
+          <p class="help" id="h-d-rate">Eine niedrige monatliche Rate vergrößert Ihren finanziellen Spielraum,
+            etwa um Rücklagen zu bilden. Mit einer höheren Rate verringern Sie die Laufzeit des Darlehens
+            sowie den Betrag der Zinsen, den Sie bis zum Ende der Zinsbindung gezahlt haben. Sollten Sie sich
+            nicht sicher sein, geben Sie bitte den maximalen Betrag an, den Sie für die monatliche Rate
+            aufbringen könnten.</p>
+          <div class="with-unit"><input class="input" id="d-rate" inputmode="decimal" aria-describedby="h-d-rate"><span class="unit">€</span></div>
         </div>
       </div>
+      <!-- Eine Ja/Nein-Frage pro Zeile: nebeneinander stuende die zweite Frage weit rechts
+           von ihren eigenen Knoepfen und laese sich als Ueberschrift der ersten Reihe mit. -->
       <div class="grid">
+        <div class="field col-12 col-start" role="group" aria-labelledby="lbl-d-sonder" data-required>
+          <span class="group-label" id="lbl-d-sonder">Wünschen Sie eine Sondertilgung? <span class="req" aria-hidden="true">*</span></span>
+          <div class="choices">
+            <label class="choice"><input type="radio" name="d-sonder" value="Ja"><span>Ja</span></label>
+            <label class="choice"><input type="radio" name="d-sonder" value="Nein"><span>Nein</span></label>
+          </div>
+        </div>
         <div class="field col-12 col-start" role="group" aria-labelledby="lbl-d-tilgwechsel"
              aria-describedby="h-d-tilgwechsel">
           <span class="group-label" id="lbl-d-tilgwechsel">Ist ein Tilgungssatzwechsel gewünscht?</span>
@@ -2472,8 +2463,9 @@
           </div>
         </div>
         <div class="field col-12 col-start">
-          <label for="d-notizen">Möchten Sie uns weitere Details mitteilen oder Fragen stellen?</label>
-          <p class="help" id="h-d-notizen">Zum Beispiel: Notartermin am 05.10. oder Empfehlung von Frau Müller.</p>
+          <label for="d-notizen">Zusätzliche Anmerkungen</label>
+          <p class="help" id="h-d-notizen">Alles, was für die Prüfung wichtig ist und in keinem Feld Platz hat —
+            zum Beispiel: Notartermin am 05.10. oder Empfehlung von Frau Müller.</p>
           <textarea class="input textarea" id="d-notizen" rows="4" aria-describedby="h-d-notizen"></textarea>
         </div>
       </div>

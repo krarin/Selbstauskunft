@@ -83,7 +83,7 @@
     [/geschätzten Baukosten/,               '350.000,00'],
     [/^Wie hoch ist der Kaufpreis/,         '400.000,00'],
     [/^Eingesetztes Eigenkapital/,          '80.000,00'],
-    [/monatliche Rate sein/,                '1.250,00'],
+    [/monatliche Rate sein|^Gewünschte monatliche Rate/, '1.250,00'],
     [/^Gewünschte Laufzeit/,                '30'],
     [/^Tilgungssatz/,                       '2,5'],
 
@@ -154,7 +154,7 @@
   const OPTIONS = [
     'Kauf einer bestehenden Immobilie', 'Eigentumswohnung', 'Selbst nutzen',
     'deutsch', 'ledig', 'Angestellt', 'IT', '12',
-    'Erstes Obergeschoss', 'Effizienzhaus-Standard 55', 'Stellplatz', '5%',
+    'Erstes Obergeschoss', 'Effizienzhaus-Standard 55', 'Stellplatz', '5%', '10 Jahre',
     // Immobilienmerkmale: neun freiwillige Listen, die ohne Eintrag hier alle leer
     // blieben — und dann fehlt der ganze Abschnitt in der Prüfliste. „Mittel“ deckt
     // Ausstattung und Zustand zugleich: ein unauffälliger Beispielfall, kein besonders
