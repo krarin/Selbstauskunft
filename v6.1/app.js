@@ -1,0 +1,2861 @@
+/* ============================================================================
+   V5 behaviour. Declarative: the markup says what depends on what, this file
+   just wires it up. Adding a conditional needs no change here.
+
+     data-controls="#id" data-show-when="Ja"   trigger opens the reveal with that id
+     data-show-when="Ja"  (no data-controls)   trigger opens its own nested .reveal
+     data-show-when="A|B"                      any of these answers opens it
+     select[data-switch="#id"]                 one block per answer, in that container:
+       > .reveal[data-when="A|B"]              a case, open while an answer matches it
+     .field[data-switch=".cls"]                the same for a radio group; the selector
+                                               hits the .reveal[data-when] cases directly
+     .object-section[data-for]                 mutually exclusive finance-type section
+     .nav a.object-nav[data-navfor="A|B"]      nav entry for the above
+   ========================================================================== */
+(() => {
+  'use strict';
+
+  const $  = (sel, root = document) => root.querySelector(sel);
+  const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
+
+  let uidCounter = 0;
+  const uid = (prefix) => `${prefix}-${++uidCounter}`;
+
+  /* The control a .field wraps, in every shape one can take. Named once because
+     four places need exactly the same answer: the label link, the help link, the
+     review read-back and the value formatting. */
+  const CONTROL_SEL = ':scope > .input, :scope > .select, '
+    + ':scope > .with-unit > .input, :scope > .with-picker > .input, '
+    + ':scope > .unit-row > .with-unit > .input, '
+    + ':scope > .select-wrap > .select';
+
+  /* Info.svg, Pfad fuer Pfad uebernommen; geaendert ist nur die eingebrannte #607D8B,
+     die currentColor wird, damit die Farbe aus dem Token kommt. Steht hier und nicht
+     im Markup, weil fast jedes Zeichen im Formular zur Laufzeit aus einem Hilfetext
+     gebaut wird (siehe buildHelpIcons) — das eine fest geschriebene in index.html
+     traegt denselben Pfad. */
+  const INFO_ICON = '<svg class="ico-info" viewBox="0 0 20 20" fill="currentColor" '
+    + 'aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" '
+    + 'd="M10 1.66667C5.4 1.66667 1.66667 5.4 1.66667 10C1.66667 14.6 5.4 18.3333 10 '
+    + '18.3333C14.6 18.3333 18.3333 14.6 18.3333 10C18.3333 5.4 14.6 1.66667 10 '
+    + '1.66667ZM9.16667 14.1667V9.16667H10.8333V14.1667H9.16667ZM9.16667 5.83333V7.5H10.8333V5.83333H9.16667Z"/></svg>';
+
+  /* The same trash glyph the repeatable templates carry inline, for the remove buttons
+     that are built in script instead — keep the two in step. */
+  const TRASH_ICON = '<svg class="ico-trash" viewBox="0 0 20 20" fill="none" '
+    + 'stroke="currentColor" stroke-width="1.6" stroke-linecap="round" '
+    + 'stroke-linejoin="round" aria-hidden="true"><path d="M4 6h12M8 6V4.6a1 1 0 0 1 '
+    + '1-1h2a1 1 0 0 1 1 1V6M6.4 6l.6 9.4a1 1 0 0 0 1 .9h4a1 1 0 0 0 1-.9L13.6 6M8.7 '
+    + '9v4.6M11.3 9v4.6"/></svg>';
+
+  /* A reveal clips its overflow while its row height animates; once it is fully open the
+     clip has to go, or it slices the focus glow off the fields inside — see .reveal.settled.
+     The wait is read from the computed transition, so the CSS keeps owning the duration,
+     and a reveal that never animates — opened during hydration, or with motion switched
+     off — settles on the first tick instead of staying clipped for good. The extra frame
+     is what a transitionend would have cost anyway: the transition starts one frame after
+     the class lands. */
+  const settleTimers = new WeakMap();
+  const settleReveal = (el) => {
+    clearTimeout(settleTimers.get(el));
+    const ms = (parseFloat(getComputedStyle(el).transitionDuration) || 0) * 1000;
+    settleTimers.set(el, setTimeout(() => requestAnimationFrame(() => {
+      if (el.classList.contains('open')) el.classList.add('settled');
+    }), ms));
+  };
+
+  const openReveal = (el, open) => {
+    if (!el) return;
+    el.classList.toggle('open', open);
+    if (open) settleReveal(el);
+    else {
+      // the clip has to be back for the whole closing animation
+      clearTimeout(settleTimers.get(el));
+      el.classList.remove('settled');
+    }
+  };
+
+  /* ------------------------------------------------------------- hydration */
+
+  /* Templates and cloned panels ship without ids, because ids have to be
+     unique per instance. Everything that needs one gets it here, so a
+     screen reader never meets an unlabelled control. */
+  function hydrate(root) {
+    // give every radio group its own name, or the copies would share a selection
+    $$('.choices', root).forEach((choices) => {
+      const radios = $$('input[type="radio"]', choices);
+      if (radios.length && !radios[0].name) {
+        const name = uid('radios');
+        radios.forEach((r) => { r.name = name; });
+      }
+    });
+
+    // label -> control association
+    $$('.field', root).forEach((field) => {
+      const label = field.querySelector(':scope > label');
+      if (label && !label.htmlFor) {
+        const control = field.querySelector(CONTROL_SEL);
+        if (control) {
+          if (!control.id) control.id = uid('ctl');
+          label.htmlFor = control.id;
+        }
+      }
+
+      // role="group" needs an explicit label reference — it has no <legend>
+      const groupLabel = field.querySelector(':scope > .group-label');
+      if (groupLabel && field.getAttribute('role') === 'group' && !field.getAttribute('aria-labelledby')) {
+        if (!groupLabel.id) groupLabel.id = uid('lbl');
+        field.setAttribute('aria-labelledby', groupLabel.id);
+      }
+    });
+
+    linkHelp(root);
+    buildHelpIcons(root);
+    wireConditionals(root);
+    wireAmountRows(root);
+    wireEinkommen(root);
+    wireRemovers(root);
+    wireCurrency(root);
+    wireUnitPickers(root);
+    buildDatePickers(root);
+  }
+
+  /* A field's helper text is what its aria-describedby has to point at. The static
+     markup writes that link by hand, but a repeatable template cannot: the id it would
+     reference has to be unique per copy. So the link is made here instead, once per
+     instance, and a field that already declares it is left alone. */
+  function linkHelp(root) {
+    $$('.field > .help', root).forEach((help) => {
+      const field = help.parentElement;
+      const control = field.querySelector(CONTROL_SEL);
+      if (!control) return;
+      if (!help.id) help.id = uid('help');
+      const described = (control.getAttribute('aria-describedby') || '')
+        .split(/\s+/).filter(Boolean);
+      if (described.includes(help.id)) return;
+      control.setAttribute('aria-describedby', [...described, help.id].join(' '));
+    });
+  }
+
+  /* Every helper text is shown as an icon + tooltip next to its label. The paragraph
+     itself stays put — it is what the field's aria-describedby points at — and the
+     bubble is a visual duplicate, so it is hidden from the accessibility tree to
+     avoid reading the same text twice. */
+  function buildHelpIcons(root) {
+    $$('.field > .help', root).forEach((help) => {
+      const field = help.parentElement;
+      // A group whose label is a section heading standing above it rather than a
+      // .group-label inside it has nothing to hang the icon on within the field,
+      // so follow the reference the group already carries.
+      const labelledBy = field.getAttribute('aria-labelledby');
+      const label = field.querySelector(':scope > label, :scope > .group-label')
+        || (labelledBy ? document.getElementById(labelledBy.split(/\s+/)[0]) : null);
+      // a clone arrives with the icon already in place
+      if (!label || label.querySelector('.info-wrap[data-generated]')) return;
+
+      const text = help.textContent.trim();
+      if (!text) return;
+
+      if (!help.id) help.id = uid('help');
+      const name = label.textContent.replace('*', '').trim();
+
+      const wrap = document.createElement('span');
+      wrap.className = 'info-wrap';
+      wrap.dataset.generated = '';
+
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'info-btn';
+      button.innerHTML = INFO_ICON;
+      button.setAttribute('aria-label', `Erläuterung zu ${name}`);
+      button.setAttribute('aria-describedby', help.id);
+      button.setAttribute('aria-expanded', 'false');
+
+      const bubble = document.createElement('span');
+      bubble.className = 'info-bubble';
+      bubble.setAttribute('aria-hidden', 'true');
+      /* Fast jeder Hilfetext ist ein Satz, zwei sind Listen aus Stufe und Erklärung
+         (Ausstattung und Zustand). Trägt der Text Auszeichnung, übernimmt die Blase
+         sie, statt alle Absätze zu einem Fließtext zusammenzuziehen — kopiert, nicht
+         verschoben: das Original bleibt stehen, es ist das Ziel von aria-describedby. */
+      if (help.firstElementChild) bubble.append(...help.cloneNode(true).childNodes);
+      else bubble.textContent = text;
+
+      wrap.append(button, bubble);
+      label.appendChild(wrap);
+      glueToLastWord(label, wrap);
+    });
+  }
+
+  /* Bricht eine Beschriftung um, darf das Zeichen nicht allein in die zweite Zeile
+     fallen: es gehoert zur Frage, nicht unter sie. Das letzte Wort, ein Sternchen
+     dahinter und das Zeichen kommen deshalb in eine Klammer, die nicht umbricht — so
+     wandert das Zeichen hoechstens mit seinem Wort.
+     Nur wenn das letzte Wort ein eigener Textknoten der Beschriftung ist. Steht es in
+     einem Element (die Textweiche data-text-for tauscht den Inhalt eines <span>),
+     bleibt alles, wie es ist: das Herausloesen eines Worts wuerde den Tausch brechen. */
+  function glueToLastWord(label, wrap) {
+    const tail = [wrap];
+    let node = wrap.previousSibling;
+    while (node && ((node.nodeType === 3 && !node.textContent.trim())
+      || (node.nodeType === 1 && node.classList.contains('req')))) {
+      tail.unshift(node);
+      node = node.previousSibling;
+    }
+    if (!node || node.nodeType !== 3) return;
+    const match = node.textContent.match(/^([\s\S]*?)(\S+)(\s*)$/);
+    if (!match) return;
+    node.textContent = match[1];
+    const glue = document.createElement('span');
+    glue.className = 'info-glue';
+    glue.append(document.createTextNode(match[2] + match[3]), ...tail);
+    label.appendChild(glue);
+  }
+
+  /* --------------------------------------------------------- conditionals */
+
+  /* The reveal a trigger owns: an explicit target via data-controls, otherwise
+     the nearest .reveal nested inside the trigger's own field. */
+  function revealFor(trigger, field) {
+    if (trigger.dataset.controls) return $(trigger.dataset.controls);
+    return field ? field.querySelector(':scope > .reveal') : null;
+  }
+
+  /* One answer opens a reveal, but so does a whole class of them: "Angestellt" and
+     "Beamtin / Beamter" both mean there is an employer to ask about, and they want the
+     same block of fields. Every "when" list is therefore "|"-separated, which a single
+     answer is just the one-item case of. Not a comma, because the answers themselves
+     contain punctuation. */
+  const matchesAny = (list, value) => list.split('|').includes(value);
+
+  function wireConditionals(root) {
+    // radio groups: the trigger is the .field wrapper (it carries the dataset).
+    // Only the trigger's own .choices may answer for it — a group nested inside the
+    // reveal bubbles its change through here too, and its "Nein" would otherwise
+    // shut the very reveal it lives in.
+    $$('.field[data-show-when]', root).forEach((field) => {
+      if (field.dataset.wired) return;
+      field.dataset.wired = '1';
+      const reveal = revealFor(field, field);
+      const own = field.querySelector(':scope > .choices') || field;
+      field.addEventListener('change', (event) => {
+        if (event.target.type !== 'radio' || !own.contains(event.target)) return;
+        openReveal(reveal, matchesAny(field.dataset.showWhen, event.target.value));
+      });
+      // honour a checked-by-default radio
+      const checked = own.querySelector('input[type="radio"]:checked');
+      if (checked) openReveal(reveal, matchesAny(field.dataset.showWhen, checked.value));
+    });
+
+    // selects
+    $$('select[data-show-when]', root).forEach((select) => {
+      if (select.dataset.wired) return;
+      select.dataset.wired = '1';
+      const reveal = revealFor(select, select.closest('.field'));
+      select.addEventListener('change', () =>
+        openReveal(reveal, matchesAny(select.dataset.showWhen, select.value)));
+      openReveal(reveal, matchesAny(select.dataset.showWhen, select.value));
+    });
+
+    wireSwitches(root);
+  }
+
+  /* A dropdown where the answer decides not whether a block is asked but which one:
+     the employment status brings an employer, a company, a pension or nothing at all.
+     Each block is a .reveal[data-when] inside the container data-switch points at, and
+     only the matching one is ever open — the same shape as the finance-type sections,
+     but declarative, so a further case is a further div rather than a line in here. An
+     answer with nothing left to ask ("Hausfrau / Hausmann") simply has no case.
+
+     Closing the others rather than leaving them is the point: a field inside a closed
+     reveal is not asked for, so it drops out of the counter and out of the submit
+     check the moment the answer moves on — see isAsked. */
+  function wireSwitches(root) {
+    $$('select[data-switch]', root).forEach((select) => {
+      if (select.dataset.wiredSwitch) return;
+      select.dataset.wiredSwitch = '1';
+      const container = $(select.dataset.switch);
+      if (!container) return;
+      const cases = $$(':scope > .reveal[data-when]', container);
+      const sync = () => cases.forEach((branch) =>
+        openReveal(branch, matchesAny(branch.dataset.when, select.value)));
+      select.addEventListener('change', sync);
+      sync();
+    });
+
+    /* Dieselbe Weiche an einer Ja/Nein-Gruppe, fuer den Fall, dass die Antwort nicht
+       einen Block oeffnet, sondern einen gegen einen anderen tauscht — und die Faelle
+       nicht beieinander stehen, weil zwischen ihnen Felder liegen, die jede Antwort
+       fragt. data-switch ist deshalb hier kein Container, sondern ein Selektor, der
+       die Faelle selbst trifft. Ohne Antwort ist keiner offen. */
+    $$('.field[data-switch]', root).forEach((field) => {
+      if (field.dataset.wiredSwitch) return;
+      field.dataset.wiredSwitch = '1';
+      const own = field.querySelector(':scope > .choices');
+      const cases = $$(field.dataset.switch).filter((el) => el.matches('.reveal[data-when]'));
+      const sync = () => {
+        const checked = own.querySelector('input[type="radio"]:checked');
+        cases.forEach((branch) =>
+          openReveal(branch, !!checked && matchesAny(branch.dataset.when, checked.value)));
+      };
+      own.addEventListener('change', sync);
+      sync();
+    });
+  }
+
+  /* ---------------------------------------------------------- amount rows */
+
+  /* A position in an amount list is a checkbox, not a radio: several of them apply at
+     once and each is independently given up again, which is exactly what a radio
+     group cannot express. It wears the radio ring from .choice because that is the
+     mark the design calls for.
+
+     Picking one exposes the figure beside it; giving it up hides the figure AND
+     clears it, or an amount nobody claims any more would still be submitted.
+     `data-inactive` on the cell is the single hook the counter and the submit check
+     read — see isAsked. */
+  /* Some positions have more to say than a figure — which Bausparkasse, what the
+     contract is worth, when it falls due. Those carry a .amount-detail reveal right
+     after their row, and it follows the same toggle: picked shows the details, given
+     up hides them and empties them, exactly as the amount behaves. Optional, so a
+     row without one is unchanged. */
+  const detailOf = (row) => {
+    const next = row.nextElementSibling;
+    return next && next.classList.contains('amount-detail') ? next : null;
+  };
+
+  /* Usually one cell, the amount. A position the figure alone does not answer carries
+     a second one beside it — Nebentätigkeit also asks when it started — and it is the
+     same deal: it follows the toggle, and it is emptied when the position is given up.
+     The first cell stays the amount, so what takes the caret does not move. */
+  const cellsOf = (row) => $$(':scope > .amount-cell', row);
+
+  function syncAmountRow(row) {
+    const toggle = row.querySelector(':scope > .choice > input');
+    const cells = cellsOf(row);
+    const detail = detailOf(row);
+
+    if (toggle.checked) {
+      cells.forEach((cell) => { delete cell.dataset.inactive; });
+      openReveal(detail, true);
+      return;
+    }
+    cells.forEach((cell) => {
+      const input = cell.querySelector('.input');
+      cell.dataset.inactive = '';
+      input.value = '';
+      // an error left showing on a field nobody can see any more
+      cell.classList.remove('invalid');
+      input.setAttribute('aria-invalid', 'false');
+    });
+
+    openReveal(detail, false);
+    if (!detail) return;
+    // Same reason the amount is cleared: a Bausparkasse nobody claims any more would
+    // still be submitted, and would be waiting there if the position is picked again.
+    $$('.field', detail).forEach((field) => {
+      const control = field.querySelector(CONTROL_SEL);
+      if (!control) return;
+      control.value = '';
+      control.setAttribute('aria-invalid', 'false');
+      field.classList.remove('invalid');
+    });
+  }
+
+  function wireAmountRows(root) {
+    $$('.amount-row', root).forEach((row) => {
+      if (row.dataset.wired) return;
+      row.dataset.wired = '1';
+      const toggle = row.querySelector(':scope > .choice > input');
+      const cells = cellsOf(row);
+      const inputs = cells.map((c) => c.querySelector('.input'));
+      // the amount is what the caret is handed and what settles the row
+      const input = inputs[0];
+
+      // A mandatory position is still listed, and still ticked, but cannot be given
+      // up. Cancelling the click covers the keyboard too — space fires one as well.
+      // The click still lands somewhere: the position is picked, so the caret goes
+      // where the answer is missing rather than nowhere at all.
+      toggle.addEventListener('click', (event) => {
+        if (!('locked' in toggle.dataset)) return;
+        event.preventDefault();
+        input.focus();
+      });
+
+      /* Ticking the box is a decision in its own right, so it ends any provisional
+         state the row was in — see below. It also hands the caret straight to the
+         figure: picking a position is only half an answer, and being dropped into the
+         field that holds the other half saves aiming at a 200px target next to the
+         one just hit. Nothing is skipped by going there, since the amount is the next
+         stop in the tab order anyway. */
+      toggle.addEventListener('change', () => {
+        delete row.dataset.provisional;
+        syncAmountRow(row);
+        if (toggle.checked) input.focus();
+      });
+
+      // Going for the figure is itself a way of picking the position: someone who
+      // reaches into the Betrag field has already decided the item applies, so the
+      // toggle follows instead of making them tick it first and aim twice.
+      //
+      // Pointerdown and typing, deliberately not focus: focus would tick every row
+      // the keyboard merely passes through on the way down the list, so a tab-through
+      // would claim the lot. Both entry points that carry intent are covered — the
+      // pointer landing on the field, and the first character typed into it.
+      const pick = () => {
+        if (toggle.checked) return;
+        toggle.checked = true;
+        // Picked on the strength of a click, which is a weaker signal than ticking the
+        // box: the row is provisional until it actually holds a figure.
+        row.dataset.provisional = '';
+        syncAmountRow(row);
+      };
+      // Every cell on the row, not just the amount: reaching into the Beginndatum is
+      // the same declaration of intent as reaching into the figure beside it.
+      cells.forEach((c) => c.addEventListener('pointerdown', pick));
+      inputs.forEach((i) => i.addEventListener('input', pick));
+
+      /* Leaving a provisional row empty takes the pick back. Clicking into a Betrag
+         field and moving on without typing anything is how someone browses the list,
+         not how they claim a position — and left ticked it would stand there as a red
+         Pflichtfeld the user never asked for. A figure entered settles the row: from
+         then on it is picked like any other, so emptying it again reports the missing
+         amount instead of quietly dropping the position. */
+      inputs.forEach((field) => field.addEventListener('blur', (event) => {
+        if (!('provisional' in row.dataset)) return;
+        // Stepping from the amount to the Beginndatum beside it — or out to the row's
+        // own calendar button — is not leaving the row, so the pick is not up yet.
+        if (event.relatedTarget && row.contains(event.relatedTarget)) return;
+        if (inputs.some((i) => i.value.trim())) { delete row.dataset.provisional; return; }
+        delete row.dataset.provisional;
+        toggle.checked = false;
+        syncAmountRow(row);
+      }));
+
+      syncAmountRow(row);
+    });
+  }
+
+  /* ------------------------------------------------------- confirm deleting */
+
+  const confirmDialog = $('#confirm-dialog');
+
+  /* Anything that cannot be taken back asks first: removing a person or a child
+     throws away everything typed into them, and sending closes the form for good.
+     One dialog element, retitled per case — the browser owns Esc, the focus trap
+     and the backdrop.
+
+     `tone` is the class on the confirming button, and it is a real decision rather
+     than decoration: red has to mark destruction, so sending — which produces
+     something rather than losing it — takes the primary button instead. */
+  function confirmAction({ title, text, action = 'Löschen', tone = 'danger' }) {
+    return new Promise((resolve) => {
+      $('#confirm-title').textContent = title;
+      $('#confirm-text').textContent = text;
+      $('#confirm-ok').textContent = action;
+      $('#confirm-ok').className = `btn ${tone}`;
+      confirmDialog.returnValue = '';   // Esc closes without touching it
+      confirmDialog.addEventListener('close', function done() {
+        confirmDialog.removeEventListener('close', done);
+        resolve(confirmDialog.returnValue === 'ok');
+      });
+      confirmDialog.showModal();
+    });
+  }
+
+  function wireRemovers(root) {
+    $$('[data-remove]', root).forEach((button) => {
+      if (button.dataset.wired) return;
+      button.dataset.wired = '1';
+      button.addEventListener('click', async () => {
+        const row = button.closest('.child-row, .subcard');
+        if (!row) return;
+
+        /* Every delete asks, whether the row holds anything or not. A trash glyph sits
+           right beside the fields it would throw away and there is no undo, so the
+           question is worth one extra click even on a row that looks empty — what looks
+           empty from the outside is not the user's own reading of it.
+
+           data-confirm carries the noun for the prompt, data-confirm-article the
+           demonstrative it takes: German wants "dieser Immobilie" where it wants
+           "diesem Darlehen". */
+        const noun = button.dataset.confirm || 'Eintrag';
+        const article = button.dataset.confirmArticle || 'diesem';
+        if (!await confirmAction({
+          title: `${noun} löschen?`,
+          text: `Alle eingegebenen Informationen zu ${article} ${noun} werden `
+            + 'gelöscht. Das kann nicht rückgängig gemacht werden.',
+        })) return;
+
+        const list = row.parentElement;
+        row.remove();
+        if (list && list.id === 'stellplaetze') renumberStellplaetze();
+        if (list && list.id === 'kredite-liste') renumberKredite();
+        if (list && list.id === 'immobilien-liste') renumberImmobilien();
+        if (list && list.classList.contains('darlehen-liste')) renumberDarlehen(list);
+        if (list && list.classList.contains('dl-liste')) renumberDarlehenListe(list);
+        if (list && list.classList.contains('kinder-list')) syncKinderAdd(list);
+        if (list && list.classList.contains('einkommen-liste')) renumberEinkommen(list);
+        touched();
+      });
+    });
+  }
+
+  /* ------------------------------------------------------ German currency */
+
+  /* German input is 1.234,56 but people paste 1234.56 too, so a lone dot is
+     ambiguous. Read it as a thousands separator only when it is followed by
+     exactly three digits (1.234), otherwise as a decimal point (3450.5). */
+  function parseAmount(raw) {
+    let text = raw.trim().replace(/[\s\u00a0€]/g, '');
+    if (text.includes(',')) {
+      text = text.replace(/\./g, '').replace(',', '.');
+    } else if (/^-?\d{1,3}(\.\d{3})+$/.test(text)) {
+      text = text.replace(/\./g, '');
+    }
+    const value = Number.parseFloat(text.replace(/[^\d.-]/g, ''));
+    return Number.isFinite(value) ? value : null;
+  }
+
+  function wireCurrency(root) {
+    $$('.with-unit', root).forEach((wrap) => {
+      const unit = wrap.querySelector('.unit');
+      const input = wrap.querySelector('.input');
+      if (!input || !unit || unit.textContent.trim() !== '€' || input.dataset.wired) return;
+      input.dataset.wired = '1';
+      input.addEventListener('blur', () => {
+        if (!input.value.trim()) return;
+        const value = parseAmount(input.value);
+        if (value === null) return;
+        input.value = value.toLocaleString('de-DE',
+          { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      });
+    });
+  }
+
+  /* ------------------------------------------------------ Einheit am Betrag */
+
+  /* Ein Betrag, dessen Einheit Teil der Antwort ist: die Maklerprovision wird mal als
+     Satz und mal als Summe genannt. Die Auswahl steht als eigenes Feld daneben statt
+     als Aufsatz auf dem Betragsfeld — so bleibt .with-unit das, was es ist, und beide
+     Angaben stehen in der Pruefliste. Das Suffix folgt der Auswahl, sonst behauptet
+     am Feld eine Einheit etwas anderes als die Auswahl daneben.
+
+     data-unit-for zeigt auf das Betragsfeld; dessen .unit ist das Geschwister im
+     selben .with-unit. Ein Template-Klon braeuchte hier einen Index im Selektor —
+     bisher gibt es dieses Paar nur einmal, in den Finanzierungsdetails. */
+  function wireUnitPickers(root) {
+    $$('select[data-unit-for]', root).forEach((select) => {
+      if (select.dataset.wiredUnit) return;
+      select.dataset.wiredUnit = '1';
+      const target = $(select.dataset.unitFor);
+      const unit = target && target.parentElement.querySelector(':scope > .unit');
+      if (!unit) return;
+      const sync = () => { unit.textContent = select.value; };
+      select.addEventListener('change', sync);
+      sync();
+    });
+  }
+
+  /* ----------------------------------------------------------- date fields */
+
+  /* Every date in the form stays a text field: an adviser typing 14.03.1988 is
+     faster than any calendar, and tt.mm.jjjj is the form the placeholder promises.
+     The calendar is the second way in, not a replacement — hence a button inside the
+     field rather than a different control.
+
+     It is built here instead of written into the markup, so a date inside a
+     repeatable template gets one too, and the placeholder is what says which kind of
+     date is being asked for:
+
+       tt.mm.jjjj   a day    — day grid, with the month and year grids behind it
+       mm.jjjj      a month  — month grid, with the year grid behind it
+       jjjj         a year   — nothing. A year is not a date, and a calendar that can
+                               only pick one is a worse way to type four digits.
+
+     Deliberately not <input type="date">: the native picker brings its own field with
+     it — segments in the browser's order, its own placeholder, a value in ISO and a
+     control the design system has no say over — and the field, not the popup, is what
+     this form is documenting. */
+
+  const PICKER_MODES = { 'tt.mm.jjjj': 'day', 'mm.jjjj': 'month' };
+
+  const MONTH_LONG = new Intl.DateTimeFormat('de-DE', { month: 'long' });
+  const DATE_LONG = new Intl.DateTimeFormat('de-DE',
+    { day: 'numeric', month: 'long', year: 'numeric' });
+  /* Abbreviations come from the locale rather than a list typed out here, so "Mär"
+     and "Mo" are however this browser's ICU spells them. The trailing dot some
+     versions add is dropped: these sit in a grid, where the width is the point. */
+  const abbreviate = (options, date) =>
+    new Intl.DateTimeFormat('de-DE', options).format(date).replace(/\.$/, '');
+  const MONTHS_SHORT = [...Array(12)].map((_, month) =>
+    abbreviate({ month: 'short' }, new Date(2024, month, 1)));
+  // 1 January 2024 was a Monday, which is where the German week starts.
+  const WEEKDAYS = [...Array(7)].map((_, day) =>
+    abbreviate({ weekday: 'short' }, new Date(2024, 0, 1 + day)));
+
+  const pad2 = (number) => String(number).padStart(2, '0');
+  const daysInMonth = (year, month) => new Date(year, month + 1, 0).getDate();
+  const sameDay = (a, b) => a.toDateString() === b.toDateString();
+
+  const formatDateValue = (date, mode) => mode === 'day'
+    ? `${pad2(date.getDate())}.${pad2(date.getMonth() + 1)}.${date.getFullYear()}`
+    : `${pad2(date.getMonth() + 1)}.${date.getFullYear()}`;
+
+  /* What the field already says, if it says a date at all — the calendar opens on
+     that month rather than on today. Forgiving about the leading zero and the
+     separator, because 3.7.1985 and 3/7/1985 are both things hands type, and silent
+     about everything else: an unparseable field is not an error here, it only means
+     there is nothing to open on. A rolled-over date (31.02.) is rejected rather than
+     read as 3 March, which is what the Date constructor would make of it. */
+  function parseDateValue(raw, mode) {
+    const parts = String(raw).trim().split(/[^\d]+/).filter(Boolean).map(Number);
+    if (parts.length !== (mode === 'day' ? 3 : 2)) return null;
+    const [day, month, year] = mode === 'day' ? parts : [1, parts[0], parts[1]];
+    if (year < 1000 || year > 9999 || month < 1 || month > 12) return null;
+    const date = new Date(year, month - 1, day);
+    return date.getDate() === day && date.getMonth() === month - 1 ? date : null;
+  }
+
+  /* One at a time, and the page owns the dismissing: a click or a focus anywhere
+     outside the open calendar closes it, and Esc closes it back onto its button. */
+  let openPicker = null;
+
+  document.addEventListener('pointerdown', (event) => {
+    if (openPicker && !openPicker.wrap.contains(event.target)) openPicker.close(false);
+  });
+  /* focusin rather than the button's own blur: the calendar re-renders by replacing
+     its cells, which blurs the focused one on the way, and only a focus that lands
+     outside the whole thing means the user has left. */
+  document.addEventListener('focusin', (event) => {
+    if (openPicker && !openPicker.wrap.contains(event.target)) openPicker.close(false);
+  });
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && openPicker) openPicker.close(true);
+  });
+
+  const CALENDAR_ICON = '<svg class="ico-cal" viewBox="0 0 20 20" fill="none" '
+    + 'stroke="currentColor" stroke-width="1.6" stroke-linecap="round" '
+    + 'stroke-linejoin="round" aria-hidden="true"><rect x="3.25" y="4.75" width="13.5" '
+    + 'height="12" rx="2"/><path d="M3.25 8.75h13.5M7 3.25v3M13 3.25v3"/></svg>';
+
+  const chevronIcon = (direction) => '<svg viewBox="0 0 20 20" fill="none" '
+    + 'stroke="currentColor" stroke-width="1.8" stroke-linecap="round" '
+    + 'stroke-linejoin="round" aria-hidden="true"><path d="'
+    + (direction < 0 ? 'M12 5l-5 5 5 5' : 'M8 5l5 5-5 5') + '"/></svg>';
+
+  /* What the two arrows step by, and what the header says they step by, per level. */
+  const NAV_LABELS = {
+    days: ['Vorheriger Monat', 'Nächster Monat'],
+    months: ['Vorheriges Jahr', 'Nächstes Jahr'],
+    years: ['Vorherige zwölf Jahre', 'Nächste zwölf Jahre'],
+  };
+  const LEVELS = ['days', 'months', 'years'];
+  // Year pages are aligned to multiples of twelve, so paging back and forth always
+  // lands on the same run rather than drifting by wherever it was entered.
+  const yearPageStart = (year) => year - (((year % 12) + 12) % 12);
+
+  function createDatePicker(input, mode) {
+    const field = input.closest('.field');
+    const name = labelText(field && field.querySelector(':scope > label'))
+      || (input.getAttribute('aria-label') || '').trim();
+
+    const wrap = document.createElement('div');
+    wrap.className = 'with-picker';
+    input.parentNode.insertBefore(wrap, input);
+    wrap.appendChild(input);
+
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'picker-btn';
+    button.innerHTML = CALENDAR_ICON;
+    button.setAttribute('aria-haspopup', 'dialog');
+    button.setAttribute('aria-expanded', 'false');
+    button.setAttribute('aria-label', name ? `Kalender öffnen für ${name}` : 'Kalender öffnen');
+
+    const panel = document.createElement('div');
+    panel.className = 'calendar';
+    panel.id = uid('cal');
+    panel.hidden = true;
+    panel.setAttribute('role', 'dialog');
+    panel.setAttribute('aria-label', name ? `${name} wählen` : 'Datum wählen');
+    button.setAttribute('aria-controls', panel.id);
+
+    const prev = document.createElement('button');
+    const next = document.createElement('button');
+    [prev, next].forEach((nav, index) => {
+      nav.type = 'button';
+      nav.className = 'cal-nav';
+      nav.innerHTML = chevronIcon(index === 0 ? -1 : 1);
+    });
+    /* The header label is the way out of the level you are in: a day grid zooms to
+       its year's months, and those to a run of twelve years. Without it a birthdate
+       is four hundred clicks on the back arrow. */
+    const zoom = document.createElement('button');
+    zoom.type = 'button';
+    zoom.className = 'cal-zoom';
+
+    const head = document.createElement('div');
+    head.className = 'cal-head';
+    head.append(prev, zoom, next);
+
+    const body = document.createElement('div');
+    body.className = 'cal-body';
+    panel.append(head, body);
+    wrap.append(button, panel);
+
+    // A month field starts one level up: the day is not being asked for.
+    const firstLevel = mode === 'day' ? 'days' : 'months';
+    let level = firstLevel;
+    let cursor = new Date();
+    let selected = null;
+    let cells = [];
+    let columns = 7;
+
+    /* Every level compares dates at its own resolution: in the month grid, "the
+       selected one" means the month the answer falls in, not its day. */
+    function sameCell(a, b) {
+      if (!a || !b) return false;
+      if (level === 'years') return a.getFullYear() === b.getFullYear();
+      if (level === 'months') {
+        return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth();
+      }
+      return sameDay(a, b);
+    }
+
+    // One cell to the side, in whatever a cell means at this level.
+    function shift(date, delta) {
+      if (level === 'years') return new Date(date.getFullYear() + delta, date.getMonth(), 1);
+      if (level === 'months') return new Date(date.getFullYear(), date.getMonth() + delta, 1);
+      return new Date(date.getFullYear(), date.getMonth(), date.getDate() + delta);
+    }
+
+    function makeCell({ date, text, aria, outside }) {
+      const cell = document.createElement('button');
+      cell.type = 'button';
+      cell.className = 'cal-cell';
+      cell.textContent = text;
+      cell.setAttribute('aria-label', aria);
+      cell.setAttribute('aria-pressed', String(sameCell(date, selected)));
+      // The role aria-current="date" was written for: today inside a calendar.
+      if (sameCell(date, new Date())) cell.setAttribute('aria-current', 'date');
+      if (outside) cell.dataset.outside = '';
+      cell.addEventListener('click', () => pick(date));
+      cells.push({ button: cell, date });
+      return cell;
+    }
+
+    /* Always six weeks, including the days either side of the month: the panel keeps
+       one height as it is paged through, and the week a month starts in is whole. */
+    function renderDays() {
+      const table = document.createElement('table');
+      table.className = 'cal-days';
+
+      const header = document.createElement('tr');
+      WEEKDAYS.forEach((day) => {
+        const th = document.createElement('th');
+        th.scope = 'col';
+        th.textContent = day;
+        header.appendChild(th);
+      });
+      const thead = document.createElement('thead');
+      thead.appendChild(header);
+
+      const firstOfMonth = new Date(cursor.getFullYear(), cursor.getMonth(), 1);
+      const lead = (firstOfMonth.getDay() + 6) % 7;   // getDay() counts from Sunday
+      const tbody = document.createElement('tbody');
+      for (let week = 0; week < 6; week++) {
+        const row = document.createElement('tr');
+        for (let day = 0; day < 7; day++) {
+          const date = new Date(firstOfMonth.getFullYear(), firstOfMonth.getMonth(),
+            1 - lead + week * 7 + day);
+          const td = document.createElement('td');
+          td.appendChild(makeCell({
+            date,
+            text: String(date.getDate()),
+            aria: DATE_LONG.format(date),
+            outside: date.getMonth() !== cursor.getMonth(),
+          }));
+          row.appendChild(td);
+        }
+        tbody.appendChild(row);
+      }
+
+      table.append(thead, tbody);
+      body.appendChild(table);
+      columns = 7;
+    }
+
+    function renderBlocks() {
+      const grid = document.createElement('div');
+      grid.className = 'cal-blocks';
+      const start = yearPageStart(cursor.getFullYear());
+      for (let index = 0; index < 12; index++) {
+        const date = level === 'months'
+          ? new Date(cursor.getFullYear(), index, 1)
+          : new Date(start + index, 0, 1);
+        grid.appendChild(makeCell({
+          date,
+          text: level === 'months' ? MONTHS_SHORT[index] : String(start + index),
+          aria: level === 'months'
+            ? `${MONTH_LONG.format(date)} ${date.getFullYear()}`
+            : String(start + index),
+        }));
+      }
+      body.appendChild(grid);
+      columns = 3;
+    }
+
+    function headLabel() {
+      if (level === 'days') return `${MONTH_LONG.format(cursor)} ${cursor.getFullYear()}`;
+      if (level === 'months') return String(cursor.getFullYear());
+      const start = yearPageStart(cursor.getFullYear());
+      return `${start}–${start + 11}`;
+    }
+
+    /* focusOn: a Date to put the keyboard on, true for the obvious cell — the answer,
+       else today, else the first of the month — or null to leave focus where it is,
+       which is what the arrows at the top need: they are being clicked. */
+    function render(focusOn) {
+      cells = [];
+      body.textContent = '';
+      if (level === 'days') renderDays(); else renderBlocks();
+
+      zoom.textContent = headLabel();
+      zoom.disabled = level === 'years';          // nothing further to zoom out to
+      zoom.setAttribute('aria-label', level === 'years'
+        ? headLabel() : `${headLabel()} — Auswahl erweitern`);
+      prev.setAttribute('aria-label', NAV_LABELS[level][0]);
+      next.setAttribute('aria-label', NAV_LABELS[level][1]);
+
+      const target = (focusOn instanceof Date
+        && cells.find((cell) => sameCell(cell.date, focusOn)))
+        || cells.find((cell) => cell.button.getAttribute('aria-pressed') === 'true')
+        || cells.find((cell) => cell.button.hasAttribute('aria-current'))
+        || cells.find((cell) => !('outside' in cell.button.dataset))
+        || cells[0];
+      // one stop in the tab order for the whole grid; the arrows move within it
+      cells.forEach((cell) => { cell.button.tabIndex = cell === target ? 0 : -1; });
+      if (focusOn && target) target.button.focus();
+    }
+
+    function page(direction, keepFocus) {
+      if (level === 'days') {
+        const month = cursor.getMonth() + direction;
+        const year = cursor.getFullYear();
+        // 31 January one month on is 28 or 29 February, not 3 March
+        cursor = new Date(year, month,
+          Math.min(cursor.getDate(), daysInMonth(year, month)));
+      } else if (level === 'months') {
+        cursor = new Date(cursor.getFullYear() + direction, cursor.getMonth(), 1);
+      } else {
+        cursor = new Date(cursor.getFullYear() + direction * 12, cursor.getMonth(), 1);
+      }
+      render(keepFocus ? cursor : null);
+    }
+
+    /* Picking at a level that is not the answer zooms back in one step instead of
+       filling the field: a year is chosen to get at its months. */
+    function pick(date) {
+      if (level === 'years') {
+        cursor = new Date(date.getFullYear(), cursor.getMonth(), 1);
+        level = 'months';
+        render(true);
+        return;
+      }
+      if (level === 'months' && mode === 'day') {
+        cursor = new Date(date.getFullYear(), date.getMonth(), 1);
+        level = 'days';
+        render(true);
+        return;
+      }
+      input.value = formatDateValue(date, mode);
+      // the same two events a keystroke fires, so the save state and any conditional
+      // hanging off the field hear about it
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+      validate(input);
+      close(false);
+      // back to the field rather than to the button: the answer is now in it, and
+      // the caret sits behind what was just written in case it needs correcting
+      input.focus();
+      input.setSelectionRange(input.value.length, input.value.length);
+    }
+
+    function open() {
+      if (openPicker && openPicker !== api) openPicker.close(false);
+      selected = parseDateValue(input.value, mode);
+      cursor = selected || new Date();
+      level = firstLevel;
+      panel.hidden = false;
+      button.setAttribute('aria-expanded', 'true');
+      /* Left-aligned under the field, unless that would push it off the right of the
+         window — a date in the last column of a narrow layout. Measured rather than
+         guessed, because the field's own width says nothing about where it sits. */
+      delete panel.dataset.align;
+      if (panel.getBoundingClientRect().right > document.documentElement.clientWidth - 8) {
+        panel.dataset.align = 'end';
+      }
+      openPicker = api;
+      render(true);
+    }
+
+    function close(returnFocus) {
+      if (panel.hidden) return;
+      panel.hidden = true;
+      button.setAttribute('aria-expanded', 'false');
+      if (openPicker === api) openPicker = null;
+      if (returnFocus) button.focus();
+    }
+
+    const api = { wrap, close };
+
+    button.addEventListener('click', () => (panel.hidden ? open() : close(true)));
+    // the combobox convention, so the calendar is reachable without leaving the field
+    input.addEventListener('keydown', (event) => {
+      if (event.altKey && event.key === 'ArrowDown') {
+        event.preventDefault();
+        open();
+      }
+    });
+
+    /* What is typed is tidied on the way out, the way an amount is: 3.7.1985 is what
+       a hand types, 03.07.1985 is what the field promises. Anything that is not a
+       date is left exactly as it was — saying so is validation's job, not this. */
+    input.addEventListener('blur', () => {
+      const date = parseDateValue(input.value, mode);
+      if (date) input.value = formatDateValue(date, mode);
+    });
+
+    prev.addEventListener('click', () => page(-1, false));
+    next.addEventListener('click', () => page(1, false));
+    zoom.addEventListener('click', () => {
+      level = LEVELS[LEVELS.indexOf(level) + 1] || level;
+      render(true);
+    });
+
+    body.addEventListener('keydown', (event) => {
+      const index = cells.findIndex((cell) => cell.button === event.target);
+      if (index < 0) return;
+      if (event.key === 'PageUp' || event.key === 'PageDown') {
+        event.preventDefault();
+        page(event.key === 'PageUp' ? -1 : 1, true);
+        return;
+      }
+      /* Home and End stay inside the row — the week, or the row of three. Moving off
+         an edge is not blocked: it pages to the neighbouring month and lands on the
+         day it was heading for, so a run of arrow keys crosses months by itself. */
+      const column = index % columns;
+      const delta = {
+        ArrowLeft: -1, ArrowRight: 1, ArrowUp: -columns, ArrowDown: columns,
+        Home: -column, End: columns - 1 - column,
+      }[event.key];
+      if (delta === undefined) return;
+      event.preventDefault();
+      cursor = shift(cells[index].date, delta);
+      render(cursor);
+    });
+  }
+
+  function buildDatePickers(root) {
+    $$('.input', root).forEach((input) => {
+      const mode = PICKER_MODES[(input.placeholder || '').trim()];
+      if (!mode || input.dataset.picker) return;
+      input.dataset.picker = mode;
+      createDatePicker(input, mode);
+    });
+  }
+
+  /* ---------------------------------------------- collapsible cards */
+
+  /* A required control counts towards its card whether or not the card is open, but
+     NOT while it sits in a closed conditional or an inactive finance-type section —
+     the form is not asking for it yet. Deliberately not an offsetParent test, which
+     would also discount every field in a collapsed card. [data-inactive] is the same
+     idea for a control switched off in place rather than revealed — an amount whose
+     position has not been ticked. [hidden] is the third: a field that does not apply
+     to the Immobilienart on the table, and the object card while no object is known.
+     Three ways to not be asked, one rule that reads all of them. */
+  const isAsked = (control) =>
+    !control.closest('.reveal:not(.open), [data-inactive], [hidden]');
+
+  /* The form has five collapsible steps, and only those five: everything the sidebar
+     lists under one of them is a .subsection-static, shown outright with the card it
+     lives in, so expanding a card never leaves a row of shut sub-headers to click
+     through. No sub-section carries a toggle today; the recursion below stays because
+     the machinery for one that does (.subsection) is intact — state propagates
+     downwards, never up, and sub-sections do not nest further. */
+  function setCardOpen(card, open) {
+    const toggle = card.querySelector(':scope > .card-head > .card-toggle');
+    // The summary and the confirmation are built from the same card, minus the
+    // toggle: they are always open, so there is no state to write and nothing to
+    // announce. Guarded here rather than at every call site, since revealCard
+    // walks whatever chain of cards it is handed.
+    if (!toggle) return;
+    card.dataset.open = String(open);
+    toggle.setAttribute('aria-expanded', String(open));
+    if (!open) delete card.dataset.settled;
+    $$('.subsection', card).forEach((sub) => setCardOpen(sub, open));
+  }
+
+  function wireCards() {
+    $$('.card').forEach((card) => {
+      const toggle = card.querySelector(':scope > .card-head > .card-toggle');
+      const body = card.querySelector(':scope > .card-body');
+      if (!toggle || !body) return;   // .card-static — see setCardOpen
+
+      toggle.addEventListener('click', () =>
+        setCardOpen(card, card.dataset.open !== 'true'));
+
+      // overflow clipping is only needed while the height animates. A sub-section's
+      // own transitionend bubbles up through here, and it says nothing about whether
+      // the card around it has finished growing — only this body's does.
+      body.addEventListener('transitionend', (event) => {
+        if (event.target !== body) return;
+        if (event.propertyName === 'grid-template-rows' && card.dataset.open === 'true') {
+          card.dataset.settled = 'true';
+        }
+      });
+      if (card.dataset.open === 'true') card.dataset.settled = 'true';
+    });
+  }
+
+  /* Opens every card a node lives in, outermost first, so focusing the node can never
+     land on something hidden. One level in practice — the step — but it walks the whole
+     chain so a nested collapsible would be handled too. Used by the nav and the
+     submit check. */
+  function revealCard(node) {
+    const cards = [];
+    for (let card = node && node.closest('.card'); card;
+         card = card.parentElement && card.parentElement.closest('.card')) {
+      cards.unshift(card);
+    }
+    cards.forEach((card) => { if (card.dataset.open !== 'true') setCardOpen(card, true); });
+    return cards[cards.length - 1] || null;
+  }
+
+  /* ------------------------------------------------------ Start-Kaskade */
+
+  const zweck = $('#zweck');
+  const gefunden = $('#gefunden');
+
+  const SECTION_FOR = {
+    'neubau-bautraeger': 'neubau',
+    'bauvorhaben': 'neubau',
+    'modernisierung': 'modernisierung',
+    'anschluss': 'anschluss',
+    'kapitalbeschaffung': 'kapital',
+  };
+
+  function updateStart() {
+    const purpose = zweck.value;
+    const found = (gefunden.querySelector('input:checked') || {}).value;
+    // A concrete object exists for new-builds and own projects outright, and for
+    // a purchase only once the buyer has actually found the property.
+    // A modernisation is of a property already owned, so it is known too: its art
+    // decides Etage and Wohnungsanzahl, its Nutzung whether a rent is asked.
+    // Anschlussfinanzierung und Kapitalbeschaffung ebenso: das Objekt steht und gehoert
+    // der Antragstellerin, also sind Art und Nutzung bekannt — und die Bank braucht beide
+    // fuer jede Beleihung. Unbekannt ist ein Objekt nur beim Kauf, solange keines
+    // gefunden ist.
+    const objectKnown = purpose !== 'kauf' || found === 'Ja';
+
+    openReveal($('#c-gefunden'), purpose === 'kauf');
+    openReveal($('#c-immobilienart'), objectKnown);
+    openReveal($('#c-nutzung'), objectKnown);
+
+    let key = SECTION_FOR[purpose] || null;
+    if (purpose === 'kauf') key = found === 'Ja' ? 'immobilie' : null;
+
+    /* data-for ist eine „|“-Liste wie jedes andere „when“ im Formular, nicht ein
+       einzelner Schluessel: der Objektblock „immobilie“ beschreibt ein BESTEHENDES
+       Gebaeude, und das gibt es bei Anschlussfinanzierung, Modernisierung und
+       Kapitalbeschaffung genauso wie beim Kauf — nur beim Neubau noch nicht. Vorher
+       stand hier ===, also sah genau ein Zweck die 39 Objektfragen und die anderen
+       drei ein Geruest aus zwei, drei Feldern. */
+    $$('.object-section').forEach((s) => openReveal(s, matchesAny(s.dataset.for || '', key)));
+
+    /* Die Finanzierungsdetails fragen vor dem Darlehen nach dem, was finanziert wird, und
+       das ist je Zweck etwas anderes: ein Kaufpreis, oder ein Grundstueck plus Baukosten.
+       Bewusst am ROHEN purpose und nicht an key: SECTION_FOR wirft „Neubau vom
+       Bautraeger“ und „Eigenes Bauvorhaben“ auf denselben Objektabschnitt, hier fragen
+       die beiden Verschiedenes. Und anders als dort haengt der Block NICHT an
+       objectKnown — der Kaufpreis wird auch gefragt, solange noch keine Immobilie
+       gefunden ist; genau dafuer sagt sein Hilfetext „dann Ihr maximales Budget“. */
+    $$('.zweck-section').forEach((s) => openReveal(s, matchesAny(s.dataset.zweck, purpose)));
+
+    /* Einzelne Felder im geteilten Teil gelten nicht fuer jeden Zweck: Eigenkapital und
+       Laufzeit sind bei einer Anschlussfinanzierung keine Frage, weil dort ein laufendes
+       Darlehen abgeloest und nicht eines aufgebaut wird. Ein ganzer Zweck-Block waere
+       dafuer zu viel — das Feld traegt die Ausnahme selbst, genau wie [data-art] im
+       Immobilienabschnitt, und `hidden` ist eine der drei Arten, auf die ein Feld nicht
+       gefragt ist (siehe isAsked). Damit faellt es auch aus Pflichtfeldzaehlung und
+       Pruefliste. */
+    $$('[data-zweck-not]').forEach((el) => syncHidden(el));
+    /* Fragen, die ein konkretes Objekt voraussetzen (Maklergebuehr, geplante
+       Modernisierung): beim Kauf ohne gefundene Immobilie warten sie wie die
+       Objektkarte, statt als Pflichtfeld nach etwas zu fragen, das es noch nicht gibt. */
+    $$('[data-needs-object]').forEach((el) => syncHidden(el));
+    /* Manche geteilten Fragen sind beim Neubau anders formuliert („ist oder waere“),
+       gefragt wird dasselbe. Getauscht wird der Text selbst, nicht ein zweites Feld
+       gezeigt: so lesen Pruefliste, Info-Icon und Beispieldaten immer die Fassung,
+       die gerade dasteht. */
+    $$('[data-text-for]').forEach((el) => {
+      if (!('defaultText' in el.dataset)) el.dataset.defaultText = el.textContent;
+      el.textContent = matchesAny(el.dataset.textFor, purpose) ? el.dataset.text : el.dataset.defaultText;
+    });
+    /* The five object sub-sections all live in one card now, so with no object known
+       the card has nothing left to show and goes away with them — an empty
+       "Finanzierungsobjekt" header would otherwise sit there expanding into nothing.
+       Its nav entry is an .object-nav without a data-navfor: it stands for whichever
+       object applies, so it shows whenever any of them does. */
+    $('#objekt').hidden = !key;
+    $$('.nav a.object-nav').forEach((a) => a.classList.toggle('show',
+      'navfor' in a.dataset ? matchesAny(a.dataset.navfor, key) : !!key));
+  }
+
+  /* Zwei Schalter koennen an DEMSELBEN Feld haengen: die Immobilienart (data-art) und
+     der Finanzierungszweck (data-zweck-not). Beide setzen `hidden`, also faellt die
+     Entscheidung hier an einer Stelle — sonst ueberschreibt der zuletzt gelaufene den
+     anderen, und ein Feld, das der Zweck wegnimmt, kommt beim naechsten Artwechsel
+     zurueck. Versteckt ist, was EINE der beiden Bedingungen verlangt. */
+  function hiddenByArt(el) {
+    const list = el.dataset.art;
+    if (!list) return false;
+    const inverted = list.startsWith('!');
+    const listed = matchesAny(inverted ? list.slice(1) : list, immobilienart.value);
+    return inverted ? listed : !listed;
+  }
+
+  function hiddenByZweck(el) {
+    return !!el.dataset.zweckNot && matchesAny(el.dataset.zweckNot, zweck.value);
+  }
+
+  /* Ein Feld, das ein konkretes Objekt braucht, ist beim Kauf ohne gefundene Immobilie
+     nicht gefragt — dieselbe Bedingung, die die Objektkarte versteckt. */
+  function hiddenByObject(el) {
+    if (!('needsObject' in el.dataset)) return false;
+    const found = (gefunden.querySelector('input:checked') || {}).value;
+    return zweck.value === 'kauf' && found !== 'Ja';
+  }
+
+  function syncHidden(el) {
+    el.hidden = hiddenByArt(el) || hiddenByZweck(el) || hiddenByObject(el);
+  }
+
+  /* ------------------------------------------------------- Immobilienart */
+
+  /* Which fields the Immobilie section asks for depends on the Immobilienart. A
+     Grundstück has no Baujahr, no Wohnfläche, no Etage and no Bauweise: there is no
+     building yet to have any of them, and a field that cannot be answered is worse
+     than a field that is not there. So each element that is not for every art carries
+     `data-art` — a "|"-separated list of the arts it belongs to, or "!" followed by
+     the arts it does not, which is the shorter half to write when one art is the
+     exception rather than the rule.
+
+     Deliberately `hidden` rather than a .reveal: the fields that come and go are
+     scattered through the section between fields that always apply, and a reveal can
+     only take a contiguous block. Hidden is one of the three ways a control stops
+     being asked for — see isAsked — so a field that does not apply leaves the
+     Pflichtfeld count, the submit check and the summary with it. Values are left
+     where they are, exactly as a closing reveal leaves them: switching back and
+     forth between two arts must not quietly empty what was already typed. */
+  const immobilienart = $('#immobilienart');
+
+  function syncImmobilienart() {
+    const art = immobilienart.value;
+    $$('[data-art]').forEach((el) => syncHidden(el));
+    /* Objektadresse hangs off the Wohnort answer, but the Wohnort question is one of
+       the fields an art can take away — a Grundstück is not asked it. So the block has
+       two ways to open, the answer and the art, and both are re-read here: switching
+       away from Grundstück has to hand the block back to whatever the answer says,
+       not leave it standing open. */
+    const wohnort = $('input[name="i-wohnort"]:checked');
+    /* Beim Kauf wohnt noch niemand im Objekt, also gibt es keine Adresse, die man
+       uebernehmen koennte: die Objektadresse wird immer gefragt. Die Ja/Nein-Frage
+       davor ist fuer den Kauf per data-zweck-not weg. */
+    openReveal($('#c-objektadresse'),
+      /* V6.1 (MAVS-1468): die Anschlussfinanzierung bekommt den Immobilien-Block „genau
+         wie der Kauf“ — also ohne die Wohnadressen-Frage, die Adresse wird immer gefragt. */
+      art === 'Grundstück' || zweck.value === 'kauf' || zweck.value === 'anschluss'
+        || (!!wohnort && wohnort.value === 'Nein'));
+
+    /* The sidebar says which art is being described, the same way the Antragsteller
+       entry picks up the first name — see refreshTitles. The section heading keeps
+       its own name: the nav is the place a reader is scanning for where they are. */
+    $('#immo-nav-title').textContent = art ? `Immobilie · ${art}` : 'Immobilie';
+  }
+
+  /* -------------------------------------------------------- Antragsteller */
+
+  let applicantCount = 1;
+
+  function refreshTitles(number) {
+    const panel = $(`.applicant[data-applicant="${number}"]`);
+    if (!panel) return;
+    const value = (role) => {
+      const input = panel.querySelector(`[data-role="${role}"]`);
+      return input ? input.value.trim() : '';
+    };
+    const name = `${value('vorname')} ${value('nachname')}`.trim();
+    $$(`.applicant[data-applicant="${number}"] .applicant-title`).forEach((el) => {
+      el.textContent = `Antragsteller ${number}` + (name ? ` – ${name}` : '');
+    });
+    // The sidebar entry for the Antragsteller step picks up person 1's first name once
+    // it is known, so a form filled for two people is easier to place at a glance.
+    if (number === 1) {
+      const first = value('vorname');
+      $('#person-group-title').textContent =
+        first ? `Antragsteller · ${first}` : 'Antragsteller';
+    }
+  }
+
+  /* Applicant 2 is a copy of applicant 1's markup. Every id and every reference
+     to one is suffixed so the copy stays independently labelled, and the
+     autocomplete tokens move into their own section so browsers do not offer
+     person 1's details for person 2. */
+  function cloneApplicant(container) {
+    const source = container.querySelector('.applicant[data-applicant="1"]');
+    const copy = source.cloneNode(true);
+    const suffix = `-a2-${container.dataset.applicants}`;
+
+    copy.dataset.applicant = '2';
+    $$('[id]', copy).forEach((el) => { el.id += suffix; });
+    $$('label[for]', copy).forEach((el) => { el.htmlFor += suffix; });
+    ['aria-describedby', 'aria-labelledby'].forEach((attr) => {
+      $$(`[${attr}]`, copy).forEach((el) => {
+        el.setAttribute(attr, el.getAttribute(attr)
+          .split(/\s+/).map((token) => token + suffix).join(' '));
+      });
+    });
+    $$('input[name]', copy).forEach((el) => { el.name += suffix; });
+    $$('[autocomplete]', copy).forEach((el) => {
+      el.setAttribute('autocomplete', `section-antragsteller2 ${el.getAttribute('autocomplete')}`);
+    });
+    // ids inside the copy gained `suffix`, so the selectors that point at them must too
+    $$('[data-controls]', copy).forEach((el) => { el.dataset.controls += suffix; });
+    $$('[data-switch]', copy).forEach((el) => { el.dataset.switch += suffix; });
+
+    // Applicant 2 starts blank — including which amount positions are picked. A
+    // checkbox is cleared by unticking it, not by wiping its value; a locked one
+    // is ticked by definition and stays that way.
+    $$('input', copy).forEach((el) => {
+      if (el.type === 'radio') el.checked = false;
+      else if (el.type === 'checkbox') el.checked = 'locked' in el.dataset;
+      else el.value = '';
+    });
+    $$('select', copy).forEach((el) => { el.selectedIndex = 0; });
+    $$('.reveal', copy).forEach((el) => el.classList.remove('open', 'settled'));
+    $$('[data-wired], [data-wired-switch]', copy).forEach((el) => {
+      delete el.dataset.wired;
+      delete el.dataset.wiredSwitch;
+    });
+    /* The calendar beside a date field is generated furniture, and cloneNode copies
+       nodes but not the listeners behind them — a copied button would sit there doing
+       nothing. So the copy is unwrapped back to the plain input it was built from and
+       hydrate builds a live one, the same reasoning as the [data-wired] flags above. */
+    $$('.with-picker', copy).forEach((wrap) => {
+      const input = wrap.querySelector('.input');
+      delete input.dataset.picker;
+      wrap.replaceWith(input);
+    });
+    $$('.child-row, .einkommen-row', copy).forEach((el) => el.remove());
+
+    const head = copy.querySelector('.applicant-head');
+    head.querySelector('.applicant-title').textContent = 'Antragsteller 2';
+    const remove = document.createElement('button');
+    remove.type = 'button';
+    remove.className = 'icon-btn';
+    remove.setAttribute('aria-label', 'Antragsteller 2 entfernen');
+    remove.innerHTML = TRASH_ICON;
+    remove.addEventListener('click', requestRemoveApplicant2);
+    head.appendChild(remove);
+
+    container.appendChild(copy);
+    hydrate(copy);
+    wireNameEcho(copy);
+  }
+
+  /* ------------------------------------------- Adresse wie bei Antragsteller 1
+
+     Zwei Antragsteller wohnen in den meisten Fällen zusammen, und die zweite Adresse
+     ist dann Zeichen für Zeichen die erste. Das Häkchen nimmt sie herüber, statt sie
+     abtippen zu lassen.
+
+     Übernommen wird, was zur Anschrift gehört: Straße, Hausnummer, PLZ, Ort.
+     „Wohnhaft seit“ nicht — das ist ein Datum pro Person, und wer zusammenzieht,
+     zieht selten am selben Tag ein.
+
+     Die vier Felder bleiben stehen und lesbar und werden nur zurückgenommen, genau
+     wie eine nicht angekreuzte Betragszeile: data-inactive nimmt sie aus der
+     Pflichtfeld-Zählung (siehe isAsked) und lässt die Füllung zurücktreten.
+     Schreibgeschützt sind sie dazu, weil sonst dort etwas anderes stünde, als das
+     Häkchen behauptet — aber erreichbar, damit man die übernommene Adresse auch mit
+     der Tastatur lesen kann.
+
+     Es ist keine einmalige Kopie: solange das Häkchen steht, geht jede spätere
+     Änderung bei Antragsteller 1 mit. Und was vorher dastand, wird beim Setzen
+     gemerkt und beim Abwählen zurückgelegt — das Häkchen ist eine Übernahme, kein
+     Löschen. */
+  const SAME_ADDRESS = '[data-same-address]';
+  const ownAddress = new WeakMap();
+
+  /* Antragsteller 2 wird angelegt und wieder gelöscht, beides beliebig oft. Deshalb
+     hängt hier nichts an den Feldern selbst — die Verdrahtung steht einmal unten am
+     Dokument, und gesucht wird das Paar jedes Mal neu. */
+  function sameAddressPair() {
+    const box = $(`.applicant[data-applicant="2"] ${SAME_ADDRESS}`);
+    if (!box) return null;
+    const second = box.closest('.applicant');
+    const first = box.closest('.applicants').querySelector('.applicant[data-applicant="1"]');
+    return {
+      box,
+      fields: $$('[data-adr]', second).map((target) => ({
+        target,
+        source: first.querySelector(`[data-adr="${target.dataset.adr}"]`),
+      })),
+    };
+  }
+
+  function syncSameAddress() {
+    const pair = sameAddressPair();
+    if (!pair || !pair.box.checked) return;
+    pair.fields.forEach(({ target, source }) => {
+      target.value = source.value;
+      /* Eine rote Meldung, die nicht mehr stimmt, muss weg. Eine neue kann hier nicht
+         entstehen: leer ist die übernommene Adresse nur, solange sie bei Antragsteller
+         1 leer ist — und dort fehlt sie dann auch und wird dort angemahnt. */
+      if (target.closest('.field').classList.contains('invalid')) validate(target);
+    });
+    touched();
+  }
+
+  function applySameAddress() {
+    const pair = sameAddressPair();
+    if (!pair) return;
+    const on = pair.box.checked;
+
+    pair.fields.forEach(({ target }) => {
+      if (on) ownAddress.set(target, target.value);
+      else target.value = ownAddress.get(target) ?? '';
+      target.readOnly = on;
+      target.closest('.field').toggleAttribute('data-inactive', on);
+    });
+
+    if (on) syncSameAddress();
+    else touched();
+  }
+
+  function wireNameEcho(panel) {
+    $$('[data-role]', panel).forEach((input) =>
+      input.addEventListener('input', () => refreshTitles(Number(panel.dataset.applicant))));
+  }
+
+  /* The one way out of two applicants, wherever it is asked for: the trash button
+     in the panel head and answering "Alleine" again both land here. It asks every time,
+     like every other delete — person 2 is spread over one panel per card, so what the
+     click throws away is never all on screen at once. Resolves false if the user
+     backs out. */
+  async function requestRemoveApplicant2() {
+    if (!await confirmAction({
+      title: 'Antragsteller 2 löschen?',
+      text: 'Alle eingegebenen Informationen zu Antragsteller 2 werden '
+        + 'gelöscht. Das kann nicht rückgängig gemacht werden.',
+    })) return false;
+    setApplicants(1);
+    return true;
+  }
+
+  function setApplicants(count) {
+    applicantCount = count;
+    $$('[data-applicants]').forEach((container) => {
+      const second = container.querySelector('.applicant[data-applicant="2"]');
+      if (count === 2) {
+        if (!second) cloneApplicant(container);
+        container.classList.add('two');
+      } else {
+        if (second) second.remove();
+        container.classList.remove('two');
+      }
+    });
+    $('#add-applicant').hidden = count === 2;
+    const picked = $(`#darlehensnehmer input[value="${count}"]`);
+    if (picked) picked.checked = true;
+    refreshTitles(1);
+    refreshTitles(2);
+    touched();
+  }
+
+  /* ------------------------------------------------- repeatable sub-groups */
+
+  function addFromTemplate(templateId, list) {
+    const node = $(`#${templateId}`).content.firstElementChild.cloneNode(true);
+    list.appendChild(node);
+    hydrate(node);
+    return node;
+  }
+
+  /* Anschlussfinanzierung und Kapitalbeschaffung fragen beide nach dem, was auf dem
+     Objekt noch laeuft, und fragen es gleich — eine Vorlage, eine Verdrahtung, zwei
+     Listen. Der Knopf sagt mit data-adds, welche Liste er fuellt, und mit data-gate,
+     welche Ja/Nein-Frage davor steht; damit kommt ein dritter Zweck ohne eine Zeile
+     hier aus. */
+  function renumberDarlehenListe(list) {
+    $$('.an-dl-title', list).forEach((title, index) => {
+      title.textContent = `Darlehen ${index + 1}`;
+    });
+    const add = $(`.add-btn[data-adds="#${list.id}"]`);
+    if (add) {
+      add.textContent = list.children.length
+        ? '+ Weiteres Darlehen ergänzen'
+        : '+ Darlehen erfassen';
+    }
+  }
+
+  function wireDarlehenListen(root) {
+    $$('.add-btn[data-adds]', root).forEach((button) => {
+      if (button.dataset.wired) return;
+      button.dataset.wired = '1';
+      const list = $(button.dataset.adds);
+      if (!list) return;
+      button.addEventListener('click', () => {
+        addFromTemplate('tpl-an-darlehen', list);
+        renumberDarlehenListe(list);
+      });
+      /* Ohne data-gate steht keine Vorfrage davor: die Liste gehoert zum Zweck selbst
+         (Anschlussfinanzierung), also kommt die erste Karte gleich mit. Mit Vorfrage ist
+         „Ja“ die Aussage, dass ein Darlehen laeuft — dann kommt die erste Karte mit der
+         Antwort und nicht erst mit einem weiteren Klick. Beides nur bei leerer Liste:
+         ein erneutes Oeffnen darf nichts ueberschreiben. */
+      if (!button.dataset.gate) {
+        if (!list.children.length) addFromTemplate('tpl-an-darlehen', list);
+      } else {
+        $$(`input[type="radio"][name="${button.dataset.gate}"]`).forEach((radio) =>
+          radio.addEventListener('change', () => {
+            if (radio.checked && radio.value === 'Ja' && !list.children.length) {
+              addFromTemplate('tpl-an-darlehen', list);
+            }
+            renumberDarlehenListe(list);
+          }));
+      }
+      renumberDarlehenListe(list);
+    });
+  }
+
+  function renumberStellplaetze() {
+    $$('#stellplaetze .sp-title').forEach((title, index) => {
+      title.textContent = `Stellplatz ${index + 1}`;
+    });
+  }
+
+  /* Answering "Ja" already brings the first Kredit, so the button only ever adds a
+     further one and says so — same wording rule as the children list and the loans
+     under a property. It reads the list rather than counting clicks, so emptying it
+     puts the first-entry wording back. */
+  function renumberKredite() {
+    $$('#kredite-liste .kredit-title').forEach((title, index) => {
+      title.textContent = `Kredit ${index + 1}`;
+    });
+    $('#add-kredit').textContent = $('#kredite-liste').children.length
+      ? '+ weiteren Kredit ergänzen'
+      : '+ Kredit erfassen';
+  }
+
+  /* The Ja/Nein gate answers "are there any?", so the button underneath normally reads
+     "further". It still says which of the two it is doing, because removing the last
+     card leaves the gate open with an empty list — same wording rule as the children
+     list, read off the list rather than off a click count. */
+  function renumberImmobilien() {
+    $$('#immobilien-liste .im-title').forEach((title, index) => {
+      title.textContent = `Immobilie ${index + 1}`;
+    });
+    $('#add-immobilie').textContent = $('#immobilien-liste').children.length
+      ? '+ Weitere Immobilie erfassen'
+      : '+ Immobilie erfassen';
+  }
+
+  /* Weitere Einkommen belong to one applicant, so the numbering and the button are per
+     list — same shape as the loans below, with the reveal standing in for the property.
+     The wording is read off the list rather than off a click count, so deleting every
+     row puts the first-entry wording back. */
+  function renumberEinkommen(list) {
+    $$('.ek-title', list).forEach((title, index) => {
+      title.textContent = `Einkommen ${index + 1}`;
+    });
+    list.parentElement.querySelector('.einkommen-add').textContent =
+      list.children.length ? '+ weitere Einkommen ergänzen' : '+ Einkommen erfassen';
+  }
+
+  /* The gate, the button and the list all sit inside an applicant panel, so they are
+     wired per panel from hydrate rather than once by id at init — applicant 2 arrives
+     as a copy long after that. Answering "Ja" already says there is one, so the first
+     row comes with the answer instead of behind a second click; only while the list is
+     empty, or reopening the gate would discard what was typed. */
+  function wireEinkommen(root) {
+    $$('.einkommen-add', root).forEach((button) => {
+      if (button.dataset.wired) return;
+      button.dataset.wired = '1';
+      const list = button.parentElement.querySelector('.einkommen-liste');
+      const gate = button.closest('.field[data-show-when]');
+
+      button.addEventListener('click', () => {
+        addFromTemplate('tpl-einkommen', list);
+        renumberEinkommen(list);
+        touched();
+      });
+
+      $$(':scope > .choices input[type="radio"]', gate).forEach((radio) =>
+        radio.addEventListener('change', () => {
+          if (radio.checked && radio.value === 'Ja' && !list.children.length) {
+            addFromTemplate('tpl-einkommen', list);
+          }
+          renumberEinkommen(list);
+        }));
+      renumberEinkommen(list);
+    });
+  }
+
+  /* Loans belong to one property, so the numbering and the button are per list — the
+     enclosing .subcard is that property, and its own add button is the only one in it. */
+  function renumberDarlehen(list) {
+    $$('.dl-title', list).forEach((title, index) => {
+      title.textContent = `Darlehen ${index + 1}`;
+    });
+    list.closest('.subcard').querySelector('.add-darlehen').textContent =
+      list.children.length ? '+ Weiteres Darlehen ergänzen' : '+ Darlehen erfassen';
+  }
+
+  /* ------------------------------------------------------------ save state */
+
+  let saveTimer;
+  const saveText = $('#save-text');
+
+  function touched() {
+    saveText.textContent = 'Änderungen werden gespeichert …';
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => {
+      const time = new Date().toLocaleTimeString('de-DE',
+        { hour: '2-digit', minute: '2-digit' });
+      saveText.textContent = `Als Entwurf gespeichert · ${time}`;
+    }, 700);
+  }
+
+  /* ------------------------------------------------------------ validation */
+
+  /* Inline, on blur, and never colour-only: the field gets a red border AND a
+     message wired up with aria-describedby + aria-invalid. */
+  function messageFor(field, control) {
+    let message = field.querySelector(':scope > .error-text');
+    if (!message) {
+      message = document.createElement('p');
+      message.className = 'error-text';
+      message.id = uid('err');
+      field.appendChild(message);
+    }
+    const described = (control.getAttribute('aria-describedby') || '').split(/\s+/).filter(Boolean);
+    if (!described.includes(message.id)) {
+      control.setAttribute('aria-describedby', [...described, message.id].join(' '));
+    }
+    return message;
+  }
+
+  function validate(control) {
+    const field = control.closest('.field');
+    if (!field) return true;
+
+    const empty = !control.value.trim();
+    // Required only counts while the form is actually asking: tabbing through an
+    // amount whose position is not ticked must not leave a red Pflichtfeld behind.
+    const invalid = control.required && empty && isAsked(control);
+
+    field.classList.toggle('invalid', invalid);
+    control.setAttribute('aria-invalid', String(invalid));
+    if (invalid) {
+      messageFor(field, control).textContent = 'Dieses Feld wird für den Antrag benötigt';
+    }
+    return !invalid;
+  }
+
+  /* A required choice group cannot carry `required`, so it needs its own check —
+     without this the counter could read 5/6 while submit reported the form complete. */
+  function validateGroup(group) {
+    const ok = !!group.querySelector('input[type="radio"]:checked');
+    group.classList.toggle('invalid', !ok);
+    if (!ok) {
+      let message = group.querySelector(':scope > .error-text');
+      if (!message) {
+        message = document.createElement('p');
+        message.className = 'error-text';
+        group.appendChild(message);
+      }
+      message.textContent = 'Bitte wählen Sie eine Option';
+    }
+    return ok;
+  }
+
+  /* Zwei Felder, von denen mindestens eines gefüllt sein muss. Erreichbar zu sein
+     ist Pflicht, auf welchem Weg nicht — `required` an beiden Feldern würde beide
+     verlangen, an einem das andere zur Zierde machen. Also hält die Gruppe die
+     Regel, so wie .field[data-required] sie für eine Radiogruppe hält.
+
+     Im Fehlerfall werden BEIDE Felder rot: der Mangel liegt nicht an einem von
+     ihnen, sondern daran, dass keines ausgefüllt ist. Die Meldung steht einmal
+     unter dem Paar, und beide Felder verweisen per aria-describedby darauf — sonst
+     hörte man beim Tabben durch das zweite Feld nicht, was fehlt. */
+  function validateOneOf(group) {
+    const controls = $$('.input', group);
+    const ok = controls.some((control) => control.value.trim());
+
+    group.classList.toggle('invalid', !ok);
+    controls.forEach((control) => control.setAttribute('aria-invalid', String(!ok)));
+    if (!ok) {
+      let message = group.querySelector(':scope > .error-text');
+      if (!message) {
+        message = document.createElement('p');
+        message.className = 'error-text';
+        message.id = uid('err');
+        group.appendChild(message);
+      }
+      controls.forEach((control) => {
+        const described = (control.getAttribute('aria-describedby') || '')
+          .split(/\s+/).filter(Boolean);
+        if (!described.includes(message.id)) {
+          control.setAttribute('aria-describedby', [...described, message.id].join(' '));
+        }
+      });
+      message.textContent = 'Bitte geben Sie eine E-Mail-Adresse oder eine Telefonnummer an';
+    }
+    return ok;
+  }
+
+  /* Deliberately loose: an @ with a dot behind it. The prototype sends nothing, so
+     anything stricter here is a promise it cannot keep — and real addresses are
+     stranger at the edges than a tighter pattern believes. */
+  const MAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
+  /* Eine E-Mail-Adresse ist hier freiwillig, eine falsch getippte aber wertlos: der
+     Rückruf geht ins Leere und niemand merkt es. Geprüft wird deshalb nur, was
+     dasteht — leer ist in Ordnung, solange die Telefonnummer die Gruppe oben
+     rettet. */
+  function validateOptionalMail(input) {
+    const field = input.closest('.field');
+    const value = input.value.trim();
+
+    if (value && !MAIL_PATTERN.test(value)) {
+      field.classList.add('invalid');
+      input.setAttribute('aria-invalid', 'true');
+      messageFor(field, input).textContent = 'Diese E-Mail-Adresse sieht nicht vollständig aus';
+      return false;
+    }
+
+    /* Aufgeräumt wird nur, was diese Prüfung selbst angerichtet haben kann. Hält die
+       Gruppe darüber gerade den Fehler „eines von beiden“, dann ist das leere Feld
+       hier Teil davon — es rot zu lassen und aria-invalid stehen zu lassen ist genau
+       richtig, und ein toggle() hätte es stillschweigend für in Ordnung erklärt. */
+    const pair = input.closest('.field[data-one-of]');
+    if (!pair || !pair.classList.contains('invalid')) {
+      field.classList.remove('invalid');
+      input.setAttribute('aria-invalid', 'false');
+    }
+    return true;
+  }
+
+  /* ------------------------------------------------------------- nav state */
+
+  function wireNav() {
+    const links = $$('.nav a[href^="#"]');
+
+    // A nav link has to open what it points at, or it would scroll to a closed card.
+    // For a sub-section entry that means the step around it as well — revealCard walks
+    // the whole chain, so both kinds of link are handled by the same line.
+    links.forEach((link) => link.addEventListener('click', () => {
+      revealCard(document.getElementById(link.getAttribute('href').slice(1)));
+      setNavOpen(false);   // a no-op unless the list is the collapsed panel
+    }));
+    const byId = new Map(links.map((a) => [a.getAttribute('href').slice(1), a]));
+    const sections = $$('main section[id]').filter((s) => byId.has(s.id));
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.filter((e) => e.isIntersecting).forEach((entry) => {
+        links.forEach((a) => a.removeAttribute('aria-current'));
+        byId.get(entry.target.id).setAttribute('aria-current', 'true');
+      });
+    }, { rootMargin: '-20% 0px -70% 0px' });
+
+    sections.forEach((section) => observer.observe(section));
+  }
+
+  /* ------------------------------------------------------- collapsed nav */
+
+  /* Below 900px the section list lives behind the hamburger. Whether it is
+     collapsed at all is the stylesheet's business — aria-expanded is the single
+     switch, and above the breakpoint the panel is display:contents, so the
+     attribute stays true-or-false without ever hiding anything. */
+
+  const navToggle = $('.nav-toggle');
+
+  const setNavOpen = (open) => navToggle.setAttribute('aria-expanded', String(open));
+
+  function wireNavToggle() {
+    navToggle.addEventListener('click', () =>
+      setNavOpen(navToggle.getAttribute('aria-expanded') !== 'true'));
+
+    // An open panel covers the form, so anything aimed past it means "close" —
+    // pointerdown rather than click, so the tap that closes it does not also land
+    // on whatever was underneath.
+    document.addEventListener('pointerdown', (event) => {
+      if (!event.target.closest('.nav')) setNavOpen(false);
+    });
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key !== 'Escape' || navToggle.getAttribute('aria-expanded') !== 'true') return;
+      setNavOpen(false);
+      navToggle.focus();   // Escape must not strand the focus inside a hidden panel
+    });
+  }
+
+  /* Der Schalterkasten auf Überprüfen und Absenden. Dort trägt die Seitenspalte nur
+     noch die drei Schalter des Prototyps, also ist sie zu und die Karten stehen mittig;
+     dieser Knopf holt sie als Tafel über der Seite zurück. Weil sie über dem Inhalt
+     liegt, muss sie sich auch schließen lassen, ohne den Knopf wieder zu treffen —
+     Klick daneben und Escape, wie beim Abschnittsmenü darüber.
+     Der Zustand bleibt in data-tools stehen, wenn man in den Antrag zurückgeht: dort
+     greift keine der Regeln, und wer den Kasten offen hatte, findet ihn beim nächsten
+     Blick auf die Zusammenfassung wieder offen. */
+  const toolsToggle = $('#tools-toggle');
+
+  const setToolsOpen = (open) => {
+    toolsToggle.setAttribute('aria-expanded', String(open));
+    if (open) document.documentElement.setAttribute('data-tools', 'open');
+    else document.documentElement.removeAttribute('data-tools');
+  };
+
+  function wireToolsToggle() {
+    toolsToggle.addEventListener('click', () =>
+      setToolsOpen(toolsToggle.getAttribute('aria-expanded') !== 'true'));
+
+    // Der Knopf ist selbst nicht Teil der Tafel, also muss er hier ausgenommen werden:
+    // pointerdown läuft vor click, und ohne die Ausnahme würde der Schließer den Kasten
+    // zumachen, bevor der Klick ihn wieder aufmacht — der Knopf könnte nie schließen.
+    document.addEventListener('pointerdown', (event) => {
+      if (!event.target.closest('.nav') && !event.target.closest('.tools-toggle')) setToolsOpen(false);
+    });
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key !== 'Escape' || toolsToggle.getAttribute('aria-expanded') !== 'true') return;
+      setToolsOpen(false);
+      toolsToggle.focus();
+    });
+  }
+
+  /* The help text lives nowhere else: .field > .help is visually hidden and the bubble
+     is the only rendering of it, so a reader who cannot open the bubble cannot read
+     the help at all. Hover and focus-visible cover a mouse and a keyboard; neither
+     fires on a tap, which left every explanation in the form unreachable on a phone.
+     A click is therefore a real toggle, and aria-expanded — which the stylesheet
+     already watched for and nothing ever set — is what carries it.
+
+     Delegated from the document rather than wired per button: most of these icons are
+     built at runtime by hydrate(), and a cloned applicant brings a fresh set with it.
+
+     One open at a time. Two bubbles are both absolutely positioned over the fields
+     around them, so a second one opening on top of the first is unreadable. */
+  /* Ausrichtung der Sprechblase — die Regel „auto“ aus dem Design System.
+
+     Vorgabe ist oben. Das Zeichen sitzt am Ende einer Beschriftung, und ueber ihr
+     liegt immer das vorige Feld: Platz, den in dem Moment niemand liest. Passt die
+     Blase dort nicht mehr ins Fenster, klappt sie nach unten, statt oben abgeschnitten
+     zu werden. Waagerecht wird sie so weit hereingeschoben, wie noetig ist, damit
+     keine Kante ueber den Rand laeuft.
+
+     Gemessen wird, bevor die Blase zu sehen ist: visibility:hidden nimmt ihr die
+     Sichtbarkeit, nicht den Kasten — sie hat also schon Masse, und das Ausweichen
+     passiert nicht vor den Augen, sondern davor.
+
+     data-placement an der .info-wrap schaltet das Messen ab und legt die Seite fest;
+     „auto“ ist eine Vorgabe, keine Vorschrift. */
+  /* Der Randabstand steht im Token und nicht hier: die Zahl ist eine Vorgabe des
+     Design Systems (16px/1rem an allen vier Kanten), und sie soll an einer Stelle
+     stehen, nicht an zweien. */
+  const tipSafe = () => parseFloat(getComputedStyle(document.documentElement)
+    .getPropertyValue('--ds-tip-safe-inset')) || 16;
+
+  /* Die Oberkante, unter der es fuer die Blase eng wird. Normalerweise der Fensterrand
+     — aber auf dem Telefon klebt die Abschnittsleiste oben, und Platz hinter ihr ist
+     kein Platz. Sie zaehlt nur mit, wenn sie wirklich oben klebt UND waagerecht vor
+     der Blase liegt: auf dem Desktop ist dieselbe .nav die Spalte links, die klebt bei
+     40px und steht neben dem Formular, nicht darueber. Ohne diese beiden Bedingungen
+     waere jede Blase auf dem Desktop nach unten geklappt — gegen eine Leiste, die sie
+     nie verdeckt haette. */
+  /* Der Rand der Seite ist clientWidth/clientHeight des Wurzelelements, nicht
+     innerWidth/innerHeight des Fensters. Die beiden gehen auseinander, sobald eine
+     Bildlaufleiste da ist — und auf dem Telefon auch dann, wenn der sichtbare
+     Ausschnitt gegenueber dem Layout skaliert ist: gemessen wurden dort 462 gegen 390.
+     Gegen innerWidth gerechnet steht die Blase dann bis zu 72px zu weit rechts, also
+     genau ueber der Kante, vor der sie ausweichen sollte. */
+  const seiteBreit = () => document.documentElement.clientWidth;
+  const seiteHoch = () => document.documentElement.clientHeight;
+
+  function tipCeiling(box, safe) {
+    const bar = document.querySelector('.nav');
+    if (!bar) return safe;
+    const position = getComputedStyle(bar).position;
+    if (position !== 'sticky' && position !== 'fixed') return safe;
+    const r = bar.getBoundingClientRect();
+    const klebtOben = r.top <= safe;
+    const liegtDavor = r.left < box.right && box.left < r.right;
+    return klebtOben && liegtDavor ? Math.max(safe, r.bottom) : safe;
+  }
+
+  function placeInfoBubble(wrap) {
+    const bubble = wrap.querySelector(':scope > .info-bubble');
+    if (!bubble) return;
+
+    // erst zurueck auf die Vorgabe, sonst misst man die Ausweichbewegung von vorhin
+    bubble.classList.remove('below');
+    bubble.style.removeProperty('--ds-tip-shift');
+    bubble.style.removeProperty('--ds-tip-left');
+    const icon = wrap.querySelector('.info-btn');
+
+    /* Die 16px des Design Systems zaehlen ab dem Zeichen. Die Blase haengt aber an der
+       Beschriftung — die gibt ihr die linke Kante und traegt sie auch dann noch, wenn
+       sie ueber zwei Zeilen laeuft. Also wird der Abstand zwischen Beschriftungskasten
+       und Zeichen hier einmal ausgemessen und als Ankerwert weitergereicht, statt ihn
+       im CSS aus Schriftgroesse und Zeilenhoehe nachzurechnen: gemessen stimmt er auch
+       bei umgebrochener Beschriftung, wo das Zeichen in der letzten Zeile steht. */
+    const host = bubble.offsetParent;
+    if (host && icon) {
+      const h = host.getBoundingClientRect();
+      const i = icon.getBoundingClientRect();
+      bubble.style.setProperty('--ds-tip-above', `${Math.round(h.bottom - i.top)}px`);
+      bubble.style.setProperty('--ds-tip-below', `${Math.round(i.bottom - h.top)}px`);
+
+      /* Mittig ueber dem Zeichen. Die Breite steht schon fest — sie haengt an
+         --ds-layout-measure-tooltip und am Fenster, nicht am Elternteil —, also darf
+         sie hier gemessen und die linke Kante daraus gerechnet werden, ohne dass das
+         Setzen von left sie wieder veraendert. */
+      const breite = bubble.getBoundingClientRect().width;
+      bubble.style.setProperty('--ds-tip-left',
+        `${Math.round(i.left + i.width / 2 - h.left - breite / 2)}px`);
+    }
+
+    const safe = tipSafe();
+    const fixed = wrap.dataset.placement;
+    /* Auf dem Telefon gibt es nur eine Seite. Ueber dem Zeichen steht dort die
+       Beschriftung und darueber gleich das vorige Feld — in einer einspaltigen Ansicht
+       ist das der Text, den man gerade liest, waehrend unter dem Zeichen das Feld
+       liegt, das man ohnehin gleich anfasst. Die Regel ist deshalb keine Notloesung
+       fuer wenig Platz, sondern die Ansage: unterhalb, immer. */
+    const schmal = matchMedia('(max-width: 640px)').matches;
+
+    const oben = bubble.getBoundingClientRect();
+    const passtOben = oben.top >= tipCeiling(oben, safe);
+
+    let unten;
+    if (schmal) unten = true;
+    else if (fixed) unten = fixed === 'bottom';
+    else unten = !passtOben;
+
+    if (unten) {
+      bubble.classList.add('below');
+      /* Unterhalb kann es genauso eng werden. Stoesst die Blase dort an die untere
+         Kante und oben waere Platz gewesen, geht sie zurueck nach oben — auf dem
+         Telefon nicht, dort gilt die Regel vor der Bequemlichkeit, und auch nicht,
+         wenn die Seite von Hand gesetzt wurde. */
+      const box = bubble.getBoundingClientRect();
+      if (!fixed && !schmal && box.bottom > seiteHoch() - safe && passtOben) {
+        bubble.classList.remove('below');
+      }
+    }
+
+    const box = bubble.getBoundingClientRect();
+    let shift = 0;
+    if (box.right > seiteBreit() - safe) shift = seiteBreit() - safe - box.right;
+    if (box.left + shift < safe) shift = safe - box.left;
+    if (shift) bubble.style.setProperty('--ds-tip-shift', `${Math.round(shift)}px`);
+
+    /* Die Spitze zeigt auf das Zeichen, nicht auf die Mitte der Blase. Zuletzt
+       gerechnet, weil sie von der endgueltigen Lage abhaengt: die Blase kann eben noch
+       zur Seite gerueckt sein, und eine Spitze, die das nicht mitmacht, zeigt danach
+       auf irgendetwas.
+       Begrenzt auf das gerade Stueck Kante zwischen den beiden Rundungen — weiter
+       aussen saesse sie auf der Ecke und haette keine Kante mehr, aus der sie
+       herauswaechst. Liegt das Zeichen ausserhalb dieses Bereichs, bleibt sie am
+       naechstgelegenen Ende stehen: dann zeigt sie in die richtige Richtung, wenn
+       schon nicht genau auf den Punkt. */
+    if (icon) {
+      const b = bubble.getBoundingClientRect();
+      const i = icon.getBoundingClientRect();
+      const size = parseFloat(getComputedStyle(bubble).getPropertyValue('--ds-tip-caret-size')) || 8;
+      const radius = parseFloat(getComputedStyle(bubble).borderTopLeftRadius) || 0;
+      /* Halbe Breite der gedrehten Spitze, nicht ihre Kantenlaenge: ein um 45 Grad
+         gedrehtes Quadrat ist an seiner breitesten Stelle die Diagonale, also ragt es
+         nach jeder Seite um Kante x 0,707 heraus. Mit der Kantenlaenge gerechnet waere
+         die Grenze zwei Pixel zu eng — genug, um die Spitze an einem Zeichen ganz am
+         rechten Ende einer Beschriftung daneben zeigen zu lassen. */
+      const rand = radius + size * Math.SQRT1_2;
+      const mitte = i.left + i.width / 2 - b.left;
+      const wert = Math.min(Math.max(mitte, rand), Math.max(rand, b.width - rand));
+      bubble.style.setProperty('--ds-tip-caret', `${Math.round(wert)}px`);
+    }
+  }
+
+  function wireInfoTips() {
+    /* Gemessen wird bei jedem Weg, auf dem eine Blase aufgeht: Zeiger, Tastatur und
+       Klick. pointerover und focusin, weil beide hochblubbern — pointerenter und
+       focus tun das nicht und muessten an jedes einzelne Zeichen gehaengt werden,
+       auch an die, die spaeter entstehen. */
+    document.addEventListener('pointerover', (event) => {
+      const wrap = event.target.closest && event.target.closest('.info-wrap');
+      if (wrap) placeInfoBubble(wrap);
+    });
+    document.addEventListener('focusin', (event) => {
+      const wrap = event.target.closest && event.target.closest('.info-wrap');
+      if (wrap) placeInfoBubble(wrap);
+    });
+
+    const closeTips = (except) => {
+      $$('.info-btn[aria-expanded="true"]').forEach((button) => {
+        if (button !== except) button.setAttribute('aria-expanded', 'false');
+      });
+    };
+
+    // click, not pointerdown: the button must still answer the keyboard's Enter and
+    // Space, which arrive as clicks and would otherwise toggle nothing.
+    document.addEventListener('click', (event) => {
+      const button = event.target.closest('.info-btn');
+      if (!button) return;
+      const open = button.getAttribute('aria-expanded') === 'true';
+      closeTips(button);
+      if (!open) placeInfoBubble(button.closest('.info-wrap'));
+      button.setAttribute('aria-expanded', String(!open));
+    });
+
+    // Anything aimed past an open bubble means "close" — including a tap on the
+    // bubble itself, which is not a control and has nothing else to do with one.
+    document.addEventListener('pointerdown', (event) => {
+      if (!event.target.closest('.info-btn')) closeTips();
+    });
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key !== 'Escape') return;
+      const open = $('.info-btn[aria-expanded="true"]');
+      if (!open) return;
+      closeTips();
+      open.focus();   // Escape must not strand the focus on something now hidden
+    });
+  }
+
+  /* --------------------------------------------------------------- favicon */
+
+  /* Das Symbol in der Tableiste. Ein Formular, das über einen Magic Link geöffnet
+     wird, bleibt tagelang offen, während jemand Gehaltsnachweise zusammensucht —
+     das Symbol muss diesen einen Tab unter zwanzig wiederfindbar machen. Darum
+     eine gefüllte Kachel und keine Glyphe: eine reine Kontur verschwindet auf
+     einer dunklen Tableiste, und die 1.6er Konturen der Navigationsglyphen fallen
+     bei 16px ohnehin auseinander (1.6 wird zu 1.28 Gerätepixeln). Gezeichnet ist
+     deshalb auf 16 und in Flächen, nicht auf 20 und verkleinert.
+
+     Die Farbe steht nicht als Hex im Quelltext, sondern kommt aus
+     background/brand/bold. Damit folgt das Symbol dem Markenschalter — die
+     Kachel wird korallenrot, wenn die Seite es wird — und, wichtiger, dem
+     Kontrast-Pass in tokens.a11y.css: Weiß auf teal/500 hält 3.67:1, auf
+     teal/700 5.32:1. Dieselbe Rechnung wie beim Primärknopf, und bei 16px
+     entscheidet sie über lesbar oder Matsch.
+
+     %C ist der Platzhalter für dieselbe Farbe innerhalb der Glyphe: die Linien
+     des Blattes sind ausgestanzt, nicht gezeichnet. */
+  const FAVICON = {
+    form: '<rect x="3.5" y="2.75" width="9" height="10.5" rx="1.5" fill="#fff"/>'
+        + '<rect x="5" y="4.9" width="6" height="1.2" rx=".6" fill="%C"/>'
+        + '<rect x="5" y="7.4" width="6" height="1.2" rx=".6" fill="%C"/>'
+        + '<rect x="5" y="9.9" width="3.5" height="1.2" rx=".6" fill="%C"/>',
+    /* Gesendet bekommt den Haken. Das ist kein Schmuck: es ist die Antwort auf
+       „habe ich das eigentlich abgeschickt?" für genau den Tab, den jemand eine
+       Woche offen gelassen hat — ohne ihn dafür wieder hervorholen zu müssen.
+       Die Zusammenfassung behält das Blatt, dort ist noch nichts entschieden. */
+    sent: '<path d="M4.4 8.3l2.5 2.5 4.7-5" fill="none" stroke="#fff" stroke-width="1.9"'
+        + ' stroke-linecap="round" stroke-linejoin="round"/>',
+  };
+
+  function setFavicon(view) {
+    const brand = getComputedStyle(document.documentElement)
+      .getPropertyValue('--ds-color-background-brand-bold-default').trim() || '#00796B';
+    const glyph = (FAVICON[view] || FAVICON.form).split('%C').join(brand);
+    const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">'
+      + `<rect width="16" height="16" rx="3.5" fill="${brand}"/>${glyph}</svg>`;
+
+    let link = $('link[rel="icon"]');
+    if (!link) {
+      link = document.createElement('link');
+      link.rel = 'icon';
+      document.head.append(link);
+    }
+    link.type = 'image/svg+xml';
+    link.href = `data:image/svg+xml,${encodeURIComponent(svg)}`;
+  }
+
+  /* --------------------------------------------------------------- toggles */
+
+  // 'shell' reist mit, obwohl es in der 390er-Vorschau nichts bewirkt: die Liste ist
+  // das, was einen Wechsel überlebt und in der Adresse steht, und ein Schalter, der
+  // beim Öffnen der Mobil-Vorschau heimlich zurückspringt, wäre der schlechtere Handel.
+  const SETTINGS = ['appearance', 'density', 'brand', 'shell'];
+
+  function wireToggles() {
+    $$('.seg').forEach((group) => {
+      const buttons = $$('button', group);
+      buttons.forEach((button) => button.addEventListener('click', () => {
+        buttons.forEach((b) => b.setAttribute('aria-pressed', String(b === button)));
+        // the dataset key IS the html attribute: data-density -> data-density
+        Object.entries(button.dataset).forEach(([key, value]) => {
+          document.documentElement.setAttribute(`data-${key}`, value);
+        });
+        // Die Marke steckt in der Kachel, also muss sie mit ihr wechseln.
+        setFavicon(document.documentElement.getAttribute('data-view'));
+        syncPreview();
+      }));
+    });
+  }
+
+  /* ------------------------------------------------------- mobile preview */
+
+  /* The frame is an iframe of this same page rather than a narrowed column,
+     because the breakpoints and the export's Mobile type are viewport rules: a
+     box that is 390px wide is still on a 1400px viewport and would render the
+     desktop values at a squeeze. Settings reach the copy inside by postMessage,
+     so switching to dark or compact does not reload it and lose what is typed.
+     postMessage rather than reaching into contentDocument: these prototypes are
+     opened straight off disk, and a file:// page counts as a foreign origin to
+     its own iframe. */
+
+  const settings = () => Object.fromEntries(
+    SETTINGS.map((k) => [k, document.documentElement.getAttribute(`data-${k}`)]));
+
+  let frame = null;
+
+  function syncPreview() {
+    const on = document.documentElement.getAttribute('data-viewport') === 'mobile';
+    if (!on) {
+      if (frame) { frame.closest('.phone').remove(); frame = null; }
+      return;
+    }
+    if (!frame) {
+      const phone = document.createElement('div');
+      phone.className = 'phone';
+      frame = document.createElement('iframe');
+      frame.title = 'Mobile Vorschau';
+      // the settings ride along on the URL too, so the first paint inside the
+      // frame is already in the right theme instead of flashing light first.
+      // The parameters of the page itself ride along first: the advisor comes off
+      // the magic link, and without them the preview would show the placeholder
+      // person next to the real one.
+      frame.src = `index.html?${new URLSearchParams({
+        ...Object.fromEntries(new URLSearchParams(location.search)),
+        embed: '1',
+        ...settings(),
+      })}`;
+      phone.append(frame);
+      $('.app').append(phone);
+      return;
+    }
+    frame.contentWindow.postMessage({ v5: settings() }, '*');
+  }
+
+  /* The copy inside the frame: take the settings off the URL, and keep taking
+     them from the parent for as long as it is open. */
+  function initEmbed() {
+    const params = new URLSearchParams(location.search);
+    if (!params.has('embed')) return;
+    document.documentElement.setAttribute('data-embed', '');
+    const apply = (values) => SETTINGS.forEach((key) => {
+      if (values[key]) document.documentElement.setAttribute(`data-${key}`, values[key]);
+    });
+    apply(Object.fromEntries(params));
+    window.addEventListener('message', (event) => {
+      if (event.data && event.data.v5) apply(event.data.v5);
+    });
+  }
+
+  /* ------------------------------------------- Beraterin oder Berater */
+
+  /* Der Magic Link bringt die Person mit, die ihn verschickt hat; die Karte über
+     dem Seitentitel zeigt sie. Was die Adresse nicht mitbringt, bleibt so stehen,
+     wie es im Quelltext steht — ohne Parameter ist der Prototyp sonst eine leere
+     Karte, und die zeigt nichts.
+
+     Das Foto wird erst eingeblendet, wenn es wirklich geladen ist. Bis dahin — und
+     bei einem toten Link für immer — stehen die Initialen im Kreis, statt dass ein
+     kaputtes Bildsymbol die Stelle besetzt, an der ein Gesicht sein sollte. Die
+     Initialen kommen aus dem Namen, damit sie beim Wechsel der Person mitgehen. */
+  /* Der Beraterblock steht im Seitenkopf aller drei Ansichten. Geklont statt dreimal
+     geschrieben: initAdvisor schreibt in jedes [data-advisor], die Kopien gehen also
+     ohne weiteres mit, und ein Wechsel der Person per Parameter trifft alle drei.
+     Darum laeuft das hier VOR initAdvisor — danach waeren die Kopien leer geblieben.
+
+     Die ids fallen im Klon weg. Dreimal dieselbe id ist ungueltig, und
+     getElementById haette danach eine Kopie statt des Originals getroffen. Damit
+     verliert aria-labelledby sein Ziel, also bekommt der Name in jedem Klon eine
+     eigene id und der Klon zeigt darauf: ein aria-label mit eingesetztem Namen waere
+     nach dem ersten Parameterwechsel falsch, ein Verweis bleibt richtig.
+
+     Auf dem Telefon ist nichts zu tun — .advisor traegt bei 640px display:none, und
+     die Kopien tragen dieselbe Klasse. Die Mobil-Ansicht bleibt, wie sie war. */
+  function cloneAdvisor() {
+    const source = $('.page-head > .advisor');
+    if (!source) return;
+
+    $$('#summary-view > .page-head, #sent-view > .page-head').forEach((head) => {
+      const copy = source.cloneNode(true);
+      $$('[id]', copy).forEach((node) => node.removeAttribute('id'));
+
+      const name = copy.querySelector('[data-advisor="name"]');
+      name.id = uid('advisor-name');
+      copy.setAttribute('aria-labelledby', name.id);
+
+      head.appendChild(copy);
+    });
+  }
+
+  function initAdvisor() {
+    const params = new URLSearchParams(location.search);
+
+    /* Jede Angabe steht zweimal auf der Seite — in der Karte im Seitenkopf und im
+       Kontaktmenü der Mobil-Leiste —, und beide tragen dasselbe data-advisor. Nur
+       eine der beiden ist je sichtbar, aber welche, entscheidet die Bildschirm-
+       breite und nicht dieses Skript: geschrieben wird immer in alle. */
+    const nodes = (key) => $$(`[data-advisor="${key}"]`);
+    const text = (key, value) => {
+      if (value) nodes(key).forEach((node) => { node.textContent = value; });
+    };
+
+    /* Der Wert steht in .advisor-value INNERHALB des Elements, nicht als sein
+       ganzer Inhalt: daneben liegen das Icon und das unsichtbare Verb, die ein
+       textContent hier wegräumen würde.
+       Die href bekommt nur, was eine hat. Dieselbe Angabe ist in der Karte ein
+       Link und im Menü ein Knopf, der kopiert — dort wäre eine href eine
+       Eigenschaft, die niemand liest. */
+    const link = (key, value, href) => {
+      if (!value) return;
+      nodes(key).forEach((node) => {
+        node.querySelector('.advisor-value').textContent = value;
+        if (node.tagName === 'A') node.href = href(value);
+      });
+    };
+
+    const name = params.get('berater');
+    text('name', name);
+    text('role', params.get('rolle'));
+
+    if (name) {
+      text('initials', name
+        .split(/\s+/).filter(Boolean).slice(0, 2)
+        .map((part) => part[0].toUpperCase()).join(''));
+    }
+
+    // Ein Telefonlink verträgt keine Leerzeichen, die gelesene Nummer braucht sie.
+    link('phone', params.get('telefon'), (v) => `tel:${v.replace(/[^+\d]/g, '')}`);
+    link('mail', params.get('mail'), (v) => `mailto:${v}`);
+    /* Die Adresse in der Karte ist ein Link auf eine Kartensuche, kein eingebetteter
+       Dienst — es geht nichts an Google, bevor jemand darauf klickt. Im Menü der
+       Leiste ist dieselbe Adresse ein Knopf, der sie kopiert: auf dem Telefon ist
+       die Anschrift das, was man in die eigene Navigations-App einsetzt. */
+    link('address', params.get('adresse'),
+      (v) => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(v)}`);
+
+    const src = params.get('foto');
+    if (!src) return;
+    nodes('photo').forEach((photo) => {
+      photo.addEventListener('load', () => { photo.hidden = false; });
+      photo.src = src;
+    });
+  }
+
+  /* Kopieren aus der Beraterkarte — also nur auf dem Desktop.
+
+     Ein mailto: öffnet ein Programm, das an dieser Stelle niemand bestellt hat, und
+     eine Kartensuche beantwortet eine Anschrift, die man ohnehin gleich weitergibt,
+     mit einem fremden Tab: gebraucht wird in beiden Fällen der Wert selbst, um ihn
+     ins eigene Mailfenster oder in die eigene Navigation zu setzen. E-Mail und
+     Anschrift kopieren deshalb, statt dem Link zu folgen — dieselbe Handlung wie im
+     Kontaktmenü der Mobil-Leiste, wo beide ohnehin schon Knöpfe sind.
+
+     Die Nummer ist nicht dabei: sie übergibt an die Telefon-App und bleibt damit
+     überall dieselbe Zeile — ein tel:-Link, hier wie in der Leiste. Deshalb steht
+     data-copy im Markup und nicht eine Liste von ids hier: welche Zeile kopiert, ist
+     eine Eigenschaft der Zeile und soll dort stehen, wo man sie liest.
+
+     Die href bleibt trotzdem an beiden: ohne Skript ist die Zeile wieder der Link,
+     der sie war, und „Link kopieren“ im Kontextmenü bleibt erreichbar.
+
+     Die Breite wird nirgends abgefragt. Unter 640px trägt .advisor display:none —
+     was nicht da ist, wird nicht geklickt —, und in der Leiste tun dieselben drei
+     Wege längst dasselbe.
+
+     Der Wert wird aus der Zeile gelesen statt mitgeführt: er steht sichtbar darin,
+     und was kopiert wird, ist damit garantiert das, was dasteht — auch nachdem
+     initAdvisor eine andere Person hineingeschrieben hat. Läuft nach cloneAdvisor,
+     damit die Karten in Zusammenfassung und Gesendet mit verdrahtet werden. */
+  function wireAdvisorCopy() {
+    const ANGEBOT = 'Zum Kopieren klicken';
+
+    $$('.advisor-link[data-copy]').forEach((link) => {
+      const hint = link.parentElement.querySelector('.advisor-hint');
+      if (!hint) return;
+      let timer;
+
+      const say = (message) => {
+        clearTimeout(timer);
+        /* Die Blase ist zugleich die Rückmeldung (role="status"). Erst sichtbar
+           machen, dann beschriften: was unsichtbar geschrieben wird, steht nicht im
+           Accessibility-Baum und wird nicht vorgelesen. */
+        hint.classList.add('is-shown');
+        requestAnimationFrame(() => { hint.textContent = message; });
+
+        timer = setTimeout(() => {
+          /* Umgekehrte Reihenfolge, aus demselben Grund: erst verstecken, dann das
+             Angebot zurückschreiben, sonst meldet der Weg zurück ein zweites Mal. */
+          hint.classList.remove('is-shown');
+          hint.textContent = ANGEBOT;
+        }, 2000);
+      };
+
+      link.addEventListener('click', async (event) => {
+        event.preventDefault();
+        const value = link.querySelector('.advisor-value').textContent.trim();
+        try {
+          await navigator.clipboard.writeText(value);
+          say('In die Zwischenablage kopiert');
+        } catch {
+          /* Dieselbe Lage wie im Kontaktmenü: eine Seite, die direkt von der Platte
+             geöffnet wurde, bekommt die Zwischenablage oft nicht. Dann wird der Wert
+             markiert, statt als kopiert zu melden, was nicht kopiert ist. */
+          const range = document.createRange();
+          range.selectNodeContents(link.querySelector('.advisor-value'));
+          const selection = getSelection();
+          selection.removeAllRanges();
+          selection.addRange(range);
+          say('Bitte mit Strg+C bzw. Cmd+C kopieren');
+        }
+      });
+    });
+  }
+
+  /* Das Kontaktmenü hinter dem Portrait in der Mobil-Leiste. Es klappt auf und zu wie
+     die Abschnittsliste daneben und schließt aus denselben zwei Gründen: ein Klick
+     daneben und Escape. Beide Menüs hängen an derselben Leiste, also schließt das
+     Öffnen des einen das andere — zwei Tafeln übereinander wären nicht zu lesen. */
+  function wireAdvisorMenu() {
+    const toggle = $('#advisor-menu-toggle');
+    const status = $('#advisor-copy-status');
+
+    const setOpen = (open) => {
+      toggle.setAttribute('aria-expanded', String(open));
+      // Die Rückmeldung des letzten Kopiervorgangs gehört nicht zum nächsten Öffnen.
+      if (!open) status.textContent = '';
+    };
+
+    toggle.addEventListener('click', () => {
+      const open = toggle.getAttribute('aria-expanded') !== 'true';
+      if (open) setNavOpen(false);
+      setOpen(open);
+    });
+
+    /* Anrufen ist ein Link und tut es selbst; kopiert wird hier. Der Wert wird aus
+       der Zeile gelesen statt mitgeführt: er steht sichtbar darin, und was kopiert
+       wird, ist damit garantiert das, was dasteht — auch nachdem initAdvisor eine
+       andere Person hineingeschrieben hat. */
+    $$('.advisor-action[data-copy]').forEach((action) => {
+      action.addEventListener('click', async () => {
+        const value = action.querySelector('.advisor-value').textContent.trim();
+        const label = action.dataset.copy;
+        try {
+          await navigator.clipboard.writeText(value);
+          status.textContent = `${label} kopiert`;
+        } catch {
+          /* Dieselbe Lage wie bei der Referenz-ID: eine Seite, die direkt von der
+             Platte geöffnet wurde, bekommt die Zwischenablage oft nicht. Dann wird
+             der Wert markiert, statt als kopiert zu melden, was nicht kopiert ist. */
+          const range = document.createRange();
+          range.selectNodeContents(action.querySelector('.advisor-value'));
+          const selection = getSelection();
+          selection.removeAllRanges();
+          selection.addRange(range);
+          status.textContent = 'Bitte mit Strg+C bzw. Cmd+C kopieren — markiert ist es schon';
+        }
+      });
+    });
+
+    document.addEventListener('pointerdown', (event) => {
+      if (!event.target.closest('.advisor-menu')) setOpen(false);
+    });
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key !== 'Escape' || toggle.getAttribute('aria-expanded') !== 'true') return;
+      setOpen(false);
+      toggle.focus();   // Escape darf den Fokus nicht in einer geschlossenen Tafel lassen
+    });
+  }
+
+  /* ------------------------------------------------------- Absenden-Strecke */
+
+  /* Three screens in one document — form, summary, sent — because the summary is
+     read out of the form itself: a real page change would throw away everything
+     typed. Exactly one view and its action bar are visible at a time. data-view on
+     <html> is what the stylesheet reads, so the surroundings can react to the step
+     (the sidebar's section list has nothing to point at once the form is off
+     screen). */
+  const VIEWS = {
+    form:    { view: $('#main'),         bar: $('#bar-form') },
+    summary: { view: $('#summary-view'), bar: $('#bar-summary') },
+    sent:    { view: $('#sent-view'),    bar: $('#bar-sent') },
+  };
+
+  /* Show, then move the focus, then hide — in that order, and the order is the
+     whole point. The button that got us here lives in the bar that is about to be
+     hidden, and a browser that loses the focused element moves the focus back to
+     the document *after* the current task, which would wipe a focus set before the
+     hiding. Focus first and there is nothing left in the hidden view to lose.
+
+     The heading takes it, so the step that just arrived is what gets read out and
+     what the next Tab starts from. tabindex="-1" makes it focusable without putting
+     it in the tab order; it is a heading and not a control, so it carries no ring
+     (see .page-title:focus). */
+  function showView(name) {
+    const target = VIEWS[name];
+    target.view.hidden = false;
+    target.bar.hidden = false;
+
+    const heading = target.view.querySelector('.page-title');
+    heading.tabIndex = -1;
+    heading.focus();
+
+    Object.entries(VIEWS).forEach(([key, { view, bar }]) => {
+      if (key === name) return;
+      view.hidden = true;
+      bar.hidden = true;
+    });
+    document.documentElement.setAttribute('data-view', name);
+    setFavicon(name);
+    window.scrollTo(0, 0);
+  }
+
+  /* Every required field the form is still waiting for, in the order they appear on
+     the page — "the first one missing" has to mean first on the page, not first by
+     kind. Scoped to the form view: the summary has required fields of its own, and
+     they are not part of this count. */
+  function formGaps() {
+    const form = VIEWS.form.view;
+    const controls = $$('.input[required], .select[required]', form).filter(isAsked);
+    const groups = $$('.field[data-required]', form)
+      .filter((g) => isAsked(g) && g.querySelector('input[type="radio"]'));
+    const pairs = $$('.field[data-one-of]', form).filter(isAsked);
+    const mails = $$('.input[data-mail]', form).filter(isAsked);
+
+    return [
+      ...controls.filter((c) => !validate(c)).map((c) => ({ node: c, focus: c })),
+      ...groups.filter((g) => !validateGroup(g))
+        .map((g) => ({ node: g, focus: g.querySelector('input[type="radio"]') })),
+      ...pairs.filter((g) => !validateOneOf(g))
+        .map((g) => ({ node: g, focus: g.querySelector('.input') })),
+      // Eine unvollständige Adresse hält den Versand genauso auf wie ein leeres Paar,
+      // sonst ginge sie als „ausgefüllt“ durch und der Rückruf ins Leere.
+      ...mails.filter((m) => !validateOptionalMail(m)).map((m) => ({ node: m, focus: m })),
+    ].sort((a, b) => (a.node.compareDocumentPosition(b.node)
+      & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1));
+  }
+
+  /* Prüfliste ----------------------------------------------------------------- */
+
+  /* A label without the parts that are there for the eye only: the required
+     asterisk and the info icon, whose bubble carries the entire help text and would
+     otherwise land in the middle of the read-back. */
+  function labelText(node) {
+    if (!node) return '';
+    const copy = node.cloneNode(true);
+    $$('.info-wrap, .req, .sr-only', copy).forEach((el) => el.remove());
+    return copy.textContent.replace(/\s+/g, ' ').trim();
+  }
+
+  /* What one field says, as a question-and-answer pair — or null if it says
+     nothing: not asked for (a closed conditional, an unticked position) or simply
+     left empty. An empty field is left out rather than listed as blank; the point
+     of the list is what was answered.
+
+     The answer is read the way it is displayed, not the way it is stored: the text
+     of the selected option rather than its value, and the unit box next to an
+     amount is part of the figure. */
+  function reviewEntry(field) {
+    if (!isAsked(field)) return null;
+
+    /* „Adresse wie bei Antragsteller 1“ ist keine Frage nach einem Wert, sondern
+       selbst schon die Antwort. Steht das Häkchen, sind die vier Adressfelder
+       data-inactive und fallen oben heraus — ohne diesen Satz hätte Antragsteller 2
+       in der Rückschau gar keine Adresse, was schlimmer wäre als die doppelte.
+       Steht es nicht, stehen die vier Felder für sich und hier ist nichts zu sagen.
+       Eng an data-same-address gebunden und nicht an .choice.plain allgemein: das
+       einzige andere Kästchen dieser Machart ist die Einwilligung, und die gehört
+       nicht in eine Liste der gegebenen Antworten. */
+    const same = field.querySelector(':scope > .choice.plain > [data-same-address]');
+    if (same) return same.checked ? { label: 'Adresse', value: 'wie bei Antragsteller 1' } : null;
+
+    const control = field.querySelector(CONTROL_SEL);
+    let value = '';
+
+    if (control && control.matches('select')) {
+      value = control.value ? labelText(control.selectedOptions[0]) : '';
+    } else if (control) {
+      value = control.value.trim();
+      const unit = field.querySelector(':scope > .with-unit > .unit, '
+        + ':scope > .unit-row > .with-unit > .unit');
+      if (value && unit) value += ` ${unit.textContent.trim()}`;
+    } else {
+      // a choice group: only its own chips answer for it, not a group nested in a
+      // reveal underneath, which is a field of its own with its own entry
+      value = $$(':scope > .choices input:checked', field)
+        .map((input) => labelText(input.nextElementSibling)).join(', ');
+    }
+    if (!value) return null;
+
+    // An amount cell has no label of its own — the position beside it is the label,
+    // and the cell carries it as aria-label so a screen reader gets it too.
+    const label = labelText(field.querySelector(':scope > label, :scope > .group-label'))
+      || ((control && control.getAttribute('aria-label')) || '').trim();
+    return label ? { label, value } : null;
+  }
+
+  /* Which repetition a field belongs to. Two fields called "Aktuelle Restschuld"
+     under one heading are unreadable without it, and with two applicants the same
+     goes for every single field. One applicant needs no crumb — there is nothing to
+     tell apart. */
+  function crumbFor(node) {
+    if (node.matches('.applicant')) {
+      const panels = node.closest('[data-applicants]');
+      if (panels && !panels.classList.contains('two')) return '';
+      return labelText(node.querySelector('.applicant-title'));
+    }
+    if (node.matches('.subcard')) {
+      return labelText(node.querySelector(':scope > .subcard-head > span'));
+    }
+    /* Eine Kinderzeile hat keine Überschrift, die man vorlesen könnte — im Formular
+       trennt sie nur eine Haarlinie von der nächsten. In der Rückschau reicht das
+       nicht: seit die Kinder im Block des Antragstellers stehen, folgt „Geburtsdatum
+       = 04.03.2019“ unmittelbar auf dessen eigenes, und ohne Krume steht zweimal
+       dasselbe Wort mit verschiedenen Daten da. Die Nummer kommt aus der Stellung in
+       der Liste, der Name aus der Zeile selbst — dieselbe Form wie beim
+       Antragsteller, damit die Krume durchgehend gleich gebaut ist. */
+    if (node.matches('.child-row')) {
+      const title = labelText(node.querySelector(':scope > .child-head > .c-title'));
+      const name = ((node.querySelector('.c-name .input') || {}).value || '').trim();
+      return name ? `${title} – ${name}` : title;
+    }
+    return labelText(node.querySelector(':scope > .subsection-title')
+      || node.querySelector(':scope > .card-head .card-title'));
+  }
+
+  /* The crumbs between a field and its step, outermost first: "Immobilie 1 ·
+     Darlehen 2". Stops at the step, because that is the group's own heading. */
+  function contextFor(field) {
+    const crumbs = [];
+    for (let node = field.parentElement; node; node = node.parentElement) {
+      if (node.matches('.card') && !node.matches('.subsection')) break;
+      if (node.matches('.applicant, .subcard, .subsection, .subsection-static, .child-row')) {
+        const crumb = crumbFor(node);
+        if (crumb) crumbs.unshift(crumb);
+      }
+    }
+    return crumbs.join(' · ');
+  }
+
+  function reviewGroup(card, rowsByContext) {
+    const group = document.createElement('section');
+    group.className = 'review-group';
+
+    const title = labelText(card.querySelector(':scope > .card-head .card-title'));
+    const head = document.createElement('div');
+    head.className = 'review-head';
+
+    const heading = document.createElement('h3');
+    heading.className = 'review-title';
+    heading.textContent = title;
+
+    /* Correcting something is one click from where the mistake is seen, not a
+       scroll back through the form: the button returns to the step it belongs to
+       and opens it. A button and not a link — it changes the view, it does not go
+       to an address. */
+    const edit = document.createElement('button');
+    edit.type = 'button';
+    edit.className = 'link-btn';
+    edit.textContent = 'Bearbeiten';
+    edit.setAttribute('aria-label', `${title} bearbeiten`);
+    edit.addEventListener('click', () => editStep(card));
+
+    head.append(heading, edit);
+    group.append(head);
+
+    rowsByContext.forEach((rows, context) => {
+      if (context) {
+        const crumb = document.createElement('p');
+        crumb.className = 'review-context';
+        crumb.textContent = context;
+        group.append(crumb);
+      }
+      const list = document.createElement('dl');
+      list.className = 'review-list';
+      rows.forEach(({ label, value }) => {
+        const term = document.createElement('dt');
+        term.textContent = label;
+        const answer = document.createElement('dd');
+        answer.textContent = value;
+        list.append(term, answer);
+      });
+      group.append(list);
+    });
+
+    return group;
+  }
+
+  /* The read-back is generated, never maintained: it walks the form the user just
+     filled in, so a field added to the form appears here without a line of work.
+     One group per step, and within a step the entries keep document order and are
+     bundled by the repetition they sit in. A step switched off by the finance type
+     is hidden — it does not belong in a summary of the answers. */
+  function buildReview() {
+    const host = $('#review');
+    host.textContent = '';
+
+    $$(':scope > .card', VIEWS.form.view).forEach((card) => {
+      if (card.hidden) return;
+
+      const rowsByContext = new Map();
+      $$('.field', card).forEach((field) => {
+        const entry = reviewEntry(field);
+        if (!entry) return;
+        const key = contextFor(field);
+        if (!rowsByContext.has(key)) rowsByContext.set(key, []);
+        rowsByContext.get(key).push(entry);
+      });
+
+      if (rowsByContext.size) host.append(reviewGroup(card, rowsByContext));
+    });
+
+    if (!host.children.length) {
+      const empty = document.createElement('p');
+      empty.className = 'review-empty';
+      empty.textContent = 'Es sind noch keine Angaben erfasst.';
+      host.append(empty);
+    }
+  }
+
+  function editStep(card) {
+    showView('form');
+    setCardOpen(card, true);
+    card.scrollIntoView({ block: 'start' });
+    const first = card.querySelector('.input, .select, .choice input');
+    if (first) first.focus({ preventScroll: true });
+  }
+
+  /* Einwilligung und Abschicken ------------------------------------------------ */
+
+  const consent = $('#consent-broker');
+  const consentField = $('#consent-field');
+  const sendText = $('#send-text');
+
+  /* The consent is a checkbox with no chip, so the error cannot be carried by a
+     border the way it is on a choice group — it is a message under the sentence,
+     wired to the box with aria-describedby like every other field error. */
+  function validateConsent() {
+    const ok = consent.checked;
+    consentField.classList.toggle('invalid', !ok);
+    if (!ok) {
+      messageFor(consentField, consent).textContent =
+        'Ohne diese Bestätigung dürfen wir die Angaben nicht übermitteln';
+    }
+    return ok;
+  }
+
+  /* Who the confirmation email goes to, in words: the applicant's name if it is
+     known, otherwise both forms spelled out. Used in the sentence on the summary,
+     so it has to read as part of it either way. */
+  function customerName() {
+    const first = ($('#a1-vorname').value || '').trim();
+    const last = ($('#a1-nachname').value || '').trim();
+    return `${first} ${last}`.trim();
+  }
+
+  function openSummary() {
+    buildReview();
+    sendText.textContent = 'Noch nicht gesendet — Sie können weiterhin ändern';
+    showView('summary');
+  }
+
+  /* Sent means gone: the form is not merely hidden, every control in it is switched
+     off. Hiding alone would leave it a Tab-jump or a #-link away from being edited,
+     and "you cannot change it any more" has to be true of the page, not just of the
+     way out of it. */
+  function lockForm() {
+    [VIEWS.form.view, VIEWS.summary.view].forEach((view) =>
+      $$('input, select, textarea, button', view)
+        .forEach((el) => { el.disabled = true; }));
+    VIEWS.form.bar.hidden = true;
+    VIEWS.summary.bar.hidden = true;
+  }
+
+  async function send() {
+    /* Das Häkchen ist die einzige Bedingung, die vor dem Senden noch offen sein
+       kann — die Pflichtfelder liegen alle im Formular und sind auf dem Weg
+       hierher geprüft worden. */
+    if (!validateConsent()) {
+      sendText.textContent = 'Noch nicht gesendet — bitte ergänzen Sie das Markierte';
+      consent.focus();
+      return;
+    }
+
+    if (!await confirmAction({
+      title: 'Jetzt an die Beraterin oder den Berater senden?',
+      text: 'Danach können Sie die Selbstauskunft nicht mehr öffnen und nichts mehr '
+        + 'ändern.',
+      action: 'Selbstauskunft abschicken',
+      tone: 'primary',
+    })) {
+      sendText.textContent = 'Nicht gesendet — Sie können weiterhin ändern';
+      return;
+    }
+
+    $('#sent-name').textContent = customerName() || 'Ihrer Kundin oder Ihrem Kunden';
+
+    lockForm();
+    showView('sent');
+  }
+
+  /* ------------------------------------------------------------------ init */
+
+  hydrate(document);
+  wireDarlehenListen(document);
+  wireCards();
+  wireToggles();
+  wireNav();
+  wireNavToggle();
+  wireToolsToggle();
+  wireInfoTips();
+  cloneAdvisor();
+  initAdvisor();
+  wireAdvisorCopy();
+  wireAdvisorMenu();
+  initEmbed();
+
+  /* Der Zweck entscheidet mit, ob die Objektadresse offen steht (Kauf) — deshalb laeuft
+     nach jeder Zweckaenderung auch syncImmobilienart. */
+  zweck.addEventListener('change', () => { updateStart(); syncImmobilienart(); });
+  gefunden.addEventListener('change', updateStart);
+  updateStart();
+
+  immobilienart.addEventListener('change', syncImmobilienart);
+  syncImmobilienart();
+
+  $$('.applicant[data-applicant="1"]').forEach(wireNameEcho);
+  $('#add-applicant').addEventListener('click', () => setApplicants(2));
+  /* Going back to "Alleine" deletes person 2 just as the trash button does, so it asks the
+     same question — and if the answer is no the radio returns to where it was,
+     because the choice it shows has to match the form underneath it.
+
+     "Mit einer anderen Person" adds person 2 outright, and then opens the step the new
+     panels landed in. The question is in Finanzbedarf but the panels are in
+     Antragsteller, which is still collapsed at that point, so without this the answer
+     would appear to do nothing. Only this entry point needs it — the
+     "+ Antragsteller 2" button sits inside that card, which is therefore already open
+     when it is pressed. */
+  $$('#darlehensnehmer input[type="radio"]').forEach((radio) =>
+    radio.addEventListener('change', async () => {
+      if (radio.value === '2') {
+        setApplicants(2);
+        revealCard($('.applicant[data-applicant="2"]'));
+        return;
+      }
+      if (!await requestRemoveApplicant2()) {
+        const two = $('#darlehensnehmer input[value="2"]');
+        if (two) two.checked = true;
+      }
+    }));
+
+  /* Die Kinderfrage steht einmal pro Antragsteller, also gibt es die Liste nicht mehr
+     einmal, sondern zweimal — und die zweite entsteht und vergeht mit Antragsteller 2.
+     Deshalb hängt hier nichts mehr an einem Knopf: das Dokument horcht, und gesucht
+     wird jedes Mal die Liste, die zu dem Knopf gehört, der geklickt wurde. */
+  const kinderListOf = (node) => node.closest('[data-kinder]').querySelector('.kinder-list');
+
+  /* Answering Ja already is the first child: it says there is one, so the row to
+     fill in appears with the answer instead of behind another click. The button
+     sits under the list and only ever adds further children — it names that, and
+     falls back to the first-child wording if every row is taken out again.
+
+     Die Nummern kommen aus der Stellung in der Liste und nicht aus einem Zaehler:
+     wird die mittlere von drei Zeilen geloescht, heisst die letzte danach „Kind 2“
+     und nicht weiter „Kind 3“. Das unsichtbare Etikett des Papierkorbs geht mit —
+     vorgelesen wird sonst dreimal dasselbe „Kind entfernen“. */
+  function syncKinderAdd(list) {
+    if (!list) return;
+    $$(':scope > .child-row', list).forEach((row, index) => {
+      const name = `Kind ${index + 1}`;
+      row.querySelector('.c-title').textContent = name;
+      row.querySelector('[data-remove]').setAttribute('aria-label', `${name} entfernen`);
+    });
+    list.closest('[data-kinder]').querySelector('.kinder-add').textContent =
+      list.children.length ? '+ Weiteres Kind hinzufügen' : '+ Kind hinzufügen';
+  }
+
+  document.addEventListener('click', (event) => {
+    if (!event.target.matches('.kinder-add')) return;
+    const list = kinderListOf(event.target);
+    addFromTemplate('tpl-kind', list);
+    syncKinderAdd(list);
+  });
+
+  document.addEventListener('change', (event) => {
+    if (!event.target.matches('[data-kinder] > .choices input[type="radio"]')) return;
+    const list = kinderListOf(event.target);
+    if (event.target.checked && event.target.value === 'Ja' && !list.children.length) {
+      addFromTemplate('tpl-kind', list);
+    }
+    syncKinderAdd(list);
+  });
+
+  const stellplaetze = $('#stellplaetze');
+  $('#add-stellplatz').addEventListener('click', () => {
+    addFromTemplate('tpl-stellplatz', stellplaetze);
+    renumberStellplaetze();
+  });
+  // Kein Stellplatz von Anfang an: „Ja“ zeigt nur den Knopf, wie in der Vorlage.
+
+  /* Immobilienvermögen. The properties are added from the card itself, but the loan
+     buttons arrive with each property, so those are handled by delegation on the list
+     rather than wired one by one. */
+  const immobilienListe = $('#immobilien-liste');
+
+  $('#add-immobilie').addEventListener('click', () => {
+    addFromTemplate('tpl-immobilie-besitz', immobilienListe);
+    renumberImmobilien();
+  });
+
+  /* Same rule as the loans below: "Ja" is already the statement that there is a
+     property, so the first card comes with the answer and the button under it only
+     ever adds a further one. Only while the list is empty — reopening the gate must
+     not discard what was typed. */
+  $$('#immo-toggle > .choices input[type="radio"]').forEach((radio) =>
+    radio.addEventListener('change', () => {
+      if (radio.checked && radio.value === 'Ja' && !immobilienListe.children.length) {
+        addFromTemplate('tpl-immobilie-besitz', immobilienListe);
+      }
+      renumberImmobilien();
+    }));
+  renumberImmobilien();
+
+  immobilienListe.addEventListener('click', (event) => {
+    const button = event.target.closest('.add-darlehen');
+    if (!button) return;
+    const list = button.closest('.subcard').querySelector('.darlehen-liste');
+    addFromTemplate('tpl-darlehen', list);
+    renumberDarlehen(list);
+  });
+
+  /* Answering "Ja" is already the statement that there is a loan, so the first card
+     comes with it rather than behind a further click on "hinzufügen". Only when the
+     list is still empty — reopening the gate must not discard what was typed. */
+  const kredite = $('#kredite-liste');
+  $('#add-kredit').addEventListener('click', () => {
+    addFromTemplate('tpl-kredit', kredite);
+    renumberKredite();
+  });
+  $$('#verbind-toggle > .choices input[type="radio"]').forEach((radio) =>
+    radio.addEventListener('change', () => {
+      if (radio.checked && radio.value === 'Ja' && !kredite.children.length) {
+        addFromTemplate('tpl-kredit', kredite);
+      }
+      renumberKredite();
+    }));
+  renumberKredite();
+
+  document.addEventListener('input', touched);
+
+  /* Das Häkchen und die Felder, an denen es hängt, entstehen und vergehen mit
+     Antragsteller 2 — also horcht das Dokument und nicht das Feld. */
+  document.addEventListener('change', (event) => {
+    if (event.target.matches(SAME_ADDRESS)) applySameAddress();
+  });
+  document.addEventListener('input', (event) => {
+    if (event.target.matches('.applicant[data-applicant="1"] [data-adr]')) syncSameAddress();
+  });
+
+  /* Ein Paar, das schon rot ist, muss sich beim Tippen wieder beruhigen — und zwar
+     im Moment des Tippens, nicht erst beim Verlassen des Feldes: die Meldung sagt
+     „eines von beiden“, und sobald eines dasteht, stimmt sie nicht mehr. Nur wenn
+     die Gruppe bereits beanstandet wurde, sonst würde das erste Zeichen im leeren
+     Formular sofort einen Fehler erzeugen. */
+  document.addEventListener('input', (event) => {
+    if (!event.target.matches('.input')) return;
+    const pair = event.target.closest('.field[data-one-of]');
+    if (pair && pair.classList.contains('invalid')) validateOneOf(pair);
+  });
+
+  document.addEventListener('blur', (event) => {
+    if (!event.target.matches('.input, .select')) return;
+    if (event.target.matches('[data-mail]')) { validateOptionalMail(event.target); return; }
+    validate(event.target);
+  }, true);
+
+  /* The way on is also the completeness check: an incomplete form does not move to
+     the summary, it says how much is left and puts the caret in the first gap. */
+  $('#submit').addEventListener('click', () => {
+    const invalid = formGaps();
+
+    if (!invalid.length) {
+      saveText.textContent = 'Alle Pflichtfelder vollständig';
+      openSummary();
+      return;
+    }
+    saveText.textContent = invalid.length === 1
+      ? 'Noch 1 Pflichtfeld offen'
+      : `Noch ${invalid.length} Pflichtfelder offen`;
+    revealCard(invalid[0].node);
+    invalid[0].focus.focus();
+  });
+
+  /* Back into the form is always allowed and never asks: nothing has been sent
+     yet, and the summary is rebuilt from the form every time it is opened, so no
+     answer can go stale between the two. */
+  $('#back-to-form').addEventListener('click', () => showView('form'));
+
+  $('#send').addEventListener('click', send);
+
+  // Prototype only: in the real product the case ends on the sent screen.
+  $('#restart').addEventListener('click', () => location.reload());
+
+  /* Gesendet-Seite in drei Fassungen, nur für den Prototyp. Die Wahl steht als
+     data-sent-variant auf <html> und bleibt über ein Neuladen hinweg stehen. */
+  (() => {
+    const KEY = 'selbstauskunft-sent-variant';
+    const buttons = $$('[data-sent-variant]');
+    const apply = (variant) => {
+      document.documentElement.setAttribute('data-sent-variant', variant);
+      buttons.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.sentVariant === variant)));
+    };
+    let saved = 'a';
+    try { saved = localStorage.getItem(KEY) || 'a'; } catch (e) { /* kein Speicher */ }
+    apply(saved);
+    buttons.forEach((b) => b.addEventListener('click', () => {
+      apply(b.dataset.sentVariant);
+      try { localStorage.setItem(KEY, b.dataset.sentVariant); } catch (e) { /* egal */ }
+    }));
+    $$('[data-restart]').forEach((b) => b.addEventListener('click', () => location.reload()));
+  })();
+
+  // Ticking the box is the answer, so the complaint about it missing goes at once.
+  consent.addEventListener('change', () => { if (consent.checked) validateConsent(); });
+
+  // The form is the first view; showView is not used for it, because it would take
+  // the focus off the top of the page before anyone has done anything.
+  document.documentElement.setAttribute('data-view', 'form');
+  // Dasselbe Symbol, das schon im <head> steht — jetzt aber aus dem Token statt
+  // aus dem eingetippten Hex, damit ein Markenwechsel es von hier an mitnimmt.
+  setFavicon('form');
+})();

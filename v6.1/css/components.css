@@ -1,0 +1,3301 @@
+/* ============================================================================
+   V5 components — the only hand-written stylesheet.
+   Load order: tokens.css -> tokens.ext.css -> tokens.a11y.css -> components.css
+
+   HOUSE RULE: every value below is a var() from a PUBLIC layer — --ds-*, never
+   --_ds-*. No hex, no px, no primitive. That is what makes a change in Finlink
+   Core land here by regenerating, not by editing. build-tokens.py fails the
+   build if a primitive leaks into this file.
+
+   Typography is applied as whole roles, never as loose properties: see the
+   role-adoption section below. Nothing outside it sets font-size, line-height,
+   letter-spacing or font-weight.
+
+   Media-query breakpoints are the one thing that cannot be a token, since CSS
+   does not allow var() in a media query. Deliberate deviations are marked
+   inline: `INTERIM G-nn` where the token system is missing something (the entry
+   is in TOKEN-GAPS.md), `EXCEPTION:` where CSS itself is the limit.
+   ========================================================================== */
+
+/* Two values that are genuinely derived rather than authored — calc() over tokens
+   the components are already built from, so they track the density switch and the
+   layout scale instead of being guessed constants. Everything that used to be
+   declared here (the three surface levels and the per-appearance shuffle) now lives
+   in tokens.ext.css, where the token layer can own it. */
+:root {
+  --ds-actionbar-height: calc(var(--ds-field-height) + 2 * var(--ds-spacing-12)
+    + var(--ds-border-width-1));
+  --ds-layout-shell-max: calc(var(--ds-layout-nav-width) + var(--ds-spacing-40)
+    + var(--ds-layout-content-max) + 2 * var(--ds-layout-gutter));
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+/* The browser's own [hidden] rule is a UA rule, so any author `display` beats it no
+   matter how weak the selector — a hidden .field (display:flex) or .add-btn
+   (inline-flex) would sit there in plain sight. Every rule below sets display on a
+   class, so this has to be the one !important in the file. It is also what lets
+   `hidden` mean "not being asked for" throughout: isAsked reads the attribute, and a
+   field that does not apply to the Immobilienart is hidden rather than revealed
+   away. */
+[hidden] { display: none !important; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+/* tokens.css §5.5 owns the rest of the body: family, colour, background and the
+   body-md-default bundle that is the document default. Only the UA margin is
+   this file's business. */
+body { margin: 0; }
+
+/* INTERIM G-21 — Finlink has no link colour. text.info.bold is 3.93:1 on white,
+   large-text only, and §9.2's neutral-plus-underline interim drops the colour
+   affordance entirely on a form this full of links. text.brand.bold is 5.32:1
+   after the contrast pass, so the link is teal rather than blue. Hover resolves
+   to the same teal.700 today — see G-21/G-24. */
+:where(a) { color: var(--ds-color-text-brand-bold-default); }
+
+/* ------------------------------------------------- typography role adoption
+
+   Every text node in this file takes exactly ONE of the 14 roles, applied as a
+   whole bundle. tokens.css defines the roles and their .ds-text-* classes; this
+   section binds the component selectors to them, which keeps the markup free of
+   type classes and keeps each role authored in exactly one place.
+
+   Plain comma lists, not :is() — :is() takes the specificity of its most
+   specific argument, which would let one high-specificity selector drag a whole
+   role up and start winning arguments it should lose. A comma list leaves every
+   selector at its own weight, so .subsection > .card-head .card-title still
+   beats .card-title on its own merits.
+
+   Order matters in exactly one place: body-md-default is emitted last so
+   .choice.plain > input + span beats .choice input:checked + span, which it ties
+   with on specificity. That is the same order the two rules had before.
+
+   Nothing below sets a size, ratio or weight of its own — if a component ever
+   needs one, the role is wrong or the role does not exist yet (§9.4). */
+
+.page-title {
+  font-family: var(--ds-font-family-sans);
+  font-size: var(--ds-typography-heading-lg-font-size);
+  line-height: var(--ds-typography-heading-lg-line-height);
+  letter-spacing: var(--ds-typography-heading-lg-letter-spacing);
+  font-weight: var(--ds-typography-heading-lg-font-weight);
+}
+
+.card-title,
+.card-static > .card-head {
+  font-family: var(--ds-font-family-sans);
+  font-size: var(--ds-typography-heading-md-font-size);
+  line-height: var(--ds-typography-heading-md-line-height);
+  letter-spacing: var(--ds-typography-heading-md-letter-spacing);
+  font-weight: var(--ds-typography-heading-md-font-weight);
+}
+
+.nav a,
+.subsection > .card-head .card-title,
+.subsection-title,
+.modal-title,
+/* Die Initialen sind kein Text, den man liest, sondern die Fuellung eines
+   64px-Kreises. Heading.sm ist die kleinste Rolle, die darin noch als Zeichen
+   und nicht als Fussnote wirkt. */
+.advisor-initials,
+.review-title {
+  font-family: var(--ds-font-family-sans);
+  font-size: var(--ds-typography-heading-sm-font-size);
+  line-height: var(--ds-typography-heading-sm-line-height);
+  letter-spacing: var(--ds-typography-heading-sm-letter-spacing);
+  font-weight: var(--ds-typography-heading-sm-font-weight);
+}
+
+.nav .eyebrow,
+.review-context {
+  font-family: var(--ds-font-family-sans);
+  font-size: var(--ds-typography-heading-xs-font-size);
+  line-height: var(--ds-typography-heading-xs-line-height);
+  letter-spacing: var(--ds-typography-heading-xs-letter-spacing);
+  font-weight: var(--ds-typography-heading-xs-font-weight);
+}
+
+.cal-cell[aria-pressed="true"],
+/* „Bearbeiten“ steht als einzige Handlung neben einer Gruppenueberschrift und
+   muss sich gegen sie behaupten — bei body.sm.default war es die leiseste Schrift
+   in einer Zeile, in der es das einzige Bedienelement ist. Groesse bleibt,
+   Gewicht steigt: dieselbe Rolle eine Stufe fester. */
+.link-btn,
+/* Namensschild unter dem Portraet: eine Stufe UNTER den Kontaktzeilen daneben.
+   Der Name sagt, von wem der Link kommt; angesteuert wird die Telefonnummer. Das
+   Gewicht traegt den Unterschied zur Rolle darunter, nicht die Groesse — kleiner
+   als body.sm hat Finlink Core nicht (G-22 ist dieselbe Kante von der anderen
+   Seite). */
+.advisor-name,
+/* Dieselben Initialen, aber in einem 40px-Kreis statt in einem 64er: heading.sm
+   fuellt den kleinen Kreis von Rand zu Rand. */
+.advisor-avatar .advisor-initials,
+.steps > li::before {
+  font-family: var(--ds-font-family-sans);
+  font-size: var(--ds-typography-body-sm-strong-font-size);
+  line-height: var(--ds-typography-body-sm-strong-line-height);
+  letter-spacing: var(--ds-typography-body-sm-strong-letter-spacing);
+  font-weight: var(--ds-typography-body-sm-strong-font-weight);
+}
+
+.seg button[aria-pressed="true"],
+.save-state.locked,
+.info-btn {
+  font-family: var(--ds-font-family-sans);
+  font-size: var(--ds-typography-body-sm-medium-font-size);
+  line-height: var(--ds-typography-body-sm-medium-line-height);
+  letter-spacing: var(--ds-typography-body-sm-medium-letter-spacing);
+  font-weight: var(--ds-typography-body-sm-medium-font-weight);
+}
+
+.seg button,
+.nav-note,
+.advisor-role,
+.help,
+.cal-days th,
+.cal-cell,
+.error-text,
+.save-state,
+.review-list > dt,
+.advisor-status {
+  font-family: var(--ds-font-family-sans);
+  font-size: var(--ds-typography-body-sm-default-font-size);
+  line-height: var(--ds-typography-body-sm-default-line-height);
+  letter-spacing: var(--ds-typography-body-sm-default-letter-spacing);
+  font-weight: var(--ds-typography-body-sm-default-font-weight);
+}
+
+/* INTERIM G-22 — .subhead, .applicant-title and .subcard-head are structurally
+   headings at 14px, and Finlink's smallest heading role is 12px. body-md-strong
+   is the right size and weight doing a heading's job. */
+.req,
+.subhead,
+.cal-zoom,
+.applicant-title,
+.subcard-head,
+.c-title,
+.note-title {
+  font-family: var(--ds-font-family-sans);
+  font-size: var(--ds-typography-body-md-strong-font-size);
+  line-height: var(--ds-typography-body-md-strong-line-height);
+  letter-spacing: var(--ds-typography-body-md-strong-letter-spacing);
+  font-weight: var(--ds-typography-body-md-strong-font-weight);
+}
+
+.skip-link,
+.nav a.sub[aria-current="true"],
+.field > label,
+.field > .group-label,
+.gate-row > .gate-label,
+.choice input:checked + span,
+.add-btn,
+.btn,
+.step-title,
+.review-list > dd,
+.nav-toggle,
+.tools-toggle {
+  font-family: var(--ds-font-family-sans);
+  font-size: var(--ds-typography-body-md-medium-font-size);
+  line-height: var(--ds-typography-body-md-medium-line-height);
+  letter-spacing: var(--ds-typography-body-md-medium-letter-spacing);
+  font-weight: var(--ds-typography-body-md-medium-font-weight);
+}
+
+.nav a.sub,
+.with-unit .unit,
+.choice > span,
+.note,
+/* Die Sprechblase trägt den ganzen Hilfetext — .field > .help ist visuell versteckt,
+   es gibt also keine zweite Fassung daneben. Bei body.sm war sie die kleinste Schrift
+   der Seite, obwohl sie als einzige Stelle erklärt, wonach gefragt wird. Sie steht
+   deshalb hier, bei .note und .modal-text: dieselbe Aufgabe, dieselbe Rolle. Der
+   Mobil-Block weiter unten hebt genau diese Gruppe gemeinsam auf body.lg an — die
+   Blase war bisher die einzige darin, die unten nicht mitgestuft war. */
+.info-bubble,
+.modal-text,
+/* Die Kontaktzeilen und die Zeilen im Kontaktmenue der Leiste sind Fliesstext wie
+   .note und damit die groesste Schrift der Beraterkarte: gelesen wird hier die
+   Nummer, nicht das Namensschild darueber. Sie stufen unter 640px nicht mit der
+   Gruppe hoch — die Karte im Seitenkopf ist dort nicht auf dem Schirm, und im
+   Menue der Leiste muessen drei Zeilen unter ein Portraet passen, das am
+   Bildschirmrand klebt. */
+.advisor-row > dd,
+.advisor-action,
+.choice.plain > input + span {
+  font-family: var(--ds-font-family-sans);
+  font-size: var(--ds-typography-body-md-default-font-size);
+  line-height: var(--ds-typography-body-md-default-line-height);
+  letter-spacing: var(--ds-typography-body-md-default-letter-spacing);
+  font-weight: var(--ds-typography-body-md-default-font-weight);
+}
+
+/* The field's type is the one role selected at runtime rather than authored:
+   density swaps the bundle from body-lg-default (16/22) to body-md-medium (14/20)
+   so the text scales with the control. CSS cannot swap a class from a custom
+   property, so the four members are indirected through --ds-field-font-* in
+   tokens.ext.css. It is still one role per node. INTERIM G-17. */
+.input,
+.select,
+.icon-btn {
+  font-family: var(--ds-font-family-sans);
+  font-size: var(--ds-field-font-size);
+  line-height: var(--ds-field-font-line);
+  letter-spacing: var(--ds-field-font-spacing);
+  font-weight: var(--ds-field-font-weight);
+}
+
+/* INTERIM G-06 — no tabular-figures token exists. .ds-numeric is defined in
+   tokens.css; these are the nodes that carry a number meant to be compared down
+   a column, which in a Selbstauskunft is every money field and the reference. */
+.input.num,
+.with-unit .input {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+}
+
+
+/* Responsive type — INTERIM G-18.
+
+   Finlink Core's roles are fixed-size; the contract has no viewport axis. This
+   form has always stepped its two largest headings down and its body role UP
+   below 640px, and that is the behaviour being kept.
+
+   It is done by re-binding selectors to a DIFFERENT role, not by re-pointing a
+   role's variables. The obvious version —
+     --ds-typography-heading-lg-font-size: var(--ds-typography-heading-md-font-size)
+   — is broken: custom properties substitute lazily against the final value in
+   the scope, so heading-lg would resolve against a heading-md that the same
+   block has already moved to heading-sm, and step down twice.
+
+   Re-binding also leaves all 14 role definitions immutable, which is what
+   "apply the role whole" is protecting. A side effect worth noting: it puts the
+   three body-lg roles to work, which the contract lists as otherwise unused. */
+@media (max-width: 640px) {
+
+  .page-title {
+    font-size: var(--ds-typography-heading-md-font-size);
+    line-height: var(--ds-typography-heading-md-line-height);
+    letter-spacing: var(--ds-typography-heading-md-letter-spacing);
+    font-weight: var(--ds-typography-heading-md-font-weight);
+  }
+
+  .card-title,
+  .card-static > .card-head {
+    font-size: var(--ds-typography-heading-sm-font-size);
+    line-height: var(--ds-typography-heading-sm-line-height);
+    letter-spacing: var(--ds-typography-heading-sm-letter-spacing);
+    font-weight: var(--ds-typography-heading-sm-font-weight);
+  }
+
+  .req,
+  .subhead,
+  .cal-zoom,
+  .applicant-title,
+  .subcard-head,
+  .note-title {
+    font-size: var(--ds-typography-body-lg-strong-font-size);
+    line-height: var(--ds-typography-body-lg-strong-line-height);
+    letter-spacing: var(--ds-typography-body-lg-strong-letter-spacing);
+    font-weight: var(--ds-typography-body-lg-strong-font-weight);
+  }
+
+  .skip-link,
+  .nav a.sub[aria-current="true"],
+  .field > label,
+  .field > .group-label,
+  .gate-row > .gate-label,
+  .choice input:checked + span,
+  .add-btn,
+  .btn,
+  .step-title,
+  .review-list > dd,
+  .nav-toggle {
+    font-size: var(--ds-typography-body-lg-medium-font-size);
+    line-height: var(--ds-typography-body-lg-medium-line-height);
+    letter-spacing: var(--ds-typography-body-lg-medium-letter-spacing);
+    font-weight: var(--ds-typography-body-lg-medium-font-weight);
+  }
+
+  .nav a.sub,
+  .with-unit .unit,
+  .choice > span,
+  .note,
+  .modal-text,
+  /* Die Blase steigt hier mit .note und .modal-text mit, aus demselben Grund wie
+     die beiden: sie ist ein Kasten voll Fließtext, und auf Telefonbreite hat das
+     Label darüber bereits auf 16px gestuft. Sie kommt jetzt von body.md wie ihre
+     Nachbarn — vorher stand sie eine Stufe tiefer und machte hier einen Sprung
+     über zwei. */
+  .info-bubble,
+  .choice.plain > input + span {
+    font-size: var(--ds-typography-body-lg-default-font-size);
+    line-height: var(--ds-typography-body-lg-default-line-height);
+    letter-spacing: var(--ds-typography-body-lg-default-letter-spacing);
+    font-weight: var(--ds-typography-body-lg-default-font-weight);
+  }
+
+}
+
+/* ---------------------------------------------------------------- app shell */
+
+.skip-link {
+  position: absolute;
+  left: var(--ds-spacing-16);
+  top: var(--ds-spacing-8);
+  z-index: 10;
+  padding: var(--ds-spacing-8) var(--ds-spacing-16);
+  background: var(--ds-surface-page);
+  color: var(--ds-color-text-brand-bold-default);
+  border: var(--ds-border-width-2) solid var(--ds-color-border-brand-bold-default);
+  border-radius: var(--ds-button-radius);
+  transform: translateY(-200%);
+}
+.skip-link:focus { transform: none; }
+
+/* Der Knopf, der den Schalterkasten holt. Er liegt fest in der oberen linken Ecke,
+   auf einer Höhe mit dem Seitentitel, und ist standardmäßig weg: sichtbar wird er nur
+   auf Überprüfen und Absenden über 900px (Regeln am Ende der Datei). Die Chrome
+   entspricht .nav-toggle unter 900px — derselbe Knopf in derselben Rolle, nur an der
+   anderen Bildschirmgröße. */
+.tools-toggle {
+  display: none;
+  position: fixed;
+  left: var(--ds-layout-gutter);
+  top: var(--ds-spacing-40);
+  z-index: 6;
+  align-items: center;
+  gap: var(--ds-spacing-8);
+  min-height: var(--ds-field-height);
+  padding: 0 var(--ds-spacing-16);
+  color: var(--ds-color-text-neutral-bold-default);
+  background: var(--ds-surface-card);
+  border: var(--ds-border-width-1) solid var(--ds-color-border-neutral-bold-hovered);
+  border-radius: var(--ds-button-radius);
+  cursor: pointer;
+}
+.tools-toggle:hover { background: var(--ds-color-background-neutral-subtle-default); }
+.tools-toggle[aria-expanded="true"] {
+  color: var(--ds-color-text-brand-bold-default);
+  background: var(--ds-color-background-brand-subtlest-default);
+  border-color: var(--ds-color-border-brand-bold-default);
+}
+.sliders { flex: none; width: var(--ds-spacing-20); height: var(--ds-spacing-20); }
+
+/* The shell is anchored left, not centred: the sidebar stays at the viewport edge
+   (one gutter in) at every width, and the form column takes the room that frees up.
+   Capping that column rather than the shell is what stops the form from running the
+   full width of a wide monitor — the space past --ds-layout-content-max is left empty
+   instead of being handed to the fields. */
+.app {
+  display: grid;
+  grid-template-columns: var(--ds-layout-nav-width) minmax(0, var(--ds-layout-content-max));
+  gap: var(--ds-spacing-40);
+  padding: var(--ds-spacing-40) var(--ds-layout-gutter) var(--ds-spacing-64);
+}
+
+/* Nur für den Prototyp: der Inhalt steht mittig im Fenster, die Navigation bleibt am
+   linken Rand stehen. Zwei Dinge, die sonst zusammenhängen, werden hier getrennt —
+   die Navigation ist ein Werkzeug am Rand und gehört dorthin, der Inhalt ist das,
+   worauf man schaut, und gehört in die Mitte.
+
+   Gemacht wird das über die Lücke zwischen den beiden Spalten, nicht über eine
+   Position: die Navigation steht als erste Rasterspalte weiterhin an der Gosse, und
+   die Lücke wächst genau so weit, dass die Inhaltsspalte auf der Fenstermitte landet.
+   Damit bleibt die Navigation im Fluss — sie ist sticky und scrollt mit, und eine
+   absolut gesetzte Spalte hätte das aufgegeben.
+
+   Die Rechnung: die Inhaltsspalte beginnt bei Gosse + Navigationsbreite + Lücke und
+   soll bei (Fenster − Inhaltsbreite) / 2 beginnen. Prozente beziehen sich beim
+   column-gap auf die eigene Inhaltsbox, also auf Fenster minus zwei Gossen — die
+   heben sich gegen die eine Gosse links zu genau einer Navigationsbreite weg.
+
+   Das max() ist die Notbremse: unterhalb von rund 1788px käme die Mitte links von der
+   Navigation zu liegen, der Inhalt würde sie überlaufen. Dort greift wieder die
+   normale 40er-Lücke, und die Ansicht ist die bekannte. Der Schalter tut also erst
+   etwas, wenn wirklich Platz da ist. */
+:root[data-shell="centered"] .app {
+  column-gap: max(var(--ds-spacing-40),
+    (100% - var(--ds-layout-content-max)) / 2 - var(--ds-layout-nav-width));
+}
+
+/* Die Leiste geht über die ganze Fensterbreite und deckelt nur ihren Inhalt. Gedeckelt
+   wird sie hier auf die Inhaltsspalte statt auf die ganze Schale, damit Knopf und
+   Statuszeile über den Kartenkanten stehen und nicht über der Navigation daneben. */
+:root[data-shell="centered"] .actionbar-inner {
+  max-width: calc(var(--ds-layout-content-max) + 2 * var(--ds-layout-gutter));
+  margin-inline: auto;
+}
+
+/* -------------------------------------------------------------------- nav */
+
+/* The action bar is sticky and overlays the page, so the sidebar has to stop above
+   it. Without that, its last items sit behind the bar and cannot be reached: the
+   nav thinks it has room, so there is nothing to scroll. */
+.nav {
+  position: sticky;
+  top: var(--ds-spacing-40);
+  align-self: start;
+  display: flex;
+  flex-direction: column;
+  gap: var(--ds-spacing-4);
+  max-height: calc(100vh - var(--ds-spacing-40) - var(--ds-actionbar-height)
+    - var(--ds-spacing-16));
+  padding-right: var(--ds-spacing-4);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--ds-color-border-neutral-bold-default) transparent;
+}
+
+/* Top-level entries sit one type step above their sub-entries and carry the heavier
+   weight, so the two levels read as a hierarchy and not as one flat list with some
+   items indented. Flex rather than block because the top-level ones lead with an
+   icon that has to stay on the text's centre line. */
+.nav a {
+  display: flex;
+  align-items: center;
+  gap: var(--ds-spacing-8);
+  padding: var(--ds-spacing-8) var(--ds-spacing-12);
+  border-radius: var(--ds-button-radius);
+  color: var(--ds-color-text-neutral-subtle-default);
+  text-decoration: none;
+}
+.nav a:hover { background: var(--ds-color-background-neutral-subtle-default); color: var(--ds-color-text-neutral-bold-default); }
+.nav a[aria-current="true"] {
+  background: var(--ds-color-background-brand-subtlest-default);
+  color: var(--ds-color-text-brand-bold-default);
+}
+
+/* One size for all six, set from the same step as the burger, so the icon column is
+   straight however tall the label wraps. Never shrinks: a squeezed glyph is a
+   different shape, not a smaller one. */
+.nav-icon {
+  width: var(--ds-spacing-20);
+  height: var(--ds-spacing-20);
+  flex: none;
+}
+
+/* Indented under the step it belongs to — by the width of that step's icon plus its
+   gap, so the sub-labels line up with the parent label rather than with its glyph.
+   There are no group headings left in here: every step is a link of its own, and a
+   heading above a step's sub-entries would be a second, unclickable copy of that
+   link. */
+.nav a.sub {
+  padding-left: calc(var(--ds-spacing-12) + var(--ds-spacing-20) + var(--ds-spacing-8));
+}
+
+.nav .object-nav { display: none; }
+.nav .object-nav.show { display: block; }
+/* Zwei Bedingungen an einem Eintrag: .show sagt, ob das Objekt überhaupt gefragt ist,
+   hidden — von syncImmobilienart über data-art gesetzt — ob die Immobilienart diesen
+   Abschnitt hat. Ohne diese Zeile gewinnt display:block gegen hidden, und der Eintrag
+   führte zu einem Abschnitt, den es beim Grundstück nicht gibt. */
+.nav .object-nav.show[hidden] { display: none; }
+
+/* The wrapper only exists so the list has something to collapse into below 900px.
+   Up here it is not a box at all, so the links stay direct children of the nav's
+   flex column and inherit its gap. */
+.nav-links { display: contents; }
+.nav-toggle { display: none; }
+
+.nav-divider {
+  margin: var(--ds-spacing-20) var(--ds-spacing-12);
+  border: 0;
+  border-top: var(--ds-border-width-1) solid var(--ds-color-border-neutral-bold-default);
+}
+
+.nav .eyebrow {
+  margin: var(--ds-spacing-16) var(--ds-spacing-12) var(--ds-spacing-8);
+  color: var(--ds-color-text-neutral-subtle-default);
+}
+
+/* segmented control for the prototype's own switches (density, appearance…) */
+.seg { display: flex; gap: var(--ds-spacing-4); padding: 0 var(--ds-spacing-12); flex-wrap: wrap; }
+.seg button {
+  flex: 1 1 auto;
+  min-height: var(--ds-spacing-24);
+  padding: var(--ds-spacing-4) var(--ds-spacing-8);
+  color: var(--ds-color-text-neutral-subtle-default);
+  background: var(--ds-surface-page);
+  border: var(--ds-border-width-1) solid var(--ds-color-border-neutral-bold-hovered);
+  border-radius: var(--ds-button-radius);
+  cursor: pointer;
+}
+.seg button[aria-pressed="true"] {
+  background: var(--ds-color-background-brand-subtlest-default);
+  border-color: var(--ds-color-border-brand-bold-default);
+  color: var(--ds-color-text-brand-bold-default);
+}
+
+/* Der Beispieldaten-Knopf. Derselbe Button wie ein "+ hinzufügen" im Formular —
+   gestrichelter Akzentrahmen, weil er etwas einsetzt —, hier über die Spaltenbreite.
+   Der Innenabstand sitzt am Container, wie bei .seg, damit er auf derselben
+   senkrechten Kante steht wie die Umschalter darüber. */
+.nav-tools { padding: 0 var(--ds-spacing-12); }
+.nav-tools > .add-btn { width: 100%; justify-content: center; text-align: center; }
+.nav-note {
+  margin: var(--ds-spacing-8) 0 0;
+  color: var(--ds-color-text-neutral-subtle-default);
+}
+
+/* ---------------------------------------------------------------- headings */
+
+.page-title {
+  margin: 0 0 var(--ds-spacing-12);
+  color: var(--ds-color-text-neutral-bold-default);
+}
+
+/* Die Oberkante des Portraets soll auf der Oberkante von „Selbstauskunft“ liegen.
+   flex-start allein reicht dafuer nicht: der Kasten einer Zeile beginnt oberhalb
+   der Versalhoehe — halbe Durchschusshaelfte plus der Abstand zwischen Oberlaenge
+   und Versalhoehe, bei Roboto in dieser Groesse zusammen rund 6px. Optisch haengt
+   die Ueberschrift dann unter dem Bild.
+   text-box-trim schneidet genau diesen Streifen weg, statt ihn mit einem
+   geschaetzten negativen Rand auszugleichen — der waere ein fester Pixelwert, der
+   bei jedem Wechsel der Schrift oder der Rolle falsch wird. Wo die Eigenschaft
+   fehlt (Firefox, Safari vor 18.2), bleibt der alte Versatz stehen: die Zeile
+   sitzt sechs Pixel tiefer, nichts bricht. */
+.page-head > .page-intro > .page-title {
+  text-box-trim: trim-start;
+  text-box-edge: cap alphabetic;
+}
+/* Beim Schrittwechsel bekommt die Überschrift den Fokus, damit ein Screenreader
+   den neuen Schritt vorliest — markiert wird sie dabei nicht: sie ist kein
+   Bedienelement, und ein Rahmen um sie würde nach etwas zum Anklicken aussehen. */
+.page-title:focus { outline: none; }
+
+/* Der Abstand nach unten gehoert der Lede ueberall dort, wo sie fuer sich steht,
+   sonst klebte sie an der Karte darunter. Im Seitenkopf faellt er weg: dort ist die
+   Lede nicht das letzte Element, und den Abstand nach unten setzt .page-head fuer
+   beide Spalten gemeinsam — derselbe Wert, das Satzbild bleibt also gleich.
+   Seit „Zusammenfassung“ und „Gesendet“ denselben Seitenkopf tragen (Beraterblock
+   rechts, siehe cloneAdvisor in app.js), gilt dort der zweite Fall. */
+.lede {
+  margin: 0 0 var(--ds-spacing-32);
+  max-width: var(--ds-layout-measure-prose);
+  color: var(--ds-color-text-neutral-subtle-default);
+}
+.page-head .lede { margin-bottom: 0; }
+/* Stehen zwei Saetze im Seitenkopf — "Gesendet" sagt erst, dass es weg ist, dann,
+   an wen man sich wendet —, braucht der zweite den Abstand nach oben: die Regel
+   darueber hat beiden den nach unten genommen. */
+.page-head .lede + .lede { margin-top: var(--ds-spacing-16); }
+
+/* Titel und Beraterin oder Berater teilen sich eine Zeile: links, worum es geht,
+   rechts, wer den Link geschickt hat. Der Abstand nach unten sass frueher an
+   .lede und gehoert jetzt der Zeile — sonst haette die rechte Spalte ihn nicht.
+   Beide Spalten beginnen oben, damit die Oberkante des Portraets auf der
+   Oberkante von „Selbstauskunft“ liegt. Die rechte Spalte ist dabei die hoehere
+   — sie darf unten ueberstehen; was zaehlt, ist die gemeinsame Kante oben.
+   Die Beraterspalte gibt nichts ab (flex: none) — schmaler wird die Adresse
+   zweizeilig. Zusammengedrueckt wird die Textspalte, die dafuer ohnehin ihr
+   Zeilenmass hat. */
+.page-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--ds-spacing-40);
+  margin-bottom: var(--ds-spacing-32);
+}
+.page-intro { min-width: 0; }
+
+/* ------------------------------------------------- Beraterin oder Berater
+
+   Portraet, Name und Rolle in einer Spalte, die Kontaktwege in der naechsten,
+   dazwischen eine Haarlinie. Keine eigene Flaeche und kein Rahmen: der Block
+   steht im Seitenkopf neben der Ueberschrift, nicht als Karte davor, und eine
+   weisse Kachel neben blankem Titeltext haette ihn zu einem eigenen Abschnitt
+   gemacht. Die Haarlinie ist die ganze Gliederung, die er braucht.
+
+   align-items bleibt stretch, damit die Trennlinie ueber die volle Hoehe des
+   Blocks laeuft; senkrecht mittig gesetzt wird stattdessen der Inhalt der beiden
+   Spalten. */
+.advisor {
+  display: flex;
+  flex: none;
+  align-items: stretch;
+  gap: var(--ds-advisor-gap);
+}
+
+.advisor-person {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--ds-spacing-8);
+  text-align: center;
+}
+
+/* Der Kreis ist die Vertretung fuer das Foto und zugleich sein Rahmen: kommt
+   eins mit, deckt das <img> die Initialen darunter ab; kommt keins, bleiben die
+   Initialen stehen. Deshalb liegen beide im selben Grid-Feld statt nebeneinander
+   — so gibt es keinen Sprung in der Hoehe, wenn das Bild spaeter eintrifft.
+   Der Rand liegt auf border/neutral/subtle: ein Foto ist ein Rechteck mit
+   beliebigen Raendern, und ohne die Haarlinie franst der Kreis auf einem hellen
+   Bild in die Seite aus. Auf den Initialen faellt sie nicht auf, weil deren
+   Fuellung ohnehin abhebt. */
+.advisor-photo {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: var(--ds-advisor-avatar-size);
+  height: var(--ds-advisor-avatar-size);
+  overflow: hidden;
+  color: var(--ds-color-text-brand-bold-default);
+  background: var(--ds-color-background-brand-subtlest-default);
+  border: var(--ds-border-width-1) solid var(--ds-color-border-neutral-subtle-default);
+  border-radius: var(--ds-radius-full);
+}
+.advisor-photo > * { grid-area: 1 / 1; }
+.advisor-photo > img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.advisor-name {
+  margin: 0;
+  color: var(--ds-color-text-neutral-bold-default);
+}
+/* Grey.500 auf der Seitenflaeche sind 4.61:1 — die hellste Textrolle, die 1.4.3
+   noch haelt, und genau die richtige Stufe fuer eine Zeile, die den Namen
+   erklaert statt selbst gelesen zu werden. */
+.advisor-role {
+  margin: 0;
+  color: var(--ds-color-text-neutral-subtlest-default);
+}
+.advisor-identity { min-width: 0; }
+
+/* Die Haarlinie gehoert der Kontaktspalte, nicht der Portraetspalte, und teilt
+   die beiden senkrecht. Sie nimmt border/neutral/bold — dieselbe Stufe wie der
+   Strich ueber einem .subhead und die Kante der Aktionsleiste. Die
+   subtle-Stufe waere im Dunkelmodus unsichtbar: dort ist sie grey.800, und das
+   ist genau die Flaeche der Karte. */
+.advisor-contact {
+  display: grid;
+  align-content: center;
+  gap: var(--ds-advisor-row-gap);
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  padding-inline-start: var(--ds-advisor-gap);
+  border-inline-start: var(--ds-border-width-1) solid
+    var(--ds-color-border-neutral-bold-default);
+}
+
+/* Das dt traegt nur das unsichtbare Wort (.sr-only), die ganze Zeile steckt im
+   Link darin: was man anklickt, soll das sein, was man liest. */
+.advisor-row > dd { margin: 0; }
+
+/* Feste Icon-Spalte statt flex-gap: so fluchten Adresse, Telefon und E-Mail an
+   derselben Kante, auch wenn die Adresse zweizeilig umbricht. */
+.advisor-link {
+  display: grid;
+  grid-template-columns: var(--ds-advisor-icon-size) minmax(0, 1fr);
+  align-items: start;
+  gap: var(--ds-spacing-8);
+}
+/* Das Icon ist kleiner als die Zeile daneben, also wird es auf deren erste Zeile
+   zentriert statt an ihre Oberkante gesetzt: die Box ist so hoch wie eine Zeile
+   des Werts, und das Icon sitzt darin mittig. Bei der zweizeiligen Adresse bleibt
+   es dadurch auf der ersten Zeile stehen. */
+.advisor-icon-box {
+  display: flex;
+  align-items: center;
+  min-height: calc(var(--ds-typography-body-md-default-font-size)
+    * var(--ds-typography-body-md-default-line-height));
+  color: var(--ds-color-icon-brand-bold-default);
+}
+/* Die Icons sind im 12er-Raster gezeichnet und werden in die Token-Box skaliert
+   — sie sind Vektor, das kostet nichts. Die Farbe kommt von currentColor an der
+   Icon-Box, das heisst: icon/brand/bold folgt dem Markenschalter genauso wie die
+   Knoepfe und die Links daneben. */
+.advisor-icon {
+  flex: none;
+  width: var(--ds-advisor-icon-size);
+  height: var(--ds-advisor-icon-size);
+}
+
+/* Alle drei Zeilen sind Links, aber keine sieht im Ruhezustand danach aus. Sie
+   stehen untereinander in einer schmalen Spalte, und drei tuerkise, unterstrichene
+   Zeilen hintereinander sind keine Kontaktangaben mehr, sondern eine Linkliste: das
+   Auge liest dann die Auszeichnung statt der Nummer, der Adresse, des Namens. Was
+   sie sind, gehoert an die Stelle, an der es gebraucht wird — unter dem Zeiger. Dort
+   wechselt die Zeile auf die Markenfarbe, unterstreicht sich, und die Blase darueber
+   sagt dazu, was der Klick tut: die Nummer uebergibt an die Telefon-App, E-Mail und
+   Anschrift kopieren sich (siehe .advisor-hint weiter unten). Zusammen ist das die
+   ganze Ankuendigung, und im Ruhezustand kostet sie nichts.
+
+   Der Fokus bekommt denselben Wechsel: die Tastatur braucht dieselbe Auskunft wie
+   der Zeiger. Den Ring dazu setzt die gemeinsame Fokusregel weiter unten, in die
+   .advisor-link dafuer aufgenommen ist — Farbe und Unterstreichung sagen "Link",
+   der Ring sagt "hier stehst du", und das eine kann das andere nicht vertreten.
+
+   Auf dem Telefon greift die Regel ins Leere — dort ist .advisor weg, und in der
+   Leiste sind dieselben drei Wege Knoepfe in einer Tafel, wo sie als Zeilen mit
+   Tippziel und Flaechen-Hover ohnehin nicht nach Links aussehen.
+
+   Beides muss am <a> selbst stehen: text-decoration vererbt sich an die Kinder und
+   laesst sich von dort nicht zuruecknehmen, und die Linkfarbe kommt von :where(a).
+   Das Icon bleibt trotzdem tuerkis — .advisor-icon-box setzt seine Farbe selbst, und
+   es ist das einzige, was die Zeile im Ruhezustand ueberhaupt als etwas markiert,
+   das man anfassen kann. */
+.advisor-link {
+  color: var(--ds-color-text-neutral-subtle-default);
+  text-decoration: none;
+}
+.advisor-link:hover,
+.advisor-link:focus-visible {
+  color: var(--ds-color-text-brand-bold-default);
+  text-decoration: underline;
+}
+
+/* ------------------------------------ kopieren aus der Beraterkarte
+
+   Drei Zeilen, die drei verschiedene Dinge tun, und keiner davon sieht man das an:
+   ein mailto: oeffnet ein Programm, das an dieser Stelle keiner bestellt hat, eine
+   Kartensuche beantwortet eine Anschrift mit einem fremden Tab — beide kopieren
+   deshalb den Wert (wireAdvisorCopy in app.js) —, und die Nummer uebergibt an die
+   Telefon-App. Damit das an der Zeile steht, bevor man sie anklickt, haengt
+   darueber dieselbe Blase, die am Formular die Hilfetexte traegt: beim Ueberfahren
+   die Ankuendigung, bei den beiden kopierenden nach dem Klick die Quittung im
+   selben Kasten. Sie nimmt .info-bubble
+   unveraendert mit: Flaeche, Ink, Schatten und Mass sind dort begruendet, und ein
+   zweiter Tooltip in einer zweiten Machart waere genau das, was ein Prototyp
+   nicht vorfuehren soll. Geregelt wird hier nur, woran sie haengt und wann sie
+   kommt.
+
+   Der Anker ist das dd und nicht der Link darin. An derselben Kante steht die
+   Blase so oder so — das dd ist genau so breit wie die Zeile —, aber im Link
+   waere ihr Text Teil des Linknamens und wuerde jedes Mal mitgelesen.
+
+   Unter 640px greift nichts davon: dort traegt .advisor display:none, und
+   dieselben drei Wege stehen als Knoepfe im Kontaktmenue der Leiste. Was nicht
+   da ist, wird nicht ueberfahren und nicht geklickt — eine Breitenabfrage
+   braucht es dafuer nicht. */
+.advisor-row > dd { position: relative; }
+
+/* Dieselbe Mechanik wie bei den Hilfetexten: Zeigen nur dort, wo Ueberfahren
+   wirklich Ueberfahren ist, sonst bliebe die Blase auf einem Tippziel haengen.
+   Der Selektor fragt nicht nach data-copy — die Blase gibt es nur, wo eine
+   angelegt ist, und die Nummer hat eine, ohne zu kopieren.
+   .is-shown ist die Quittung nach dem Klick — sie kommt aus dem Skript und haelt
+   sich ein paar Sekunden von selbst. */
+@media (hover: hover) {
+  .advisor-link:hover + .advisor-hint { opacity: 1; visibility: visible; }
+}
+.advisor-link:focus-visible + .advisor-hint,
+.advisor-hint.is-shown { opacity: 1; visibility: visible; }
+
+/* ------------------------------------ Kontaktmenue in der Mobil-Leiste
+
+   Unter 640px ist die Beraterkarte aus dem Seitenkopf verschwunden und steht
+   stattdessen hinter dem Portraet rechts in der Abschnitte-Leiste. Der Grund
+   dafuer, dass es die Leiste ist und keine zweite Karte im Formular: die Leiste
+   klebt oben. Der Weg zu einem Anruf ist damit auf jedem Schritt derselbe eine
+   Tipp — auch auf Zusammenfassung und Gesendet, wo die Abschnittsliste laengst
+   weg ist und nur noch das Portraet in der Leiste steht.
+
+   Der Block gehoert der Leiste und nicht dem Seitenkopf, also ist er ueberall
+   sonst nicht da: ueber 900px ist .nav wieder die Spalte links, und ein Portraet
+   in ihrem Kopf waere ein zweites neben dem in der Karte. */
+.advisor-menu {
+  display: none;
+  position: relative;
+  /* schiebt sich in der Leiste an das rechte Ende, egal was links davon steht */
+  margin-inline-start: auto;
+}
+
+/* Der Knopf ist groesser als der Kreis darin: spacing/4 Innenabstand ringsum
+   machen aus 40px Portraet ein 48px Tippziel — WCAG 2.5.5 (AAA) verlangt 44 —,
+   und derselbe Wert negativ als Aussenabstand nimmt ihn aus dem Layout wieder
+   heraus. Die Leiste bleibt dadurch so hoch, wie der Abschnitte-Knopf sie macht,
+   und die Trefferflaeche ist trotzdem groesser als das, was man sieht. */
+.advisor-avatar {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: var(--ds-advisor-nav-avatar-size);
+  height: var(--ds-advisor-nav-avatar-size);
+  padding: var(--ds-spacing-4);
+  margin: calc(-1 * var(--ds-spacing-4));
+  box-sizing: content-box;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+/* Der Kreis selbst ist das, was die Karte im Seitenkopf auch zeigt — dieselbe
+   Fuellung, dieselbe Haarlinie, dasselbe Paar aus Initialen und Foto im selben
+   Rasterfeld, damit nichts springt, wenn das Bild spaeter eintrifft. */
+.advisor-avatar > .advisor-photo {
+  width: 100%;
+  height: 100%;
+}
+.advisor-avatar[aria-expanded="true"] > .advisor-photo {
+  border-color: var(--ds-color-border-brand-bold-default);
+}
+
+/* Dieselbe Tafel wie die Abschnittsliste nebenan: sie faellt aus derselben
+   Leiste, also traegt sie dieselbe Flaeche, Kante, Rundung und denselben
+   Schatten. Rechtsbuendig unter dem Portraet statt ueber die volle Breite — sie
+   hat drei Zeilen zu zeigen, keine sechzehn. Der z-index liegt eine Stufe ueber
+   der Leiste (5), sonst deckt die klebende Leiste des naechsten Abschnitts sie
+   beim Scrollen zu. */
+.advisor-pop {
+  display: none;
+  position: absolute;
+  top: calc(100% + var(--ds-spacing-12));
+  right: 0;
+  z-index: 6;
+  width: max-content;
+  max-width: min(var(--ds-advisor-menu-width),
+    calc(100vw - 2 * var(--ds-spacing-16)));
+  padding: var(--ds-spacing-8);
+  background: var(--ds-surface-card);
+  border: var(--ds-border-width-1) solid var(--ds-color-border-neutral-bold-default);
+  border-radius: var(--ds-card-radius);
+  box-shadow: var(--ds-shadow-lg);
+}
+.advisor-avatar[aria-expanded="true"] + .advisor-pop { display: grid; }
+
+/* Jede Zeile ist eine Handlung und keine Angabe: anrufen, E-Mail kopieren,
+   Anschrift kopieren. Deshalb sind es Bedienelemente in voller Zeilenbreite mit
+   einem Tippziel von 48px und nicht drei Textzeilen, von denen eine zufaellig
+   ein Link ist. Der Wert steht sichtbar darin — er ist das, was man sucht; das
+   Verb dazu steht unsichtbar davor (.sr-only), damit die Zeile vorgelesen sagt,
+   was ein Tipp darauf tut. */
+.advisor-action {
+  display: grid;
+  grid-template-columns: var(--ds-advisor-icon-size) minmax(0, 1fr);
+  align-items: center;
+  gap: var(--ds-spacing-12);
+  width: 100%;
+  min-height: var(--ds-advisor-tap-target);
+  padding: var(--ds-spacing-8) var(--ds-spacing-12);
+  color: var(--ds-color-text-neutral-bold-default);
+  text-align: left;
+  text-decoration: none;
+  background: none;
+  border: 0;
+  border-radius: var(--ds-field-radius);
+  cursor: pointer;
+}
+.advisor-action:hover { background: var(--ds-color-background-neutral-subtle-hovered); }
+/* Die Anschrift ist die einzige, die umbrechen darf — sie ist der laengste Wert
+   und der einzige, der eine sinnvolle Bruchstelle hat. Nummer und E-Mail stehen
+   in einer Zeile und werden notfalls beschnitten, statt eine Adresse mitten im
+   Namensteil zu zerreissen. */
+.advisor-action > .advisor-value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#advisor-nav-address > .advisor-value { white-space: normal; }
+
+/* Die Rueckmeldung zum Kopieren steht erst da, wenn kopiert wurde: eine leere
+   Zeile in einer Tafel mit drei Zeilen waere ein Viertel ihrer Hoehe fuer
+   nichts. Dass die Tafel dabei um eine Zeile waechst, ist in Ordnung — sie
+   haengt frei unter dem Portraet und schiebt nichts weg. */
+.advisor-status {
+  margin: var(--ds-spacing-4) 0 0;
+  padding: 0 var(--ds-spacing-12);
+  color: var(--ds-color-text-brand-bold-default);
+}
+.advisor-status:empty { display: none; }
+
+/* A section is a collapsible card. The grey fill is the only boundary — no border,
+   because --color-border-default has to be dark enough for input borders to clear
+   1.4.11 and that weight looks wrong wrapped around a card.
+
+   The fill sits on the header and the body separately, not on .card, so an open
+   section reads as two stacked blocks with a hairline gap between the title bar and
+   the fields. Collapsed, only the header block is visible and nothing changes. */
+.card {
+  margin-bottom: var(--ds-section-gap);
+}
+
+.card-head { margin: 0; }
+
+.card-toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--ds-spacing-12);
+  width: 100%;
+  padding: var(--ds-spacing-16) var(--ds-card-padding);
+  color: inherit;
+  text-align: left;
+  background: var(--ds-surface-card);
+  border: 0;
+  border-radius: var(--ds-card-radius);
+  cursor: pointer;
+}
+/* background.hover is the same grey the cards use, so hovering would do nothing
+   visible; background.active is the next step and the only one that still reads. */
+.card-toggle:hover { background: var(--ds-color-background-neutral-subtle-hovered); }
+
+.chev {
+  flex: none;
+  width: var(--ds-spacing-20);
+  height: var(--ds-spacing-20);
+  color: var(--ds-color-text-neutral-subtle-default);
+  transition: transform 0.18s ease;
+}
+/* Direct-child only, here and in every other .card state rule below: a card can now
+   hold sub-sections, which are cards themselves, and a descendant selector would let
+   the outer card's state drive their chevrons and heights as well. */
+.card[data-open="true"] > .card-head > .card-toggle > .chev { transform: rotate(180deg); }
+
+.card-title {
+  color: var(--ds-color-text-neutral-bold-default);
+}
+
+/* body --------------------------------------------------------------------------- */
+
+.card-body {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.2s ease, margin-top 0.2s ease;
+}
+/* The gap only exists while the section is open — a closed card must keep the plain
+   --section-gap to its neighbour. It animates with the height so it does not jump in
+   at the start of the reveal. */
+.card[data-open="true"] > .card-body {
+  grid-template-rows: 1fr;
+  margin-top: var(--ds-spacing-4);
+}
+
+/* The overflow container must carry no padding of its own: overflow clips to the
+   padding box, so padding here would leave a 32px strip of the collapsed content
+   visible. Hence the separate .card-pad, mirroring .reveal > .reveal-inner > .pad. */
+.card-body-inner {
+  /* Containing block for the absolutely positioned descendants that carry no offsets
+     of their own — .sr-only and the visually hidden .field > .help. Without it they
+     resolve against the initial containing block, which no ancestor clip can reach:
+     a collapsed card went on contributing the full height of its contents to the
+     page, so the document scrolled roughly 1300px past the last thing on it and the
+     sticky action bar slid off the top of an empty screen. Everything else in here
+     is already anchored to a .choice, .info-wrap, .select-wrap or .with-picker, so
+     this changes nothing that was positioned on purpose. */
+  position: relative;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--ds-surface-card);
+  border-radius: var(--ds-card-radius);
+}
+/* Symmetrical now that the body is its own block — it no longer borrows the header's
+   space above the first field. */
+.card-pad { padding: var(--ds-card-padding); }
+
+/* Clipping is only needed while the height animates. Releasing it once the card has
+   settled keeps the info tooltips from being cut off at the card edge. */
+.card[data-open="true"][data-settled="true"] > .card-body > .card-body-inner { overflow: visible; }
+
+.card-actions { margin-bottom: var(--ds-card-gap); }
+
+@media (prefers-reduced-motion: reduce) {
+  .card-body, .chev { transition: none; }
+  /* Nothing animates here, so there is no reason to clip — and no transitionend to set
+     data-settled, which would otherwise leave the clip on for good. */
+  .card[data-open="true"] > .card-body > .card-body-inner { overflow: visible; }
+}
+
+/* Sub-sections -------------------------------------------------------------------- */
+
+/* The form has five steps, and only those five are cards. Everything the sidebar
+   lists underneath one of them is a sub-section: same markup, but it carries no fill
+   and no gap of its own, so an open card reads as one block with hairline-separated
+   parts rather than as a stack of cards inside a card. Its header is one heading step
+   down and its toggle exists for a single purpose — folding a part that is done back
+   out of the way. Opening is not its job: it opens with the card (see setCardOpen). */
+.subsections { padding: var(--ds-spacing-8) 0; }
+
+.subsection { margin-bottom: 0; }
+/* Only between siblings, so the first one does not get a rule against the card edge. */
+.subsections > .subsection + .subsection {
+  border-top: var(--ds-border-width-1) solid var(--ds-color-border-neutral-bold-default);
+}
+
+/* The reveal's usual top padding would double the sub-section's own header inset.
+   The five object sub-sections are .subsection-static, each in its own reveal —
+   exactly one is ever shown, so they never need a rule between them either. */
+.subsections > .object-section > .reveal-inner > .pad { padding-top: 0; }
+
+.subsection > .card-head > .card-toggle {
+  background: none;
+  border-radius: 0;
+}
+.subsection > .card-head > .card-toggle:hover { background: var(--ds-color-background-neutral-subtle-hovered); }
+
+/* No fill and no rounding: the parent card already provides both, and a second
+   rounded block inside it would show as a seam at the corners. The header sits
+   directly on top of its own fields, so the hairline gap goes too. */
+.subsection[data-open="true"] > .card-body { margin-top: 0; }
+.subsection > .card-body > .card-body-inner {
+  background: none;
+  border-radius: 0;
+}
+.subsection .card-pad,
+.subsection-static .card-pad { padding: 0 var(--ds-card-padding) var(--ds-card-gap); }
+
+/* Static sub-sections -------------------------------------------------------------- */
+
+/* A step whose parts are always shown at once: no toggle, just a heading saying
+   which part you are in. The rule between two parts is inset by the
+   card's own padding, so it separates two parts of one block rather than reading as
+   the seam between two cards. */
+/* Nicht mehr an .subsections als direkten Elternteil gebunden: die beiden Teile des
+   Objektabschnitts — „Immobilie“ und „Immobilienmerkmale“ — stehen zusammen in einem
+   .object-section-Reveal, und die Linie gehört zwischen zwei aufeinanderfolgende
+   Teile, ganz gleich wer sie hält. */
+.subsection-static + .subsection-static::before {
+  content: "";
+  display: block;
+  height: var(--ds-border-width-1);
+  margin: 0 var(--ds-card-padding);
+  background: var(--ds-color-border-neutral-bold-default);
+}
+
+/* Same inset as the fields underneath, so heading and labels share one left edge. */
+.subsection-title {
+  margin: var(--ds-card-gap) 0 var(--ds-spacing-16);
+  padding: 0 var(--ds-card-padding);
+  color: var(--ds-color-text-neutral-bold-default);
+}
+
+/* Helper text is always collapsed into an info icon next to the label, shown on hover
+   or focus. Earlier versions could switch this from the sidebar — inline, icon, off —
+   but the three modes were not worth the choice they asked of the reader, so the icon
+   is now the one form. The text itself stays in the DOM, only visually hidden, so the
+   aria-describedby on the field still reaches it; display:none would drop it from the
+   accessibility tree entirely. The icon itself needs no rule of its own here — it is
+   an .info-wrap like the hand-written one, styled further down. */
+.sr-only,
+.field > .help {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Each subhead opens a section within a card, so it carries the rule that
+   separates it from the fields above. The first one needs no rule — the card
+   padding already sets it off. */
+.subhead {
+  margin: var(--ds-spacing-24) 0 var(--ds-spacing-16);
+  padding-top: var(--ds-spacing-24);
+  border-top: var(--ds-border-width-1) solid var(--ds-color-border-neutral-bold-default);
+  color: var(--ds-color-text-brand-bold-default);
+}
+.card-pad > .subhead:first-child,
+.subhead:first-child {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+
+/* -------------------------------------------------------------------- grid */
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: var(--ds-field-gap-stack) var(--ds-spacing-16);
+}
+/* The width is carried by the *end* edge, leaving the start auto. `grid-column:
+   span 6` would put the span on the start edge instead, where .col-start below
+   overwrites it — and a field with a start of 1 and an auto end is one column
+   wide, not six. */
+/* Zwei Raster hintereinander im selben Block sind gelesen nichts anderes als zwei
+   Zeilen eines Rasters — der Umbruch dazwischen ist eine Frage der Auszeichnung
+   (eine Frage steht dazwischen, ein Teil der Felder haengt an der Immobilienart),
+   nicht eine Frage an die, die das Formular ausfuellen. Ohne Abstand stoesst die
+   erste Zeile des zweiten Rasters an die letzte des ersten, waehrend jede Zeile
+   innerhalb eines Rasters ihre --ds-field-gap-stack hat: an genau dieser Stelle
+   sieht das Raster kaputt aus, ohne dass man sagen koennte, warum.
+
+   Das allgemeine Geschwister-Zeichen und nicht das direkte: zwischen zwei Rastern
+   steht oft ein Feld, das gerade nicht gefragt ist und [hidden] traegt. Fuer die
+   Nachbarschaft zaehlt es trotzdem, fuer das Auge nicht — mit + waere der Abstand
+   genau dann weg, wenn er gebraucht wird.
+
+   Ersetzt drei Inline-Korrekturen im Markup, die dasselbe an drei Stellen von Hand
+   taten (und an vier weiteren fehlten). */
+.grid ~ .grid { margin-top: var(--ds-field-gap-stack); }
+
+.col-3  { grid-column-end: span 3; }
+.col-4  { grid-column-end: span 4; }
+.col-5  { grid-column-end: span 5; }
+.col-6  { grid-column-end: span 6; }
+.col-8  { grid-column-end: span 8; }
+.col-9  { grid-column-end: span 9; }
+.col-12 { grid-column-end: span 12; }
+
+/* Forces a field to the first column, breaking the row so it stacks under the
+   preceding field instead of sitting beside it. Precedes the single-column
+   mobile override, which resets the start so the field still goes full width. */
+.col-start { grid-column-start: 1; }
+
+/* Eine Reihe aus lauter gekappten Zahlenfeldern stand in Dritteln der Karte: der
+   Kasten 170px, die Spalte 361px, dazwischen 191px Nichts — und daneben ein Select
+   ohne Kappung, das seine Spalte füllt. Nebeneinander gelesen wirken die Felder
+   dadurch nicht schmal, sondern verstreut.
+
+   Gekappt wird deshalb das Raster und nicht die Spanne. Die Felder behalten col-4,
+   also Drittel — nur eben Drittel von 698px statt von 1116px, was 222px je Spalte
+   ergibt. 222px, weil zwei Dinge hineinpassen müssen: die längste Frage des Blocks
+   samt Stern und i-Icon ("Eingesetztes Eigenkapital", gemessen 197px) und der
+   längste Wert des Selects, das hier als einziges Bedienelement keine Kappung trägt
+   ("Länger als 20 Jahre", 212px). Darunter bräche die Beschriftung um und das
+   Select schnitte seinen eigenen Wert ab.
+
+   Über die Spanne ginge es nicht: col-2 wäre bei voller Breite genau die gekappten
+   170px, aber 1100px Karte sind dafür die Untergrenze — bei 950px Fenster blieben
+   76px übrig, ein Eingabefeld, in das keine Summe mehr passt. Eine Höchstbreite
+   kappt nur nach oben und lässt dem Raster darunter genau den Platz, den es vorher
+   auch hatte.
+
+   Nur über 900px, wie die Kappung der Felder selbst: darunter ist jedes Feld volle
+   Spaltenbreite, und ein schmaleres Raster wäre dort nur ein schmaleres Formular. */
+@media (min-width: 901px) {
+  .grid-tight {
+    max-width: calc(3 * var(--ds-layout-measure-amount-label) + 2 * var(--ds-spacing-16));
+  }
+}
+
+/* ------------------------------------------------------------------- field */
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ds-field-gap-label);
+  min-width: 0;
+}
+
+/* Choice groups are role="group" + aria-labelledby rather than fieldset/legend:
+   a legend is not a flex item in every engine, and this keeps the group label
+   visually and structurally identical to every other field label. */
+.field > label,
+.field > .group-label,
+.gate-row > .gate-label {
+  /* inline flow, not flex: the required asterisk and the info icon have to sit
+     after the last word of a label that wraps, not float to its far edge */
+  display: block;
+  /* subtle, not bold: 7.24:1 on the card and 6.74:1 on the page, so it clears AA
+     comfortably. It is the same token .help carries, so the label and its helper
+     no longer differ in colour — the hierarchy between them is now carried by the
+     type roles alone (body-md-medium 14/500 against body-sm-default 12/400). */
+  color: var(--ds-color-text-neutral-subtle-default);
+}
+
+/* The first card carries the page's opening question, so its title is darkened one
+   step past text.neutral.bold.default (grey.900) to grey.950. Finlink does carry
+   that step as text.neutral.bold.hovered, so this is a real semantic rather than
+   the primitive it used to reach for — but it is a hover token doing a resting
+   job, which is the honest reading of it (G-26). Only under the light appearance,
+   where grey.950 is ink rather than the page it becomes in dark.
+
+   The labels used to be darkened with it, back when labels were grey.900 and this
+   was a one-step emphasis. They are grey.700 now, which would make this a
+   three-step jump and leave the first card's labels visibly unlike every other
+   card's — so the labels were dropped from the selector and only the title
+   keeps the ink. */
+:root:not([data-appearance="dark"]) #start .card-title {
+  color: var(--ds-color-text-neutral-bold-hovered);
+}
+
+.req {
+  color: var(--ds-color-text-danger-bold-default);
+}
+
+.help {
+  margin: 0;
+  color: var(--ds-color-text-neutral-subtle-default);
+}
+
+/* controls ------------------------------------------------------------------ */
+
+.input,
+.select {
+  width: 100%;
+  height: var(--ds-field-height);
+  padding: 0 var(--ds-field-padding-x);
+  /* the field's type is a density token, not a fixed step: 16/24 at the default
+     height, 14/20 in compact, so the text shrinks with the box */
+  color: var(--ds-color-text-neutral-bold-default);
+  background: var(--ds-surface-field);
+  border: var(--ds-border-width-1) solid var(--ds-color-border-neutral-bold-hovered);
+  border-radius: var(--ds-field-radius);
+  transition: border-color 0.12s, box-shadow 0.12s;
+}
+
+.input::placeholder { color: var(--ds-color-text-neutral-subtle-disabled); }
+
+/* A focused field is lifted, not outlined: it keeps its own hairline and gains a
+   soft accent halo around it. Nothing on the row moves — the glow is drawn outside
+   the box and the border keeps its width. The accent edge the field used to grow
+   would read as a second line under the keyboard ring below, which is the one thing
+   focus should not look like. */
+.input:focus,
+.select:focus {
+  outline: none;
+  box-shadow: var(--ds-focus-glow);
+}
+
+/* Keyboard users additionally get an outer ring: the 2px accent border alone is
+   3.67:1 against the page, which passes 1.4.11 but is easy to lose on a long
+   form. Pointer users keep the clean screenshot look. */
+.input:focus-visible,
+.select:focus-visible,
+.choice input:focus-visible + span,
+.card-toggle:focus-visible,
+.btn:focus-visible,
+.seg button:focus-visible,
+.info-btn:focus-visible,
+.add-btn:focus-visible,
+.icon-btn:focus-visible,
+.picker-btn:focus-visible,
+.cal-nav:focus-visible,
+.cal-zoom:focus-visible,
+.cal-cell:focus-visible,
+.link-btn:focus-visible,
+.advisor-avatar:focus-visible,
+.advisor-action:focus-visible,
+/* Die drei Kontaktzeilen sehen im Ruhezustand nicht nach Links aus (siehe
+   .advisor-link). Der Ring der Tastatur muss dann aber genau der gleiche sein wie
+   ueberall sonst — die Farbe und die Unterstreichung, die dort beim Fokus dazu-
+   kommen, sind die Auskunft "das ist ein Link", nicht die Auskunft "hier steht der
+   Fokus". */
+.advisor-link:focus-visible,
+.tools-toggle:focus-visible {
+  outline: var(--ds-border-width-2) solid var(--ds-color-border-brand-bold-default);
+  outline-offset: var(--ds-border-width-1);
+}
+
+.select {
+  appearance: none;
+  padding-right: var(--ds-spacing-40);
+}
+
+/* The chevron is a masked shape, not a coloured SVG: a data-URI background could
+   only carry a hard-coded fill, whereas a mask takes its colour from a token and
+   so follows light/dark automatically. */
+.select-wrap { position: relative; display: block; min-width: 0; }
+.select-wrap::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: var(--ds-spacing-12);
+  width: var(--ds-spacing-16);
+  height: var(--ds-spacing-16);
+  transform: translateY(-50%);
+  background: var(--ds-color-text-neutral-subtle-default);
+  mask: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M4.4 7.3 10 12.9l5.6-5.6 1.4 1.4-7 7-7-7z"/></svg>') center / contain no-repeat;
+  -webkit-mask: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M4.4 7.3 10 12.9l5.6-5.6 1.4 1.4-7 7-7-7z"/></svg>') center / contain no-repeat;
+  pointer-events: none;
+}
+.select-wrap:has(.select:disabled)::after { background: var(--ds-color-text-neutral-subtle-disabled); }
+
+.input:disabled,
+.select:disabled {
+  background: var(--ds-color-background-neutral-subtle-disabled);
+  border-color: var(--ds-color-border-neutral-subtle-disabled);
+  color: var(--ds-color-text-neutral-subtle-disabled);
+  cursor: not-allowed;
+}
+
+.input.num { text-align: right; font-variant-numeric: tabular-nums; }
+
+/* A free-text field is the same field, taller: it keeps .input's border, radius,
+   focus halo and error state, and only trades the fixed row height for a floor it
+   can grow past. rows= sets the starting height, so the number of lines stays in
+   the markup where the question is; resize is vertical only, because a wider box
+   would break out of its grid column. */
+.textarea {
+  height: auto;
+  min-height: calc(var(--ds-field-height) * 2);
+  padding: var(--ds-field-padding-y) var(--ds-field-padding-x);
+  resize: vertical;
+}
+
+/* Ein Zahlenfeld ist nicht so breit wie die Frage darüber. "980,00 €" stand in einem
+   505px-Kasten, weil die Rasterspalte so breit war — die Ziffern rechts angeschlagen
+   und links davon 400px Leere. Gekappt wird deshalb das Bedienelement und nicht die
+   Spalte: das Label behält die ganze Breite und bricht weiter normal um, und der
+   Kasten wird so breit wie ein Ja/Nein-Paar, das in diesem Formular überall daneben
+   oder darunter steht (gemessen 170px, über 23 Paare gleich).
+
+   Am Bedienelement statt an den .col-*-Klassen, weil dieselbe Klasse je nach
+   Verschachtelung etwas anderes ergibt: col-6 sind oben in der Karte 505px und in
+   einem Reveal-Pad 244px. Eine Regel fasst alle 56 Zahlenfelder gleich breit; 56
+   geänderte Spannweiten täten es nicht.
+
+   Nur über 900px. Auf Telefonbreite ist jedes Feld absichtlich volle Spaltenbreite —
+   das ist die Fläche für den Daumen, und die Figma-Mobilframes sind auf diesen Stand
+   gebaut. */
+@media (min-width: 901px) {
+  .with-unit,
+  .input.num { max-width: var(--ds-layout-measure-amount); }
+}
+
+/* value + unit suffix (€, m², kWh/m²) */
+.with-unit { display: flex; align-items: stretch; }
+.with-unit .input {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  text-align: right;
+}
+.with-unit .unit {
+  display: flex;
+  align-items: center;
+  padding: 0 var(--ds-spacing-12);
+  color: var(--ds-color-text-neutral-subtle-default);
+  background: var(--ds-surface-card);
+  border: var(--ds-border-width-1) solid var(--ds-color-border-neutral-bold-hovered);
+  border-left: 0;
+  border-radius: 0 var(--ds-field-radius) var(--ds-field-radius) 0;
+  white-space: nowrap;
+}
+/* The € box is a later sibling and paints over the input's halo, so the group wears
+   the glow as a whole and the input inside it wears none — otherwise the shadow would
+   stop dead at the seam. */
+.with-unit:focus-within {
+  border-radius: var(--ds-field-radius);
+  box-shadow: var(--ds-focus-glow);
+}
+.with-unit .input:focus { box-shadow: none; }
+/* Same reasoning for the keyboard ring: an outline on the input alone would stop at
+   the seam and leave the € box outside the ring, so the group wears it. */
+.with-unit .input:focus-visible { outline: none; }
+.with-unit:has(.input:focus-visible) {
+  outline: var(--ds-border-width-2) solid var(--ds-color-border-brand-bold-default);
+  outline-offset: var(--ds-border-width-1);
+}
+
+/* date field + calendar ---------------------------------------------------- */
+
+/* The opposite arrangement to the unit box: the button sits *inside* the field
+   rather than beside it, because it is not part of the value — it is a second way to
+   reach the same answer, and a field that grew a box on the end would read as one
+   more thing to fill in. The wrapper is built by script (see buildDatePickers), so
+   the markup stays a plain text input. */
+.with-picker { position: relative; display: block; }
+.with-picker > .input { padding-right: var(--ds-spacing-40); }
+
+.picker-btn {
+  position: absolute;
+  top: var(--ds-border-width-1);
+  right: var(--ds-border-width-1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--ds-spacing-40);
+  height: calc(var(--ds-field-height) - 2 * var(--ds-border-width-1));
+  padding: 0;
+  color: var(--ds-color-text-neutral-subtle-default);
+  background: none;
+  border: 0;
+  /* inside the field's own corner, so a hover fill cannot square it off */
+  border-radius: 0 var(--ds-field-radius) var(--ds-field-radius) 0;
+  cursor: pointer;
+}
+/* background.hover equals the field fill, so hover has to step to active — the same
+   reason the card header does. */
+.picker-btn:hover { color: var(--ds-color-text-neutral-bold-default); background: var(--ds-color-background-neutral-subtle-hovered); }
+.picker-btn > .ico-cal { width: var(--ds-spacing-20); height: var(--ds-spacing-20); }
+.input:disabled + .picker-btn { color: var(--ds-color-text-neutral-subtle-disabled); cursor: not-allowed; }
+
+/* Anchored under the field it belongs to. It escapes the card only because an open
+   card releases its overflow clipping once it has settled — the same thing the help
+   tooltip depends on (see .card-body-inner). */
+.calendar {
+  position: absolute;
+  top: calc(100% + var(--ds-spacing-4));
+  left: 0;
+  z-index: 20;
+  width: max-content;
+  padding: var(--ds-spacing-12);
+  background: var(--ds-surface-page);
+  border: var(--ds-border-width-1) solid var(--ds-color-border-neutral-bold-default);
+  border-radius: var(--ds-field-radius);
+  box-shadow: var(--ds-shadow-md);
+}
+/* flipped when the panel would otherwise leave the window — set on open, measured */
+.calendar[data-align="end"] { left: auto; right: 0; }
+
+.cal-head {
+  display: flex;
+  align-items: center;
+  gap: var(--ds-spacing-4);
+  margin-bottom: var(--ds-spacing-8);
+}
+.cal-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: var(--ds-spacing-32);
+  height: var(--ds-spacing-32);
+  padding: 0;
+  color: var(--ds-color-text-neutral-subtle-default);
+  background: none;
+  border: 0;
+  border-radius: var(--ds-field-radius);
+  cursor: pointer;
+}
+.cal-nav > svg { width: var(--ds-spacing-20); height: var(--ds-spacing-20); }
+.cal-nav:hover { color: var(--ds-color-text-neutral-bold-default); background: var(--ds-color-background-neutral-subtle-hovered); }
+
+/* The month-and-year label is a button, and says so on hover: it is the way out to
+   the level above, which is how a birthdate is reached without paging. */
+.cal-zoom {
+  flex: 1;
+  height: var(--ds-spacing-32);
+  padding: 0 var(--ds-spacing-8);
+  color: var(--ds-color-text-neutral-bold-default);
+  background: none;
+  border: 0;
+  border-radius: var(--ds-field-radius);
+  cursor: pointer;
+}
+.cal-zoom:hover { background: var(--ds-color-background-neutral-subtle-hovered); }
+.cal-zoom:disabled { cursor: default; background: none; }   /* the outermost level */
+
+.cal-days { border-collapse: collapse; }
+.cal-days th {
+  padding-bottom: var(--ds-spacing-4);
+  color: var(--ds-color-text-neutral-subtle-default);
+}
+.cal-blocks { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--ds-spacing-4); }
+
+.cal-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-width: var(--ds-spacing-32);
+  height: var(--ds-spacing-32);
+  padding: 0 var(--ds-spacing-4);
+  color: var(--ds-color-text-neutral-bold-default);
+  background: none;
+  /* transparent rather than none, so marking today cannot move the grid by a pixel */
+  border: var(--ds-border-width-1) solid transparent;
+  border-radius: var(--ds-field-radius);
+  cursor: pointer;
+}
+.cal-cell:hover { background: var(--ds-color-background-neutral-subtle-hovered); }
+/* The days either side of the month are shown rather than left blank — the week a
+   month starts in is a real week — but they are plainly not this month. */
+.cal-cell[data-outside] { color: var(--ds-color-text-neutral-subtle-default); opacity: 0.55; }
+/* Today is an edge, the answer is a fill: two different things, so two different
+   marks, and either can be read without the other. */
+.cal-cell[aria-current="date"] { border-color: var(--ds-color-border-brand-bold-default); }
+.cal-cell[aria-pressed="true"] {
+  color: var(--ds-color-text-neutral-inverse-default);
+  background: var(--ds-color-background-brand-bold-default);
+  border-color: var(--ds-color-border-brand-bold-default);
+  opacity: 1;
+}
+.cal-cell[aria-pressed="true"]:hover { background: var(--ds-color-background-brand-bold-hovered); }
+
+/* validation --------------------------------------------------------------- */
+
+.field.invalid .input,
+.field.invalid .select,
+.input[aria-invalid="true"],
+.select[aria-invalid="true"] {
+  border-color: var(--ds-color-border-danger-bold-default);
+}
+.field.invalid .with-unit .unit { border-color: var(--ds-color-border-danger-bold-default); }
+.field.invalid .choice input:not(:checked) + span { border-color: var(--ds-color-border-danger-bold-default); }
+
+.error-text {
+  display: none;
+  align-items: center;
+  gap: var(--ds-spacing-4);
+  margin: 0;
+  color: var(--ds-color-text-danger-bold-default);
+}
+.field.invalid .error-text { display: flex; }
+
+/* info icon + tooltip ------------------------------------------------------- */
+
+/* Das Zeichen ist jetzt der Export aus Info.svg — ein gefuellter Kreis mit
+   ausgespartem „i“, Pfad fuer Pfad uebernommen. Geaendert ist nur die eingebrannte
+   #607D8B: sie wird currentColor, damit die Farbe aus icon/neutral/subtle kommt und
+   dem Erscheinungsbild folgt — dieselbe Behandlung wie bei den Beraterzeichen.
+   Damit faellt auch der nachgebaute Ring weg: Kreis und Buchstabe stecken in der
+   Zeichnung, der Knopf ist nur noch ihr Rahmen. */
+.info-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--ds-info-icon-size);
+  height: var(--ds-info-icon-size);
+  padding: 0;
+  color: var(--ds-color-icon-neutral-subtle-default);
+  background: none;
+  border: 0;
+  cursor: help;
+}
+.info-btn:hover { color: var(--ds-color-icon-neutral-subtle-hovered); }
+.ico-info {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+/* The circle is 16px so it sits quietly next to a 14px label, but a pointer target
+   that small fails WCAG 2.5.8, so the hit area is expanded to 24px invisibly rather
+   than by growing the icon. */
+.info-btn::after {
+  content: "";
+  position: absolute;
+  inset: calc(-1 * var(--ds-spacing-4));
+}
+
+/* The ring has no fill to set it apart from the label any more, so it needs the gap
+   the filled circle could do without — otherwise it collides with the required *. */
+.info-wrap { display: inline-flex; vertical-align: middle; margin-left: var(--ds-spacing-4); }
+
+/* Die Blase steht mittig ueber dem Zeichen — und damit steht ihre Spitze in ihrer
+   Mitte, was das Design System so zeigt und was man von einer Sprechblase erwartet.
+
+   Frueher hing sie an der linken Kante der Beschriftung. Das war kein
+   Gestaltungswunsch, sondern ein Ausweichmanoever: mittig ueber dem Zeichen konnte sie
+   ueber den Rand laufen, und weil das Zeichen am ENDE der Beschriftung sitzt, war das
+   in einer schmalen Spalte immer der rechte. An der Beschriftung war sie nie breiter
+   als das Feld und konnte deshalb gar nicht erst anstossen — um den Preis, dass ihre
+   Spitze weit rechts aus der Mitte sass.
+   Diesen Preis muss sie nicht mehr zahlen: seit placeInfoBubble beim Oeffnen misst und
+   am Fensterrand zurueckschiebt, ist das Anstossen abgedeckt. Die Blase darf also
+   wieder dort stehen, wo sie hingehoert.
+   Die linke Kante rechnet das Skript aus (--ds-tip-left); ohne es faellt sie auf die
+   Kante der Beschriftung zurueck, also auf das alte Verhalten.
+
+   Der Wrap gibt dafuer seine eigene Positionierung auf; was ihn haelt, wird der
+   Bezugsrahmen. :has(> .info-wrap) rather than a list of hosts because the icon
+   is appended at runtime to whatever element carries the field's label — a <label>,
+   a .group-label, or a heading referenced by aria-labelledby. */
+:has(> .info-wrap) { position: relative; }
+
+/* Letztes Wort + Sternchen + Zeichen bleiben zusammen (siehe glueToLastWord in app.js).
+   Die Blase steckt mit in der Klammer und erbt sonst das nowrap — sie bricht wieder um. */
+.info-glue { white-space: nowrap; }
+.info-glue .info-bubble { white-space: normal; }
+
+.info-bubble {
+  position: absolute;
+  /* 16px vom AUSLOESER, nicht vom Kasten, in dem er steht. Gemessen wird gegen die
+     Beschriftung — sie ist das positionierte Elternteil und gibt der Blase ihre linke
+     Kante —, aber das Zeichen sitzt in deren Zeile um die Restluft der Zeilenhoehe
+     tiefer. Ohne Korrektur waeren es 19px statt 16. Den genauen Wert setzt das Skript
+     beim Oeffnen (placeInfoBubble); 100% ist der Rueckfall, solange es nicht gelaufen
+     ist, und zugleich der richtige Wert fuer eine umgebrochene Beschriftung. */
+  bottom: calc(var(--ds-tip-above, 100%) + var(--ds-tip-offset));
+  left: var(--ds-tip-left, 0px);
+  /* „Nicht hinter anderem Inhalt“: was gerade unter dem Zeiger liegt, gewinnt. Die
+     Blase steht deshalb ueber allem, was sich im Formular ueber ein Feld legen kann —
+     ueber der klebenden Aktionsleiste (4) und auch ueber einem offenen Kalender (20),
+     der neben einem Erklaerzeichen aufgeklappt sein kann. */
+  z-index: 21;
+  /* Waagerechtes Ausweichen. Steht die Blase am Fensterrand an, schiebt das Skript
+     sie hier um genau so viel herein, wie noetig ist — translate und nicht left,
+     damit ihr Kasten und damit die Messung davon unberuehrt bleiben. */
+  translate: var(--ds-tip-shift, 0) 0;
+  width: max-content;
+  /* Zwei Grenzen: die Hoechstbreite aus dem Design System, und das Fenster abzueglich
+     des Randabstands, den eine Blase auf beiden Seiten einhaelt.
+     Frueher stand hier 100% — die Breite der Beschriftung —, weil die Blase sich nicht
+     selbst davor bewahren konnte, an einer Kante abgeschnitten zu werden; sie blieb
+     lieber im Feld. Das misst jetzt das Skript (placeInfoBubble), und damit darf sie
+     wieder so breit sein, wie sie sein soll: eine Blase ist eine Auflage und kein
+     Bestandteil des Feldes, ueber dem sie liegt. */
+  max-width: min(var(--ds-layout-measure-tooltip),
+                 calc(100vw - 2 * var(--ds-tip-safe-inset)));
+  padding: var(--ds-spacing-8) var(--ds-spacing-12);
+  /* G-27 — the one surface darker than the page it floats over. Finlink Core's
+     neutral background ramp is light-only, so both the fill and its ink are
+     extension tokens: grey.900 carrying grey.50 at 12.60:1. */
+  color: var(--ds-surface-inverse-text);
+  background: var(--ds-surface-inverse);
+  /* Matches the fill in light, so the box measures the same in both appearances
+     while showing an edge only where dark-on-dark needs one. */
+  border: var(--ds-border-width-1) solid var(--ds-surface-inverse-border);
+  border-radius: var(--ds-field-radius);
+  /* sm, not md: at this size and this near-black the shadow is only there to lift
+     the chip off the field behind it, and md's 16px spread reads as a smudge under
+     a box that already separates itself by being the darkest thing on the page. */
+  box-shadow: var(--ds-shadow-sm);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.12s;
+}
+
+/* Ausrichtung: oben ist die Vorgabe, weil das Zeichen am Ende einer Beschriftung
+   steht und ueber ihr immer das Feld davor liegt — also Platz, den niemand gerade
+   liest. Passt die Blase dort nicht mehr ins Fenster, klappt sie nach unten; das
+   Skript misst beim Oeffnen und setzt diese Klasse (siehe placeInfoBubble).
+   Wer die Seite selbst festlegen will, setzt data-placement="top|bottom" an die
+   .info-wrap — dann misst das Skript nicht, sondern gehorcht. */
+.info-bubble.below {
+  top: calc(var(--ds-tip-below, 100%) + var(--ds-tip-offset));
+  bottom: auto;
+}
+
+/* Zwei Erläuterungen im Formular — Ausstattung und Zustand — sind keine Sätze, sondern
+   Listen: eine Einleitung und dann je eine Zeile pro Stufe. Sie stehen als Absätze im
+   Hilfetext, und die Blase übernimmt sie als solche, damit sie nicht als eine Wand aus
+   Text ankommen. Der erklärte Begriff steht fett voran: gesucht wird die eigene
+   Antwort, nicht der ganze Text. */
+/* Die Spitze — ein um 45 Grad gedrehtes Quadrat, dessen Mitte genau auf der Kante der
+   Blase sitzt: die innere Haelfte deckt das Stueck Rahmen ab, das sie ueberlagert, die
+   aeussere ragt heraus und zeigt ihre zwei Kanten. Der Umriss der Blase laeuft dadurch
+   ohne Bruch in die Spitze hinein — wichtig im Dunkelmodus, wo der Rahmen wirklich zu
+   sehen ist (heller als die Flaeche, siehe --ds-surface-inverse-border).
+
+   Sichtbar sind nur die zwei Kanten, die nach aussen zeigen. Bei einer Drehung um 45
+   Grad im Uhrzeigersinn zeigen nach unten die urspruengliche Unter- und die RECHTE
+   Kante, nach oben die Ober- und die linke — deshalb die asymmetrische border-width
+   statt eines Rahmens ringsum, der quer durch die Blase liefe. (Im hellen Modus faellt
+   eine falsche Wahl nicht auf, weil Rahmen und Flaeche dort dieselbe Farbe haben; im
+   dunklen wird daraus ein offener Winkel unter einer durchgezogenen Linie.)
+
+   Waagerecht gerechnet, nicht auf 50% gesetzt: im Normalfall kommt dabei genau die
+   Mitte heraus, weil die Blase mittig ueber dem Zeichen steht. Am Fensterrand ist sie
+   das nicht mehr — dort ist sie zur Seite geschoben —, und dann wandert die Spitze mit
+   dem Zeichen, statt auf die Mitte einer verschobenen Blase und damit auf irgendetwas
+   zu zeigen. Der Rueckfall 50% gilt nur, solange das Skript nicht gelaufen ist. */
+.info-bubble::after {
+  content: "";
+  position: absolute;
+  left: var(--ds-tip-caret, 50%);
+  width: var(--ds-tip-caret-size);
+  height: var(--ds-tip-caret-size);
+  margin-left: calc(-0.5 * var(--ds-tip-caret-size));
+  background: var(--ds-surface-inverse);
+  border: 0 solid var(--ds-surface-inverse-border);
+  rotate: 45deg;
+}
+.info-bubble:not(.below)::after {
+  bottom: calc(-0.5 * var(--ds-tip-caret-size));
+  border-width: 0 var(--ds-border-width-1) var(--ds-border-width-1) 0;
+}
+.info-bubble.below::after {
+  top: calc(-0.5 * var(--ds-tip-caret-size));
+  border-width: var(--ds-border-width-1) 0 0 var(--ds-border-width-1);
+}
+
+.info-bubble > p { margin: 0; }
+.info-bubble > p + p { margin-top: var(--ds-spacing-8); }
+.info-bubble strong { font-weight: var(--ds-typography-body-md-strong-font-weight); }
+
+/* Hover only where hovering is a thing. On a touch screen a tap leaves the emulated
+   hover stuck on until something else is tapped, which would hold the bubble open
+   against the button's own state and make the second tap look broken. */
+@media (hover: hover) {
+  .info-wrap:hover .info-bubble { opacity: 1; visibility: visible; }
+}
+.info-btn:focus-visible + .info-bubble,
+.info-btn[aria-expanded="true"] + .info-bubble { opacity: 1; visibility: visible; }
+
+/* ----------------------------------------------------- segmented choices */
+
+.choices { display: flex; flex-wrap: wrap; gap: var(--ds-spacing-8); }
+
+/* Ein Feldpaar, von dem eines ausgefüllt sein muss (Erreichbarkeit: E-Mail oder
+   Telefon). Die Gruppe ist selbst ein .field und erbt dessen 4px zwischen Label und
+   Inhalt — das reicht für ein Label über einem Eingabefeld, nicht für eines über
+   zwei weiteren Labels: „Erreichbarkeit“ klebte sonst an „E-Mail-Adresse“ und die
+   beiden lasen sich als eine zweizeilige Beschriftung. Der Abstand geht deshalb auf
+   die Stufe, die .choices für dieselbe Aufgabe nimmt. */
+.field[data-one-of] > .grid { margin-top: var(--ds-spacing-4); }
+/* Die Meldung gehört dem Paar, nicht einem der beiden Felder — sie steht unter
+   beiden und braucht denselben Abstand nach oben wie das Raster darüber. */
+.field[data-one-of] > .error-text { margin-top: var(--ds-spacing-8); }
+
+.choice { position: relative; display: inline-flex; }
+.choice input {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+/* Direct child throughout: the chip's own span, not anything nested inside it. A
+   label that carries a required asterisk has a <span class="req"> in it, and a
+   descendant selector would give that its own chip and its own radio ring. */
+.choice > span {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ds-spacing-8);
+  min-height: var(--ds-field-height);
+  padding: 0 var(--ds-spacing-16);
+  color: var(--ds-color-text-neutral-bold-default);
+  background: var(--ds-surface-field);
+  border: var(--ds-border-width-1) solid var(--ds-color-border-neutral-bold-hovered);
+  border-radius: var(--ds-field-radius);
+  cursor: pointer;
+}
+.choice input:hover + span { border-color: var(--ds-color-border-brand-bold-default); }
+.choice input:checked + span {
+  background: var(--ds-color-background-brand-subtlest-default);
+  border-color: var(--ds-color-border-brand-bold-default);
+  color: var(--ds-color-text-brand-bold-default);
+  box-shadow: inset 0 0 0 var(--ds-border-width-1) var(--ds-color-border-brand-bold-default);
+}
+/* The native input is transparent, so the chip draws its own mark. It is empty while
+   unpicked and fills only once picked, and its shape says which rules apply: a circle
+   for radios (pick one), a square for checkboxes (pick any). Drawing it unpicked as
+   well as picked is the point — a chip with no mark reads as a button, and the shape
+   is what tells someone whether choosing this one gives up the last one. */
+.choice > span::before {
+  content: "";
+  flex: none;
+  width: var(--ds-choice-mark-size);
+  height: var(--ds-choice-mark-size);
+  border: var(--ds-border-width-1) solid var(--ds-color-border-neutral-bold-hovered);
+}
+.choice input:hover + span::before { border-color: var(--ds-color-border-brand-bold-default); }
+.choice input:checked + span::before { border-color: var(--ds-color-border-brand-bold-default); }
+
+/* radio: a ring that gains a centre dot */
+.choice input[type="radio"] + span::before {
+  border-radius: var(--ds-pill-radius);
+  /* A dot, not an inset ring: box-shadow spreads inward from the edge, which at this
+     size closes the hole entirely. Held at zero size until checked so only the
+     background-size has to change. */
+  background: radial-gradient(
+    circle at center,
+    currentColor 0 var(--ds-radio-dot-radius),
+    transparent var(--ds-radio-dot-radius)
+  ) center / 0 0 no-repeat;
+}
+.choice input[type="radio"]:checked + span::before {
+  border-width: var(--ds-border-width-2);
+  background-size: 100% 100%;
+}
+
+/* checkbox: a square that fills solid and carries a checkmark */
+.choice input[type="checkbox"] + span::before {
+  border-radius: var(--ds-checkbox-radius);
+}
+.choice input[type="checkbox"]:checked + span::before {
+  background: var(--ds-color-background-brand-bold-default);
+}
+/* The glyph is a second layer rather than a mask on the box above, because a mask
+   clips the element it is set on — fill, border and all — leaving a bare checkmark
+   instead of a filled box carrying one. It is positioned against .choice (the span
+   is static), so the offset has to re-add what the span insets its own content by. */
+.choice input[type="checkbox"]:checked + span::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: calc(var(--ds-border-width-1) + var(--ds-spacing-16));
+  width: var(--ds-choice-mark-size);
+  height: var(--ds-choice-mark-size);
+  transform: translateY(-50%);
+  background: var(--ds-color-text-neutral-inverse-default);
+  /* EXCEPTION: the checkmark is an inline SVG mask because a data URI cannot take a
+     var(). Only its alpha is read, so the stroke colour inside the URI paints
+     nothing — the visible colour is the tokenised background above. */
+  -webkit-mask: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="black" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5.5 10l3 3.5L14.5 6.5"/></svg>') center / 100% 100% no-repeat;
+  mask: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="black" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5.5 10l3 3.5L14.5 6.5"/></svg>') center / 100% 100% no-repeat;
+}
+.choice input:hover + span::before { border-color: var(--ds-color-border-brand-bold-default); }
+.choice input:checked + span::before {
+  border-color: var(--ds-color-border-brand-bold-default);
+  border-width: var(--ds-border-width-2);
+  background-size: 100% 100%;
+}
+
+/* -------------------------------------------------------- amount list */
+
+/* A list of optional positions, each with the figure beside it (Vermögen, and the
+   same shape will fit Verbindlichkeiten).
+
+   Two fixed columns, left-aligned: the position is one column wide rather than
+   stretched across the card, and the amount starts immediately beside it, so a
+   short label and its figure read as one pair instead of being pulled apart by a
+   gap the width of the card. Fixed rather than max-content because every row is
+   its own grid — a content-sized column would land in a different place on each
+   row and the figures would no longer line up. Nothing is clipped, so the focus
+   glow survives; that is why this is not built on .reveal. */
+.amount-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ds-spacing-8);
+  /* .field's own gap is the label-to-control step, too tight under the help text */
+  margin-top: var(--ds-spacing-8);
+}
+
+.amount-row {
+  display: grid;
+  grid-template-columns: minmax(0, var(--ds-layout-col-position)) var(--ds-layout-col-amount);
+  justify-content: start;
+  align-items: start;
+  gap: var(--ds-spacing-12);
+}
+/* the toggle is the row, not a chip sitting in it */
+.amount-row > .choice > span { width: 100%; }
+
+/* A position whose figure alone does not answer it — Nebentätigkeit is also a date —
+   used to take a third column beside the amount. Three fixed columns need 784px across
+   and the card does not have that at every width: what gave way was the position
+   column, whose label wrapped to four lines while the amount's error message ran into
+   the date box. So that case now uses the .amount-detail reveal underneath, like the
+   Vermögen variant — see below. There is no .with-extra any more. */
+
+/* Not picked: the field stays where it is and stays reachable — clicking into it
+   is itself how the position gets picked (see wireAmountRows), so hiding it would
+   remove the shortcut. Only the fill recedes, and it keeps full contrast: this is
+   an empty slot, not a disabled control. The data-inactive hook is unchanged, and
+   still what keeps the amount out of the Pflichtfeld count. */
+.amount-cell { transition: background-color 0.18s ease; }
+.amount-cell[data-inactive] .input { background: var(--ds-color-background-neutral-subtle-default); }
+
+/* A mandatory position still appears in the list, ticked, but cannot be given up.
+   It keeps the normal fill — greying it out would read as "not applicable" rather
+   than "always applies" — so only the pointer says it is not up for negotiation. */
+.amount-row[data-locked] > .choice input { cursor: default; }
+
+@media (prefers-reduced-motion: reduce) {
+  .amount-cell { transition: none; }
+}
+
+/* ------------------------------------------- amount list with detail fields */
+
+/* Variante B of Vermögen: a position that has more to say than a figure carries its
+   own detail fields, and they only appear once the position is picked — the same
+   deal the amount already makes, extended from one control to a row of them.
+   The details sit UNDER the row rather than beside it: the position/amount pair is
+   two fixed columns wide, and a third column of dropdowns would either squeeze them
+   or run off the card. Underneath, the full twelve-column grid is free, so the
+   details themselves lie horizontally — which is the point of the variant.
+
+   .amount-item wraps the pair so the reveal is a sibling of its row and nothing else
+   between them; .amount-list keeps its own gap for the plain rows, and the wider
+   step between items comes from the list modifier below. */
+.amount-list.with-detail { gap: var(--ds-spacing-20); }
+
+.amount-item {
+  display: flex;
+  flex-direction: column;
+}
+
+/* A rule down the left binds the details to the position above them: without it a
+   loose grid of dropdowns reads as a new question rather than as this row's small
+   print. Indented to the choice box's own text, so the rule starts where the label
+   does. Padding, not margin, on .pad — .reveal animates its row height and a margin
+   there would be measured outside the grid track. */
+.amount-detail > .reveal-inner > .pad {
+  padding-top: var(--ds-spacing-12);
+  padding-left: var(--ds-spacing-16);
+  margin-left: var(--ds-spacing-16);
+  border-left: var(--ds-border-width-1) solid var(--ds-color-border-neutral-bold-default);
+}
+
+/* ----------------------------------------------------- conditional reveal */
+
+.reveal {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition: grid-template-rows 0.18s ease, opacity 0.18s ease;
+}
+.reveal.open { grid-template-rows: 1fr; opacity: 1; }
+/* position: relative for the same reason as .card-body-inner — a closed reveal has
+   to contain its own hidden helper text, or it keeps stretching the page. */
+.reveal > .reveal-inner { position: relative; overflow: hidden; min-height: 0; }
+.reveal > .reveal-inner > .pad { padding-top: var(--ds-field-gap-stack); }
+.reveal:not(.open) { visibility: hidden; }
+
+/* Clipping is only needed while the row height animates. Releasing it once the reveal has
+   settled keeps the focus glow and the keyboard ring on the fields inside from being
+   sliced off at its edges — .pad has no horizontal inset, so a full-width field touches
+   the clip box on three sides. Same trade-off as .card-body-inner above. */
+.reveal.open.settled > .reveal-inner { overflow: visible; }
+
+/* Ein Reveal, das NEBEN seiner Frage steht statt darunter — „Jahr der Modernisierung"
+   neben „Wurde die Immobilie modernisiert?". .pad setzt sonst oben eine volle
+   Zeilenluecke, die das Feld gegen die Knoepfe daneben nach unten schiebt; nebeneinander
+   sollen beide auf derselben Oberkante beginnen. Als Rasterkind braucht es ausserdem
+   eine Spannweite (col-N), sonst nimmt es genau eine der zwoelf Spalten. */
+.reveal-beside > .reveal-inner > .pad { padding-top: 0; }
+
+/* Ein Reveal als Rasterkind (col-12 unter einer Frage im selben .grid). Geschlossen
+   darf es keine Rasterzeile belegen: eine Zeile der Hoehe 0 bekommt trotzdem die
+   Zeilenluecke davor und danach, und zwischen zwei Fragen stand dann der doppelte
+   Abstand. Absolut gesetzt faellt es aus dem Raster. Offen traegt die Zeilenluecke
+   des Rasters den Abstand, die .pad gibt keinen zweiten dazu. Beim Schliessen faellt
+   das Zusammenziehen der Hoehe weg, das Ausblenden bleibt. */
+.grid > .reveal:not(.open) { position: absolute; }
+.grid > .reveal > .reveal-inner > .pad { padding-top: 0; }
+
+/* Ein Zweck-Block in den Finanzierungsdetails steht ZWISCHEN Rastern und muss sich
+   wie eines verhalten. .pad gibt ihm oben Luft, unten keine — das naechste Raster stiess
+   bisher direkt an das letzte Feld des Blocks, waehrend zwei Felder innerhalb eines
+   Rasters eine volle Zeilenluecke auseinanderliegen.
+
+   Der Abstand haengt am FOLGENDEN Raster und nicht am Block: ein geschlossener Block ist
+   0px hoch und darf nichts hinterlassen, ein margin-top am Geschwister daneben kann das
+   nicht falsch machen. Derselbe Wert wie .grid ~ .grid, damit die Fuge zwischen den
+   Bloecken nicht anders misst als die zwischen zwei Fragen.
+
+   Beim ersten Block faellt die Luft von .pad mit der Polsterung der Karte zusammen —
+   dort wird sie zurueckgenommen, sonst faengt die Karte 20px zu tief an. */
+/* Betrag mit waehlbarer Einheit: die Maklerprovision wird mal als Satz und mal als
+   Summe genannt, also steht die Einheit als Auswahl links neben dem Betrag statt als
+   feste Beschriftung rechts daran.
+
+   Beide sitzen in EINEM .field, nicht in zwei Rasterspalten: zwei Spalten haetten die
+   Auswahl an den linken Rand ihrer eigenen Spalte gesetzt und den Betrag an den der
+   naechsten — mit der ganzen Restbreite der ersten dazwischen. Ein Feld traegt auch nur
+   eine Beschriftung, und nur einen Eintrag in der Pruefliste; die Einheit steht dort
+   ohnehin schon als Suffix am Betrag.
+
+   Der .unit-row-Zwischenkasten ist ausserdem das, was CONTROL_SEL vor der Auswahl
+   schuetzt: `:scope > .select-wrap > .select` greift nicht mehr, weil die Auswahl jetzt
+   eine Ebene tiefer liegt, und so bleibt der Betrag das Bedienelement des Feldes.
+
+   align-items: flex-end, weil die Auswahl keine eigene Beschriftung traegt und deshalb
+   auf der Grundlinie des Betrags sitzt. Die Breiten sind feste Basen ohne Wachstum:
+   ein Zeichen plus Pfeil braucht keine halbe Karte, und der Betrag behaelt sein Mass
+   auch unter 901px, wo die max-width-Regel oben nicht mehr greift. */
+.unit-row {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--ds-spacing-8);
+}
+.unit-row > .select-wrap { flex: 0 0 var(--ds-spacing-96); }
+.unit-row > .with-unit { flex: 0 1 var(--ds-layout-measure-amount); }
+
+/* Die Darlehenskarte der Anschlussfinanzierung ist eine Tabelle aus lauter Betraegen —
+   acht Fragen, die alle nach derselben Art Zahl fragen. Dort gelten zwei Regeln anders
+   als im uebrigen Formular.
+
+   1. Das Mass ist die SPALTE, nicht der einzelne Kasten. Die Regel weiter oben — ein
+      Zahlenfeld ist nicht so breit wie die Frage darueber — schuetzt ein einzelnes Feld
+      in einer breiten Zeile davor, "980,00 €" in einen 505px-Kasten zu setzen. Hier
+      stehen drei Felder nebeneinander, und jedes auf 170px zu kappen laesst jede Spalte
+      halb leer, waehrend die Frage darueber dreizeilig umbricht.
+
+   2. Ein Feld ist hier kein Block, sondern DREI ZEILEN: Frage, Kasten, Fehlermeldung.
+      Jedes .field spannt alle drei und uebernimmt sie per subgrid, damit die drei Teile
+      spaltenuebergreifend auf je einer Linie stehen.
+
+      align-items: end waere das Naheliegende und ist falsch: es richtet die UNTERKANTE
+      des ganzen Feldes aus. Sobald ein Nachbar eine Fehlermeldung bekommt, waechst
+      dessen Feld nach unten — und das fehlerfreie Feld daneben rutscht um genau die
+      Hoehe dieser Meldung tiefer, damit die Unterkanten wieder stimmen. Der Kasten ohne
+      Fehler stand dann tiefer als die beiden mit. Mit subgrid liegt die Meldung in einer
+      eigenen Zeile, die leer bleiben darf, und die Kaesten stehen unabhaengig davon auf
+      einer Linie.
+
+      Die Frage sitzt unten in ihrer Zeile, damit eine einzeilige an ihrem Kasten klebt
+      statt an der Oberkante einer dreizeiligen Nachbarin. Die Zeilenluecke ist deshalb
+      die kleine Beschriftungsluecke; den Abstand zwischen zwei FELDZEILEN traegt der
+      Aussenabstand der Felder, der sonst aus derselben Luecke kaeme und innen wie
+      aussen gleich gross waere. */
+.grid-dl {
+  row-gap: var(--ds-field-gap-label);
+  align-items: stretch;
+}
+.grid-dl > .field {
+  display: grid;
+  grid-template-rows: subgrid;
+  grid-row: span 3;
+  margin-bottom: calc(var(--ds-field-gap-stack) - var(--ds-field-gap-label));
+}
+.grid-dl > .field > label { align-self: end; }
+.grid-dl > .field > .error-text { align-self: start; }
+
+@media (min-width: 901px) {
+  .grid-dl .with-unit,
+  .grid-dl .input.num { max-width: none; }
+}
+
+/* Eine Zeile, deren Felder die ganze Breite unter sich aufteilen (Neubau: Fertigstellung,
+   KfW-Standard, Grundstücksfläche): das Zahlenfeld füllt seine Spalte, statt nach 170px
+   eine Lücke bis zum Zeilenende zu lassen. */
+@media (min-width: 901px) {
+  .grid-fill .with-unit,
+  .grid-fill .input.num { max-width: none; }
+}
+
+/* Finanzierungsdetails: Betragsfelder zu zweit oder dritt in einer Zeile, jedes füllt
+   seine Drittelspalte. Fragen verschiedener Länge brechen verschieden um; per subgrid
+   sitzen Frage, Kasten und Fehlermeldung je in einer eigenen Zeile, die Kästen stehen
+   also auf einer Linie, auch wenn eine Nachbarin zweizeilig fragt oder einen Fehler
+   zeigt. Wie .grid-dl, aber ohne dessen Außenabstand: hier steht eine Zeile allein in
+   ihrem Raster, den Abstand zum nächsten trägt .grid ~ .grid.
+   Erst ab 641px — darunter stapelt das Raster ohnehin, und die Zeilenlücke muss dort
+   wieder Fragen trennen statt Frage und Kasten. */
+@media (min-width: 641px) {
+  .grid-row { row-gap: var(--ds-field-gap-label); }
+  .grid-row > .field {
+    display: grid;
+    grid-template-rows: subgrid;
+    grid-row: span 3;
+  }
+  .grid-row > .field > label,
+  .grid-row > .field > .group-label { align-self: end; }
+  .grid-row > .field > .error-text { align-self: start; }
+}
+@media (min-width: 901px) {
+  #details .with-unit,
+  #details .input.num,
+  #immobilie .with-unit,
+  #immobilie .input.num { max-width: none; }
+}
+/* Ein Raster, in dem gerade nichts zu sehen ist (alle Felder [hidden], das Reveal
+   zu), traegt auch keinen Abstand: sonst stuende an seiner Stelle eine leere Fuge. */
+.grid ~ .grid:not(:has(> :not([hidden], .reveal:not(.open)))) { margin-top: 0; }
+
+.zweck-section ~ .grid { margin-top: var(--ds-field-gap-stack); }
+.card-pad > .zweck-section:first-child > .reveal-inner > .pad { padding-top: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal { transition: none; }
+  /* No animation to hide, and no transitionend to wait for. */
+  .reveal.open > .reveal-inner { overflow: visible; }
+}
+
+/* -------------------------------------------------- repeatable sub-groups */
+
+.applicants { display: grid; gap: var(--ds-spacing-16); }
+.applicants.two { grid-template-columns: repeat(auto-fit, minmax(var(--ds-layout-col-min-applicant), 1fr)); }
+
+/* Anrede and Titel are chip rows, which need more width than the selects they replaced,
+   so each takes a full row of its own and they stack. */
+
+.applicant {
+  min-width: 0;
+  /* Tighter on the sides than top/bottom: two of these sit side by side inside a
+     section card, so the horizontal padding stacks with the card's own gutter. */
+  padding: var(--ds-spacing-20) var(--ds-spacing-12);
+  background: var(--ds-surface-page);
+  border: var(--ds-border-width-1) solid var(--ds-color-border-neutral-bold-default);
+  border-radius: var(--ds-card-radius);
+}
+.applicants:not(.two) .applicant {
+  padding: 0;
+  background: none;
+  border: 0;
+}
+
+/* Die Hoehe kommt vom Loeschknopf, nicht vom Text: 24px Knopf neben einer 20px
+   hohen Zeile machen den Kopf von Antragsteller 2 vier Pixel hoeher als den von
+   Antragsteller 1 — und damit stand seit der Anrede jede Zeile rechts vier Pixel
+   tiefer als links. Nebeneinander faellt das an jeder Zeile auf, und aufaddiert
+   ueber die Karte ist es genau der Versatz, den man sieht, ohne ihn benennen zu
+   koennen. Die min-height gibt beiden Koepfen die Hoehe, die der Knopf ohnehin
+   erzwingt; wo keiner sitzt, ist sie leerer Raum in der richtigen Groesse. */
+.applicant-head {
+  display: flex;
+  align-items: center;
+  gap: var(--ds-spacing-8);
+  min-height: var(--ds-spacing-24);
+  margin-bottom: var(--ds-spacing-16);
+}
+.applicant-title {
+  color: var(--ds-color-text-neutral-bold-default);
+}
+.applicants:not(.two) .applicant-head { display: none; }
+
+/* „Adresse wie bei Antragsteller 1“ — die Frage gibt es nur fuer den zweiten. Sie
+   steht trotzdem in der Vorlage, weil Antragsteller 2 eine Kopie davon ist.
+
+   Bei einem Antragsteller faellt sie ganz weg. Stehen zwei nebeneinander, faellt sie
+   beim ersten nur aus dem Bild, nicht aus dem Raster: visibility statt display. Die
+   beiden Tafeln sind zwei getrennte Raster in zwei Spalten, die nichts voneinander
+   wissen — eine Zeile, die es nur rechts gibt, verschiebt dort alles ab Strasse um
+   ihre Hoehe nach unten, und dann steht die PLZ des einen neben dem Geburtsdatum des
+   anderen. Der leere Platz links ist der Preis dafuer, dass die beiden Adressen auf
+   derselben Linie liegen, und er ist billiger als der Versatz.
+
+   display:none und nicht hidden fuer den Wegfall: hidden ist in diesem Formular die
+   Auskunft „wird gerade nicht gefragt“, die isAsked liest, und das ist etwas anderes
+   als „gibt es fuer diesen Antragsteller nicht“. */
+.applicants:not(.two) .same-address { display: none; }
+.applicant[data-applicant="1"] .same-address { visibility: hidden; }
+
+/* Reserviert wird der Platz aber nur, solange die beiden Tafeln wirklich
+   nebeneinander stehen — sonst ist er ein Loch ueber der Strasse von Antragsteller 1.
+   Und das entscheidet nicht die Breite des Fensters, sondern die des Rasters selbst:
+   auto-fit klappt auf eine Spalte zurueck, sobald der Platz fuer zwei
+   --ds-layout-col-min-applicant nicht mehr reicht — bei einer 1100px breiten Seite
+   passiert das laengst, obwohl der Telefon-Breakpoint noch weit weg ist. Eine
+   @media-Abfrage traefe also die falsche Zahl; gefragt wird deshalb der Container.
+
+   856px ist genau die Schwelle, an der auto-fit umschlaegt: zweimal
+   --ds-layout-col-min-applicant (420) plus die Luecke dazwischen (--ds-spacing-16).
+   Sie steht hier als Zahl, weil in der @container-Abfrage kein var() erlaubt ist —
+   aendert sich einer der beiden Werte, muss sie mit. */
+.applicants { container-type: inline-size; container-name: applicants; }
+
+@container applicants not (min-width: 856px) {
+  .applicant[data-applicant="1"] .same-address { display: none; }
+}
+
+/* Uebernommen statt selbst ausgefuellt. Dasselbe Bild wie eine nicht angekreuzte
+   Betragszeile (.amount-cell[data-inactive]): die Fuellung tritt zurueck, der Text
+   behaelt seinen vollen Kontrast — es steht ja etwas darin, es wird hier nur nicht
+   eingegeben. Der Rahmen bleibt, damit das Feld ein Feld bleibt und die Zeile nicht
+   in vier grauen Flecken auseinanderfaellt. */
+.field[data-inactive] .input {
+  background: var(--ds-color-background-neutral-subtle-default);
+}
+
+.subcard {
+  margin-bottom: var(--ds-spacing-16);
+  padding: var(--ds-spacing-20);
+  background: var(--ds-surface-page);
+  border: var(--ds-border-width-1) solid var(--ds-color-border-neutral-bold-default);
+  border-radius: var(--ds-card-radius);
+}
+.subcard-head {
+  display: flex;
+  align-items: center;
+  gap: var(--ds-spacing-8);
+  margin-bottom: var(--ds-spacing-16);
+}
+
+/* A child sits directly on the card — no panel of its own. One child therefore looks
+   like any other row of fields; from the second on, a thin rule is what separates
+   them, so the boundary only appears once there is something to divide. */
+/* Top-aligned, not bottom-aligned: every field in the row carries exactly one label
+   line, so the tops line up the controls just as well — and the Geburtsdatum message
+   then grows downwards instead of pushing its own input up out of line with the name
+   beside it. */
+.child-row { display: block; }
+/* Derselbe Kopf wie bei .subcard und .applicant: Name links, Papierkorb rechts. */
+.child-head {
+  display: flex;
+  align-items: center;
+  gap: var(--ds-spacing-8);
+  min-height: var(--ds-spacing-24);
+  margin-bottom: var(--ds-spacing-12);
+}
+.child-fields {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--ds-spacing-12);
+}
+.child-row + .child-row {
+  margin-top: var(--ds-spacing-16);
+  padding-top: var(--ds-spacing-16);
+  border-top: var(--ds-border-width-1) solid var(--ds-color-border-neutral-bold-default);
+}
+.child-row .c-name { flex: 2 1 var(--ds-layout-col-min-choice); }
+.child-row .c-date { flex: 1 1 var(--ds-layout-col-min-choice); }
+/* Die erste Kinderzeile faengt mit ihrer Ueberschrift an, und die stiesse sonst
+   direkt an die Chips der Frage darueber. */
+.kinder-list:not(:empty) { margin-top: var(--ds-spacing-16); }
+/* Bare glyph, no box: next to a row of fields a bordered square reads as another
+   control to fill in. The hit area stays a full 24px square, it just isn't drawn. */
+.icon-btn {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--ds-spacing-24);
+  height: var(--ds-spacing-24);
+  padding: 0;
+  color: var(--ds-color-text-neutral-subtle-default);
+  background: none;
+  border: 0;
+  border-radius: var(--ds-field-radius);
+  cursor: pointer;
+}
+.icon-btn:hover { color: var(--ds-color-text-danger-bold-default); }
+/* the trash glyph, sized off the button rather than the text so it stays centred
+   when the density switch changes the surrounding type */
+.icon-btn > .ico-trash {
+  flex: none;
+  width: var(--ds-spacing-16);
+  height: var(--ds-spacing-16);
+}
+
+.add-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ds-spacing-8);
+  min-height: var(--ds-spacing-24);
+  padding: var(--ds-spacing-8) var(--ds-spacing-16);
+  color: var(--ds-color-text-brand-bold-default);
+  background: var(--ds-surface-page);
+  border: var(--ds-border-width-1) dashed var(--ds-color-border-brand-bold-default);
+  border-radius: var(--ds-button-radius);
+  cursor: pointer;
+}
+.add-btn:hover { background: var(--ds-color-background-brand-subtlest-default); }
+
+/* Der Knopf sitzt unter den Zeilen, die er ergaenzt, also geht der Abstand darueber —
+   und nur, wenn ueberhaupt etwas dasteht: ist die Liste leer, folgt er direkt auf den
+   Hinweis und braucht dessen Abstand nicht doppelt. */
+.kinder-list:not(:empty) + .add-btn { margin-top: var(--ds-spacing-16); }
+
+/* A question answered by the button beside it — "Sind Immobilien vorhanden?" needs no
+   Ja/Nein, because adding the first entry says Ja and removing the last one says Nein.
+   The label therefore describes the button rather than a control of its own, which is
+   why it is plain text at label weight instead of a .group-label. */
+.gate-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ds-spacing-12);
+  margin-bottom: var(--ds-spacing-16);
+}
+/* The button belongs to the question, so it sits next to it rather than being pushed
+   to the far edge of the card — and wraps under it when the line runs out. */
+.gate-row > .gate-label { flex: 0 1 auto; }
+.grid + .gate-row { margin-top: var(--ds-spacing-24); }
+
+/* The panels inside carry the gap between them; the last one's would push the list
+   past the padding of whatever holds it. */
+.repeat-list > .subcard:last-child { margin-bottom: 0; }
+
+/* Which leaves the add button underneath standing flush against the last panel, so it
+   carries the gap itself — the same one the panels keep between them. Only once there
+   is a panel above it: while the list is empty the button is the first thing in the
+   reveal and has nothing to be separated from. */
+.repeat-list:not(:empty) + .add-btn { margin-top: var(--ds-spacing-16); }
+
+/* -------------------------------------------------------------- callouts */
+
+/* fl-message aus AI-Components-Finlink (Datei cccBoenOfRzhjLIvMsYmiX, Node
+   130:452). Vorher war das hier ein eigener Entwurf: 1px Rahmen ringsum, 4px
+   Akzentkante links, 4px Radius, kein Icon. Die Bibliothek macht es anders und
+   das ist jetzt maßgeblich — nur Fläche, keine Kante, keine Rundung, links ein
+   gefülltes Icon in der starken Farbe der Tonlage.
+
+   Geometrie und Typografie kommen 1:1 aus dem Component: 8px links, 16px rechts,
+   10px oben und unten, 8px Abstand zum Icon, Text in body.md.default auf
+   text/primary. Die Ausrichtung ist flex-start, nicht center — bei mehrzeiligem
+   Text soll das Icon an der ersten Zeile stehen und nicht in die Mitte des
+   Absatzes rutschen.
+
+   NICHT übernommen: die Dismiss-Variante und die Align-Varianten. In diesem
+   Formular ist keine Meldung wegklickbar (sie erklären Pflichtangaben und den
+   Versand, es gibt nichts zu schließen) und keine ist zentriert. Der
+   notification-Ton fehlt aus demselben Grund — kein Anwendungsfall. */
+.note {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--ds-message-gap);
+  padding: var(--ds-message-padding-y) var(--ds-message-padding-end)
+           var(--ds-message-padding-y) var(--ds-message-padding-start);
+  color: var(--ds-color-text-neutral-bold-default);
+  background: var(--ds-color-background-warning-subtlest-default);
+}
+
+/* EXCEPTION: ein Dateipfad ist kein Gestaltungswert und kann kein Token sein.
+   Die vier SVG sind die Exporte der kanonischen Icons aus dem Component
+   (libs/client/common/icon-assets/base/), unverändert übernommen.
+
+   Als Maske und nicht als <img>: die Bibliothek schreibt „Fill is overridden per
+   message variant (the SVG uses currentColor)“, und ein <img> lässt sich nicht
+   einfärben. Über die Maske trägt background-color die Farbe, also ein Token —
+   damit folgt das Icon dem Dunkelmodus, statt einen eingebrannten Hex-Wert auf
+   eine dunkle Fläche zu legen. Und die Meldungen brauchen dafür kein zusätzliches
+   Element im Markup. */
+.note::before {
+  content: "";
+  flex: none;
+  width: var(--ds-message-icon-size);
+  height: var(--ds-message-icon-size);
+  background-color: var(--ds-color-icon-warning-strong-default);
+  -webkit-mask: var(--ds-message-icon) center / contain no-repeat;
+  mask: var(--ds-message-icon) center / contain no-repeat;
+}
+.note { --ds-message-icon: url("../icons/warning.svg"); }
+
+/* Eine Meldung mit Überschrift und mehreren Absätzen braucht eine eigene Spalte
+   neben dem Icon — sonst stellt der Flexcontainer Überschrift und Absatz
+   nebeneinander. Die einzeilige <p class="note"> kommt ohne aus: dort ist der
+   Text das Element selbst. */
+.note-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ds-spacing-8);
+  min-width: 0;
+}
+.note p { margin: 0; }
+
+/* Tonlagen. Die Fläche ist immer die *-subtlest-Stufe und der Text bleibt
+   text/neutral/bold: jedes subtle-Token kippt im Dunkelmodus auf seine eigene
+   950, also trägt eine Textfarbe alle drei Erscheinungsbilder (11.4:1 bis 12.3:1
+   im hellen). Die Tonlage ist nie das einzige Signal — jede Meldung mit Gewicht
+   trägt eine Überschrift, die dasselbe sagt. */
+.note.info {
+  background: var(--ds-color-background-info-subtlest-default);
+  --ds-message-icon: url("../icons/info.svg");
+}
+.note.info::before { background-color: var(--ds-color-icon-info-strong-default); }
+
+.note.success {
+  background: var(--ds-color-background-success-subtlest-default);
+  --ds-message-icon: url("../icons/success.svg");
+}
+.note.success::before { background-color: var(--ds-color-icon-success-strong-default); }
+
+.note.danger {
+  background: var(--ds-color-background-danger-subtlest-default);
+  --ds-message-icon: url("../icons/danger.svg");
+}
+.note.danger::before { background-color: var(--ds-color-icon-danger-strong-default); }
+
+/* -------------------------------------------------------------- action bar */
+
+.actionbar {
+  position: sticky;
+  bottom: 0;
+  z-index: 4;
+  background: var(--ds-surface-page);
+  border-top: var(--ds-border-width-1) solid var(--ds-color-border-neutral-bold-default);
+}
+.actionbar-inner {
+  display: flex;
+  align-items: center;
+  gap: var(--ds-spacing-12);
+  max-width: var(--ds-layout-shell-max);
+  padding: var(--ds-spacing-12) var(--ds-layout-gutter);
+}
+.save-state {
+  display: flex;
+  align-items: center;
+  gap: var(--ds-spacing-8);
+  /* a <p> keeps its default block margins inside a flex row, which made the action
+     bar taller than the button it contains */
+  margin: 0 auto 0 0;
+  color: var(--ds-color-text-neutral-subtle-default);
+}
+.save-state .dot {
+  width: var(--ds-spacing-8);
+  height: var(--ds-spacing-8);
+  border-radius: var(--ds-pill-radius);
+  background: var(--ds-color-background-success-bold-default);
+}
+
+.btn {
+  min-height: var(--ds-field-height);
+  padding: 0 var(--ds-spacing-24);
+  border-radius: var(--ds-button-radius);
+  cursor: pointer;
+  transition: filter 0.12s, background-color 0.12s;
+}
+.btn.primary {
+  color: var(--ds-color-text-neutral-inverse-default);
+  background: var(--ds-color-background-brand-bold-default);
+  border: var(--ds-border-width-1) solid var(--ds-color-border-brand-bold-default);
+}
+/* EXCEPTION (G-24): white on background.brand.bold.default is 3.67:1, so the
+   contrast pass moves the resting fill to teal.700 — and hovered, one step
+   lighter at teal.600, would then be a *lighter* hover on a darker rest. Both
+   land on teal.700 instead, which makes hover invisible. Finlink's teal ramp
+   stops at 700, so there is no darker step to hover into and no colour can be
+   invented here; the fill is dimmed instead. Resolving G-24 (a teal.800, or a
+   re-authored bold ramp) deletes this rule. */
+.btn.primary:hover { background: var(--ds-color-background-brand-bold-hovered); filter: brightness(0.9); }
+.btn.ghost {
+  color: var(--ds-color-text-neutral-bold-default);
+  background: var(--ds-surface-page);
+  border: var(--ds-border-width-1) solid var(--ds-color-border-neutral-bold-hovered);
+}
+.btn.ghost:hover { background: var(--ds-color-background-neutral-subtle-default); }
+
+/* Destructive confirmation. Red is carried by the button that does the deleting,
+   never by the one that backs out — the colour has to mark the consequence. */
+.btn.danger {
+  color: var(--ds-color-text-neutral-inverse-default);
+  background: var(--ds-color-background-danger-bold-default);
+  border: var(--ds-border-width-1) solid var(--ds-color-border-danger-bold-default);
+}
+.btn.danger:hover {
+  background: var(--ds-color-background-danger-bold-hovered);
+  border-color: var(--ds-color-border-danger-bold-hovered);
+}
+.btn.danger:active {
+  background: var(--ds-color-background-danger-bold-pressed);
+  border-color: var(--ds-color-border-danger-bold-pressed);
+}
+
+/* ------------------------------------------------------------------- modal */
+
+/* A native <dialog>: Esc, the focus trap and inert-ing the page behind it are
+   the browser's job, so only the box and its backdrop are styled here. */
+.modal {
+  width: min(var(--ds-layout-measure-modal), calc(100% - var(--ds-spacing-32)));
+  max-width: none;
+  padding: 0;
+  color: var(--ds-color-text-neutral-bold-default);
+  /* the raised level, not --ds-surface-page: a dialog sits above the page in
+     every appearance, and in dark --ds-surface-page is the near-black the
+     backdrop is dimming towards, which would leave the box with nothing to
+     stand on but its shadow */
+  background: var(--ds-surface-card);
+  border: none;
+  border-radius: var(--ds-card-radius);
+  box-shadow: var(--ds-shadow-lg);
+}
+.modal::backdrop { background: var(--ds-surface-overlay); }
+
+.modal-inner {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ds-spacing-12);
+  padding: var(--ds-card-padding);
+}
+.modal-title {
+  margin: 0;
+}
+.modal-text {
+  margin: 0;
+  color: var(--ds-color-text-neutral-subtle-default);
+}
+.modal-actions {
+  display: flex;
+  /* Umbrechen statt ueberlaufen: die Knoepfe geben ihre Breite nicht mehr her (siehe
+     unten), also braucht die Zeile einen Ausweg, wenn eine Beschriftung einmal
+     laenger wird als der Dialog breit ist. */
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--ds-spacing-12);
+  margin-top: var(--ds-spacing-12);
+}
+/* Die zwei Knoepfe sind die ganze Interaktion eines Dialogs - kein Bedienelement in
+   einem Formular, sondern die Entscheidung selbst. Also stehen sie eine Stufe
+   darueber: 48px statt der 40px eines Feldes, was zugleich das komfortable Ziel aus
+   WCAG 2.5.5 ist.
+   flex: none ist die eigentliche Korrektur. Die Telefonregel .btn { flex: 1 } ist
+   fuer die Aktionsleiste gedacht, greift aber auch hier und macht aus den beiden
+   zwei gleich breite Haelften von 141px - "Selbstauskunft abschicken" braucht allein fuer den Text
+   deutlich mehr und wurde darin zweizeilig. Mit flex: none behaelt jeder Knopf seine
+   eigene Breite, und nowrap sorgt dafuer, dass eine Beschriftung nie umbricht: sie
+   ist die Zusage, was der Klick tut, und die liest man in einer Zeile. Reicht die
+   Breite nicht, stapeln die Knoepfe (Telefonbreite unten) statt den Text zu falten. */
+.modal-actions .btn {
+  flex: none;
+  min-height: var(--ds-sizing-12);
+  white-space: nowrap;
+}
+
+/* A dialog is display:none until it opens, so it cannot be transitioned from
+   `display` alone — @starting-style gives the open state something to come from.
+   Browsers without it just show the finished state. */
+@media (prefers-reduced-motion: no-preference) {
+  .modal[open] {
+    opacity: 1;
+    translate: 0 0;
+    transition: opacity 0.14s ease, translate 0.14s ease;
+  }
+  @starting-style {
+    .modal[open] { opacity: 0; translate: 0 var(--ds-spacing-8); }
+  }
+}
+
+/* ------------------------------------------------- Absenden-Strecke */
+
+/* Drei Views in einem Dokument: Formular -> Zusammenfassung -> Gesendet. Welcher
+   sichtbar ist, entscheidet das hidden-Attribut in app.js; data-view auf <html>
+   ist nur dafür da, dass die Umgebung darauf reagieren kann — hier die Sidebar.
+   Ihre Abschnittsliste zeigt auf Karten, die auf den letzten zwei Schritten nicht
+   auf dem Bildschirm sind, also geht sie mit ihnen weg. Die Schalter des
+   Prototyps (Dichte, Erscheinungsbild …) bleiben. */
+:root[data-view="summary"] .nav-links,
+:root[data-view="sent"] .nav-links,
+:root[data-view="summary"] .nav-toggle,
+:root[data-view="sent"] .nav-toggle { display: none; }
+
+/* Der Beispieldaten-Knopf gehört zum Formular und geht mit ihm: er würde sonst
+   den Antrag hinter einer Zusammenfassung ändern, die schon gelesen wird — und
+   nach dem Senden ist dort ohnehin nichts mehr zu füllen. Seine Überschrift
+   ebenso, sonst bliebe ein "Prototyp" ohne alles darunter stehen. */
+:root[data-view="summary"] .nav-tools,
+:root[data-view="sent"] .nav-tools,
+:root[data-view="summary"] #lbl-demo,
+:root[data-view="sent"] #lbl-demo { display: none; }
+
+/* Eine Karte, die sich nicht auf- und zuklappen lässt: ihr Kopf ist eine
+   Überschrift und kein Button, also braucht er die Füllung und den Innenabstand,
+   die sonst der Toggle mitbringt. Der Körper ist dauerhaft offen und animiert
+   nicht — es gibt keinen Klick, der ihn schließen könnte. */
+.card-static > .card-head {
+  padding: var(--ds-spacing-16) var(--ds-card-padding);
+  color: var(--ds-color-text-neutral-bold-default);
+  background: var(--ds-surface-card);
+  border-radius: var(--ds-card-radius);
+}
+.card-static > .card-body {
+  grid-template-rows: 1fr;
+  margin-top: var(--ds-spacing-4);
+  transition: none;
+}
+.card-static > .card-body > .card-body-inner { overflow: visible; }
+
+/* Eine Karte, die eine Folge von Blöcken ist statt eines Feldrasters: Häkchen,
+   Hinweis, zwei Felder, Warnung. Das Raster bringt seine Abstände selbst mit,
+   ein Stapel unterschiedlicher Blöcke nicht. */
+.flow > * + * { margin-top: var(--ds-field-gap-stack); }
+
+/* Die Schritte, einmal vor dem Senden ("so geht es weiter") und einmal danach
+   ("was jetzt passiert"). Nummerierte Kreise statt Aufzählungspunkten, weil die
+   Reihenfolge die Aussage ist. Die Nummer kommt aus einem Counter, damit ein
+   weiterer Schritt eine Zeile Markup ist und keine Nummer zum Nachziehen. */
+.steps {
+  display: grid;
+  gap: var(--ds-spacing-20);
+  counter-reset: step;
+  max-width: var(--ds-layout-measure-prose);
+  margin: 0 0 var(--ds-spacing-32);
+  padding: 0;
+  list-style: none;
+}
+.card-pad > .steps { margin-bottom: 0; }
+
+/* Auf der Zusammenfassung standen die Schritte als einziger Block ohne eigene
+   Flaeche auf dem Seitengrau, direkt ueber zwei weissen Karten: grauer Text auf
+   Grau, waehrend alles darunter auf Weiss liegt. Sie bekommen dieselbe Karte wie
+   ihre Nachbarn, auf jeder Breite - der weisse Grund hebt den Kontrast von Titel
+   und Fliesstext und bindet den Block an die Seite. Nur diese Liste: die im
+   Gesendet-View steht bereits in einer Karte, ein zweiter Kartenhintergrund darin
+   waere Weiss auf Weiss.
+   Die Karte nimmt die volle Spaltenbreite wie ihre Nachbarn, das Zeilenmass
+   wandert dafuer auf den einzelnen Schritt - eine schmale Karte zwischen breiten
+   waere ein Bruch in der Kante, ein 68ch langer Fliesstext einer im Lesen. */
+#summary-view > .steps {
+  max-width: none;
+  padding: var(--ds-card-padding);
+  margin-bottom: var(--ds-section-gap);
+  background: var(--ds-surface-card);
+  border-radius: var(--ds-card-radius);
+}
+#summary-view > .steps > li { max-width: var(--ds-layout-measure-prose); }
+
+/* Die Nummer wird absolut gesetzt und der Text um sie herum eingerückt — nicht als
+   Rasterspalte: der Inhalt eines Schrittes ist Titel plus Fließtext, und ein Raster
+   würde den Text als eigenes, anonymes Element in die schmale Nummernspalte
+   schieben. So ist der Einzug unabhängig davon, aus wie vielen Teilen ein Schritt
+   besteht. */
+.steps > li {
+  position: relative;
+  padding-left: calc(var(--ds-spacing-24) + var(--ds-spacing-12));
+  counter-increment: step;
+  color: var(--ds-color-text-neutral-bold-default);
+}
+.steps > li::before {
+  content: counter(step);
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Der Zahlenkreis nimmt die Schriftgroesse aus body-sm-strong, aber nicht dessen
+     Zeilenabstand: der ist als 1.3333 notiert, ergibt bei 12px eine 15,9996px hohe
+     Zeilenbox, und dieser Bruchteil verschiebt beim Runden die Grundlinie um ein
+     ganzes Pixel nach oben - gemessen sassen 1/2/3 dadurch 1,3px ueber der
+     Kreismitte. Um eine einzelne zentrierte Ziffer herum ist Zeilenabstand ohnehin
+     bedeutungslos, also 1: die Zeilenbox wird glatt und die Ziffer sitzt mittig
+     (Restfehler 0,3px, weil sie auf ganze Pixel rastet). */
+  line-height: 1;
+  width: var(--ds-spacing-24);
+  height: var(--ds-spacing-24);
+  color: var(--ds-color-text-brand-bold-default);
+  background: var(--ds-color-background-brand-subtlest-default);
+  border-radius: var(--ds-pill-radius);
+}
+/* Der Titel bekommt eine eigene Zeile Luft nach unten: ohne sie laufen Titel und
+   Fliesstext im gleichen Zeilenabstand weiter und der Schritt liest sich als ein
+   Absatz statt als Ueberschrift plus Erklaerung. */
+.step-title {
+  display: block;
+  margin-bottom: var(--ds-spacing-4);
+  color: var(--ds-color-text-neutral-bold-default);
+}
+
+/* Die Prüfliste. Sie wird aus dem Formular gelesen (buildReview), also steht hier
+   nur, wie ein Paar aus Frage und Antwort aussieht: die Frage schmal und leise,
+   die Antwort daneben und in Medium — gelesen wird die Antwort, die Frage kennt
+   man schon vom Ausfüllen. */
+.review-group + .review-group {
+  margin-top: var(--ds-spacing-24);
+  padding-top: var(--ds-spacing-24);
+  border-top: var(--ds-border-width-1) solid var(--ds-color-border-neutral-bold-default);
+}
+.review-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--ds-spacing-12);
+  margin-bottom: var(--ds-spacing-16);
+}
+.review-title {
+  flex: 1 1 auto;
+  margin: 0;
+  color: var(--ds-color-text-neutral-bold-default);
+}
+/* Ein Zwischentitel innerhalb einer Gruppe — "Antragsteller 2", "Immobilie 1" —,
+   damit zwei gleich benannte Felder nicht ohne Zuordnung untereinander stehen. */
+.review-context {
+  margin: var(--ds-spacing-16) 0 var(--ds-spacing-8);
+  color: var(--ds-color-text-neutral-subtle-default);
+}
+.review-head + .review-context { margin-top: 0; }
+
+/* Die Fragespalte hat ein Mass, keinen Anteil. Als 2fr war sie auf einem breiten
+   Schirm deutlich breiter als die laengste Frage darin, und zwischen Frage und
+   Antwort stand eine leere Rinne, die mit der Karte mitwuchs — der Abstand war
+   dann nicht mehr der gesetzte, sondern der uebrig gebliebene. Jetzt ist der
+   Spaltenabstand wieder der einzige Abstand, und der steht als Token daneben.
+
+   Ein gemeinsames Mass und NICHT fit-content(): die Zusammenfassung ist ein
+   Dutzend solcher Listen untereinander, und mit max-content bemisst jede ihre
+   Spalte an ihrer eigenen laengsten Frage — die Antworten faengen dann in jeder
+   Gruppe an einer anderen Stelle an und die Seite franst nach unten aus.
+
+   43ch (~338px) ist an den echten Fragen gemessen: 76 der 77 passen einzeilig,
+   die zweitlaengste liegt bei 331px. Die eine Ausreisserin — „Sofern Sie weitere
+   finanzielle Verpflichtungen haben: …“, 496px — bricht auf zwei Zeilen um. Das
+   ist die Absicht: eine Frage umbrechen zu lassen ist billiger, als die Spalte
+   fuer alle 77 um 160px aufzuziehen.
+
+   minmax statt einer nackten Breite, damit die Spalte zwischen 640 und 900px
+   nachgeben kann, wo die Karte schmal wird, die Liste aber noch zweispaltig ist. */
+.review-list {
+  display: grid;
+  grid-template-columns: minmax(0, var(--ds-layout-measure-review-term)) minmax(0, 1fr);
+  gap: var(--ds-spacing-8) var(--ds-spacing-24);
+  margin: 0;
+}
+.review-list > dt {
+  color: var(--ds-color-text-neutral-subtle-default);
+}
+.review-list > dd {
+  margin: 0;
+  color: var(--ds-color-text-neutral-bold-default);
+}
+
+.review-empty { margin: 0; color: var(--ds-color-text-neutral-subtle-default); }
+
+/* "Bearbeiten" ist ein Button, kein Link: er springt nicht zu einer Adresse,
+   sondern wechselt den View und öffnet die Karte. Aussehen wie ein Link, weil das
+   die Handlung ist, die man erwartet. */
+.link-btn {
+  flex: none;
+  padding: 0;
+  color: var(--ds-color-text-brand-bold-default);
+  background: none;
+  border: 0;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.link-btn:hover { color: var(--ds-color-text-brand-bold-hovered); }
+
+/* ------------------------------------------------- Einwilligungs-Häkchen */
+
+/* Dasselbe Häkchen wie in den Betragslisten, aber ohne Chip drumherum und mit
+   einer Beschriftung, die über mehrere Zeilen laufen darf — eine Einwilligung ist
+   ein Satz, kein Ein-Wort-Label.
+
+   Deshalb ist die Beschriftung hier kein Flex-Container, sondern normaler
+   Textfluss mit Einzug: als Flex-Zeile wären der Satz und das Pflicht-Sternchen
+   zwei Elemente nebeneinander, und beim Umbrechen bliebe das Sternchen am rechten
+   Rand der ersten Zeile allein zurück. Das Kästchen wird stattdessen absolut in
+   den Einzug gesetzt und bleibt dabei auf der ersten Zeile stehen — um die halbe
+   Zeilenhöhe nach unten, aus den Tokens gerechnet, damit der Versatz der Dichte
+   und der Viewport-Typografie folgt.
+
+   `> input + span` statt `> span`: die gesetzte Variante des Chips
+   (.choice input:checked + span) hat dieselbe Spezifität, und die Marke soll
+   gewinnen, nicht die Reihenfolge zweier gleich starker Regeln. */
+:root {
+  --ds-choice-mark-offset: calc((var(--ds-typography-body-md-default-font-size) * var(--ds-typography-body-md-default-line-height) - var(--ds-choice-mark-size)) / 2);
+}
+
+.choice.plain { display: block; }
+.choice.plain > input + span {
+  display: block;
+  min-height: 0;
+  padding: 0 0 0 calc(var(--ds-choice-mark-size) + var(--ds-spacing-8));
+  color: var(--ds-color-text-neutral-bold-default);
+  background: none;
+  border-color: transparent;
+  box-shadow: none;
+}
+.choice.plain > input + span::before {
+  position: absolute;
+  left: 0;
+  top: var(--ds-choice-mark-offset);
+}
+/* Der Chip positioniert seinen Haken gegen das Label und zentriert ihn; hier
+   sitzt er im Kästchen auf der ersten Zeile, also derselbe Versatz wie oben. */
+.choice.plain > input[type="checkbox"]:checked + span::after {
+  top: var(--ds-choice-mark-offset);
+  left: var(--ds-border-width-1);
+  transform: none;
+}
+/* Fehlt die Einwilligung, trägt das leere Kästchen den Fehlerrand — der Chip, der
+   das sonst tut, ist hier nicht gezeichnet. */
+.field.invalid .choice.plain > input:not(:checked) + span::before {
+  border-color: var(--ds-color-border-danger-bold-default);
+}
+
+/* ------------------------------------------------------------- Referenz-ID */
+
+/* Gesendet: die Leiste sagt nur noch, dass nichts mehr zu tun ist. */
+.save-state.locked {
+  color: var(--ds-color-text-neutral-bold-default);
+}
+
+/* ------------------------------------------------------------- responsive */
+
+@media (max-width: 900px) {
+  /* Nebeneinander braucht der Kopf die Breite fuer zwei Spalten Text. Ab hier gibt
+     es sie nicht mehr, also stapelt er: erst worum es geht, dann von wem. Der
+     Beraterblock selbst bleibt bis 640px, wie er ist — Portraetspalte, Haarlinie,
+     Kontaktspalte. */
+  .page-head {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--ds-spacing-24);
+  }
+
+  .app {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--ds-spacing-20);
+    /* no top padding: the nav bar below is full-bleed and brings its own */
+    padding: 0 var(--ds-spacing-16) var(--ds-spacing-48);
+  }
+
+  /* The sidebar becomes a bar across the top. Sixteen links across a phone is most
+     of a screen, so they go behind the button and the bar keeps only the button —
+     and it sticks, so the way to another section is always one tap away rather than
+     a scroll back to the top. Full-bleed via the negative margin, because the bar
+     spans the screen while the form it sits over is inset by the gutter. */
+  .nav {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    max-height: none;
+    /* the sidebar scrolls itself; the bar must not, or it would clip the panel */
+    overflow: visible;
+    flex-direction: row;
+    gap: var(--ds-spacing-8);
+    margin: 0 calc(-1 * var(--ds-spacing-16));
+    padding: var(--ds-spacing-12) var(--ds-spacing-16);
+    background: var(--ds-surface-page);
+    border-bottom: var(--ds-border-width-1) solid var(--ds-color-border-neutral-bold-default);
+  }
+  /* Die Schalter des Prototyps gehören nicht in eine Leiste, die nur den Weg zu
+     einem Abschnitt zeigt — und der Beispieldaten-Knopf ist einer von ihnen. */
+  /* Die Schalter des Prototyps gehören nicht in eine Leiste, die nur den Weg zu
+     einem Abschnitt zeigt. Der Beispieldaten-Knopf ist aber kein Schalter, sondern
+     eine Handlung, und ohne ihn führt der Weg zur Zusammenfassung auf dem Telefon
+     durch 60 Felder Tippen. Er steht deshalb im Markup innerhalb von .nav-links und
+     bleibt hier sichtbar: nicht in der Leiste, sondern in der Klappliste, die man
+     ohnehin öffnet, um irgendwohin zu kommen. Der Trenner darüber grenzt ihn von der
+     Abschnittsliste ab, #lbl-demo beschriftet ihn — beide stehen jetzt ebenfalls in
+     der Liste, also bleiben auch sie. */
+  .nav .eyebrow:not(#lbl-demo), .nav .seg { display: none; }
+
+  .nav-toggle {
+    display: flex;
+    align-items: center;
+    gap: var(--ds-spacing-8);
+    min-height: var(--ds-field-height);
+    padding: var(--ds-spacing-8) var(--ds-spacing-12);
+    color: var(--ds-color-text-neutral-bold-default);
+    background: var(--ds-surface-page);
+    border: var(--ds-border-width-1) solid var(--ds-color-border-neutral-bold-hovered);
+    border-radius: var(--ds-button-radius);
+    cursor: pointer;
+  }
+  .nav-toggle:hover { background: var(--ds-color-background-neutral-subtle-default); }
+  .nav-toggle:focus-visible {
+    outline: var(--ds-focus-ring-width) solid var(--ds-color-border-brand-bold-default);
+    outline-offset: 2px;
+  }
+  .nav-toggle[aria-expanded="true"] {
+    background: var(--ds-color-background-brand-subtlest-default);
+    border-color: var(--ds-color-border-brand-bold-default);
+    color: var(--ds-color-text-brand-bold-default);
+  }
+  .burger { width: var(--ds-spacing-20); height: var(--ds-spacing-20); flex: none; }
+
+  /* A panel over the form rather than a block above it: opening the menu must not
+     move the page underneath, or the section you were reading jumps away as you
+     go looking for another one. */
+  .nav-links {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: var(--ds-spacing-16);
+    right: var(--ds-spacing-16);
+    max-height: 70vh;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: var(--ds-spacing-8);
+    background: var(--ds-surface-card);
+    border: var(--ds-border-width-1) solid var(--ds-color-border-neutral-bold-default);
+    border-radius: var(--ds-card-radius);
+    box-shadow: var(--ds-shadow-lg);
+  }
+  .nav-toggle[aria-expanded="true"] + .nav-links { display: block; }
+
+  /* Auf den letzten zwei Schritten hat die Leiste nichts mehr zu zeigen — die
+     Abschnittsliste ist weg und die Schalter sind hier ohnehin ausgeblendet —,
+     also bleibt kein leerer Streifen über der Seite stehen. Unter 640px holt der
+     Block weiter unten sie zurück: dort trägt sie das Portrait, und das gehört
+     auf jeden Schritt. */
+  :root[data-view="summary"] .nav,
+  :root[data-view="sent"] .nav { display: none; }
+
+  .actionbar-inner { padding: var(--ds-spacing-12) var(--ds-spacing-16); }
+}
+
+@media (max-width: 640px) {
+  .col-3, .col-4, .col-5, .col-6, .col-8, .col-9 { grid-column: auto / span 12; }
+  /* The row gap changes job at this width. Two and three to a row, fields are grouped
+     by sitting *beside* each other and the gap only has to part the bands; stacked, it
+     is the sole thing telling "next question" from "next part of this one" — against
+     40px bordered boxes, which are the loudest shape on the screen. So it steps up one
+     stop, to the same 24 the cards and sections are spaced by. The label keeps its 4px:
+     the tighter it stays to its own control, the more the wider gap reads as a break. */
+  .grid { row-gap: var(--ds-spacing-24); }
+  .card-toggle { padding: var(--ds-spacing-12) var(--ds-spacing-16); }
+  .card-pad { padding: var(--ds-spacing-16); }
+
+  /* Auf dem Telefon steht die Beraterkarte nicht mehr im Seitenkopf. Sie ist dort
+     eine halbe erste Bildschirmhoehe, bevor das Formular anfaengt — und sie steht
+     genau an der Stelle, an der jemand mit dem Ausfuellen beginnen will. Statt
+     ihrer sitzt das Portraet rechts in der Leiste (siehe .advisor-menu weiter
+     unten): immer sichtbar, weil die Leiste klebt, und einen Tipp von denselben
+     drei Kontaktwegen entfernt. */
+  .advisor { display: none; }
+  .advisor-menu { display: block; }
+
+  /* Die Leiste bleibt auf Zusammenfassung und Gesendet stehen, obwohl die
+     Abschnittsliste und ihr Knopf dort weg sind: übrig ist genau das Portrait,
+     und der Weg zu einem Anruf soll auf dem letzten Schritt derselbe sein wie auf
+     dem ersten. Leer ist der Streifen damit nie — über 640px, wo es das Portrait
+     nicht gibt, wäre er es, und dort bleibt die Regel darüber stehen. */
+  :root[data-view="summary"] .nav,
+  :root[data-view="sent"] .nav { display: flex; }
+
+  /* Die Schritte-Karte fluchtet mit ihren Nachbarn, also nimmt sie denselben
+     heruntergesetzten Innenabstand wie .card-pad hier - nicht den Desktop-Wert
+     aus --ds-card-padding. */
+  #summary-view > .steps { padding: var(--ds-spacing-16); }
+  .subsection .card-pad,
+  .subsection-static .card-pad { padding: 0 var(--ds-spacing-16) var(--ds-spacing-16); }
+  .subsection-static + .subsection-static::before { margin: 0 var(--ds-spacing-16); }
+  .subsection-title { padding: 0 var(--ds-spacing-16); }
+  .applicants.two { grid-template-columns: minmax(0, 1fr); }
+  /* No room for two columns, so the amount stacks under its position. It stays on
+     the row rather than collapsing away: the field is what a tap picks the position
+     with, and it cannot be tapped if it is not there. Stacked, the two gaps have to
+     differ or twelve evenly spaced boxes read as twelve items instead of six pairs —
+     the position sits tight against its own amount, and the pairs stand apart. */
+  .amount-row { grid-template-columns: minmax(0, 1fr); gap: var(--ds-spacing-4); }
+  .amount-list { gap: var(--ds-spacing-16); }
+  /* The detail fields are already stacked here (.col-* go full width above), so the
+     indent buys nothing and only costs field width. The rule stays: it is the only
+     thing left saying these belong to the position above. */
+  .amount-detail > .reveal-inner > .pad { padding-left: var(--ds-spacing-12); margin-left: 0; }
+  /* WCAG 2.5.8 is met on the desktop icon by an invisible 24px box round a 16px ring,
+     which is the minimum and asks the thumb to aim at something smaller than it can
+     see. Here the ring itself grows to the full 24px target — you hit what you look
+     at — and the invisible box takes it to 48x44, past 2.5.5 AAA.
+     The inset is deliberately lopsided. Sideways there is only label text, which is
+     not a target, so it spreads freely; below sits the field's own control, 4px away,
+     and any overlap there would take taps meant for the select. So it stops exactly
+     at that gap and buys the height above instead, where the 24px row gap leaves 8px
+     of clearance under the field before. */
+  .info-btn { width: var(--ds-spacing-24); height: var(--ds-spacing-24); }
+  .info-btn::after {
+    inset: calc(-1 * var(--ds-spacing-16))
+           calc(-1 * var(--ds-spacing-12))
+           calc(-1 * var(--ds-spacing-4));
+  }
+
+  .save-state { display: none; }
+  /* Ausnahme von der Zeile darüber: nach dem Senden ist diese Meldung der ganze
+     Inhalt der Leiste, und dass nichts mehr geändert werden kann, gehört auf jede
+     Bildschirmgröße. */
+  /* Nebeneinander bleibt bei 390px weder für die Meldung noch für den Button genug
+     Breite, also nimmt die Meldung eine eigene Zeile und der Button steht darunter. */
+  .actionbar-inner { flex-wrap: wrap; }
+  .save-state.locked { display: flex; flex: 1 1 100%; }
+  .btn { flex: 1; }
+  /* Auf 390px bleiben "Abbrechen" und "Selbstauskunft abschicken" nebeneinander nicht
+     einzeilig - zusammen brauchen sie mehr als die 294px, die der Dialog hergibt. Also stapeln
+     sie und nehmen jeder die volle Breite: eine Zeile Text und ein deutlich
+     groesseres Ziel als zwei Haelften. Abbrechen bleibt oben, wie im Quelltext und
+     damit in der Tabreihenfolge - bei einer nicht umkehrbaren Aktion soll der
+     bestaetigende Knopf nicht der sein, der unter dem ruhenden Daumen liegt. */
+  .modal-actions { flex-direction: column; align-items: stretch; }
+  .card-static > .card-head { padding: var(--ds-spacing-12) var(--ds-spacing-16); }
+  /* Frage über Antwort statt daneben: zwei Spalten lassen für die Antwort keine
+     Zeile übrig, und sie ist das, was gelesen wird. */
+  .review-list { grid-template-columns: minmax(0, 1fr); gap: var(--ds-spacing-4); }
+  .review-list > dd { margin-bottom: var(--ds-spacing-12); }
+
+  /* ---- mobile: eight-pixel gutters --------------------------------------------
+
+     The category card stays — it is the thing that tells one section from the
+     next, and a hairline between two headings does not do that job as well. What
+     the card costs at 390px is width, and it costs it twice: once for the shell
+     gutter the card sits in, once for the card's own padding.
+
+     So every level of nesting insets by space/8 here instead of space/16. A field
+     in a card is then 16px from the screen edge rather than 32 — the same width it
+     would have with no card at all — and the card is still a card. The applicant
+     block inside it follows the same rule, so the one place with three levels of
+     nesting costs 24px rather than 44.
+
+     Form view only: the summary's cards carry read-back text rather than fields,
+     and keep the larger padding that suits a paragraph. */
+
+  :root[data-view="form"] .app {
+    padding-left: var(--ds-spacing-8);
+    padding-right: var(--ds-spacing-8);
+  }
+  /* the bar is full-bleed by negative margin, so it tracks the gutter it cancels */
+  :root[data-view="form"] .nav {
+    margin: 0 calc(-1 * var(--ds-spacing-8));
+    padding-left: var(--ds-spacing-8);
+    padding-right: var(--ds-spacing-8);
+  }
+  :root[data-view="form"] .nav-links {
+    left: var(--ds-spacing-8);
+    right: var(--ds-spacing-8);
+  }
+
+  :root[data-view="form"] .card-toggle { padding: var(--ds-spacing-12) var(--ds-spacing-8); }
+  :root[data-view="form"] .card-pad { padding: var(--ds-spacing-8); }
+  :root[data-view="form"] .subsection .card-pad,
+  :root[data-view="form"] .subsection-static .card-pad { padding: 0 var(--ds-spacing-8) var(--ds-spacing-8); }
+  :root[data-view="form"] .subsection-static + .subsection-static::before { margin: 0 var(--ds-spacing-8); }
+  :root[data-view="form"] .subsection-title { padding: 0 var(--ds-spacing-8); }
+
+  /* The recessed block keeps its fill, its hairline and its radius — it is still
+     what separates Antragsteller 1 from Antragsteller 2. Only its side inset comes
+     down to match everything else. */
+  :root[data-view="form"] .applicants.two .applicant {
+    padding: var(--ds-spacing-20) var(--ds-spacing-8);
+  }
+}
+
+/* ---------------------------------------------------- mobile preview frame */
+
+/* "Ansicht: Mobil" does not narrow the form in place. Both breakpoints above, and
+   the mobile typography ramp in tokens.ext.css, answer to the viewport — a narrowed
+   column would keep every desktop value and show a squeezed desktop, not the
+   mobile design. So the preview is this same page loaded into a phone-sized
+   iframe: the frame IS a viewport, so the breakpoints fire for real. The sidebar
+   stays outside it, which is what keeps the switches reachable — inside the frame
+   they are below 900px and therefore hidden, like they are on a real phone. */
+
+/* Only above 900px: under it the shell is already one column and the sidebar has
+   already become the top nav, so the real mobile layout is on screen and a frame
+   of it would be a second, smaller copy of the page you are looking at. */
+@media (min-width: 901px) {
+  [data-viewport="mobile"] .content,
+  [data-viewport="mobile"] .actionbar,
+  [data-viewport="mobile"] .nav a,
+  /* the finance-type entries are shown by a three-class rule, so hiding them
+     takes one of the same weight rather than the plain `.nav a` above */
+  [data-viewport="mobile"] .nav a.object-nav.show,
+  [data-viewport="mobile"] .nav-divider { display: none; }
+
+  /* Nothing scrolls out here any more — the scrolling happens inside the frame —
+     so the shell no longer needs the run-out the action bar used to sit over. */
+  [data-viewport="mobile"] .app { padding-bottom: var(--ds-spacing-40); }
+  [data-viewport="mobile"] .nav { max-height: none; }
+}
+
+.phone {
+  position: sticky;
+  top: var(--ds-spacing-40);
+  justify-self: center;
+  width: calc(var(--ds-preview-width) + 2 * var(--ds-preview-bezel));
+  /* the device height, unless the window is shorter than one — then the window wins,
+     because a frame taller than the screen cannot be scrolled to the end of */
+  height: min(var(--ds-preview-height), calc(100vh - 2 * var(--ds-spacing-40)));
+  padding: var(--ds-preview-bezel);
+  background: var(--ds-color-text-neutral-bold-default);
+  border-radius: var(--ds-preview-radius);
+  box-shadow: var(--ds-shadow-lg);
+}
+.phone iframe {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  border-radius: calc(var(--ds-preview-radius) - var(--ds-preview-bezel));
+  background: var(--ds-surface-page);
+}
+
+@media (max-width: 900px) {
+  .phone { display: none; }
+}
+
+/* ------------------------------------- Überprüfen und Absenden: mittige Karten
+
+   Auf diesen zwei Ansichten trägt die Seitenspalte nichts mehr: die Abschnittsliste
+   und der Beispieldaten-Knopf sind mit dem Formular gegangen (siehe weiter oben), es
+   bleiben die drei Schalter des Prototyps. Ein 232px breiter Streifen dafür schiebt
+   die Karten aus der Mitte der Seite, und gelesen wird hier, nicht geschaltet.
+
+   Nur über 900px. Darunter ist .nav auf beiden Ansichten ohnehin display:none und das
+   Raster längst einspaltig — die Regeln hier würden das mit höherer Spezifität
+   zurückdrehen, wenn sie ungeschützt stünden. */
+@media (min-width: 901px) {
+
+  /* Eine Spur statt zwei, und justify-content stellt sie in die Mitte des Rasters.
+     Der Rand links und rechts ist damit gleich groß: der Innenabstand der Schale plus
+     die Hälfte von allem, was die Spur bis --ds-layout-content-max nicht braucht. */
+  :root[data-view="summary"] .app,
+  :root[data-view="sent"] .app {
+    grid-template-columns: minmax(0, var(--ds-layout-content-max));
+    justify-content: center;
+    /* Ein Band für den Knopf über dem Seitentitel. Neben ihm geht nicht: der Rand ist
+       bei 1440 gut 120px breit und schrumpft mit dem Fenster auf null, ein beschrifteter
+       Knopf würde dort ab etwa 1300px in den Titel laufen. Also eine Knopfhöhe plus
+       Abstand oben drauf, und die Spalte beginnt darunter. */
+    padding-top: calc(var(--ds-spacing-40) + var(--ds-field-height) + var(--ds-spacing-16));
+  }
+
+  /* Die Spalte ist hier kein Raster-Kind mehr, sondern eine Tafel über der Seite. Das
+     ist der Preis dafür, dass die Karten mittig stehen, ob sie offen ist oder nicht —
+     als Raster-Kind würde sie sie beim Öffnen wieder verschieben. Weil sie damit über
+     den Inhalt fällt, braucht sie eine eigene Fläche, Rundung und einen Schatten;
+     sonst stünde grauer Text auf grauem Text.
+     Sie behält ihre eigene Scrollhöhe aus der Grundregel und verliert nur das sticky,
+     das ein fixed nicht mehr braucht. */
+  :root[data-view="summary"] .nav,
+  :root[data-view="sent"] .nav {
+    position: fixed;
+    left: var(--ds-layout-gutter);
+    top: calc(var(--ds-spacing-40) + var(--ds-field-height) + var(--ds-spacing-8));
+    z-index: 6;
+    display: none;
+    width: var(--ds-layout-nav-width);
+    padding: var(--ds-spacing-16);
+    background: var(--ds-surface-card);
+    border-radius: var(--ds-card-radius);
+    box-shadow: var(--ds-shadow-md);
+  }
+  :root[data-tools="open"][data-view="summary"] .nav,
+  :root[data-tools="open"][data-view="sent"] .nav { display: flex; }
+
+  :root[data-view="summary"] .tools-toggle,
+  :root[data-view="sent"] .tools-toggle { display: inline-flex; }
+}
+
+
+/* ------------------------------------------------------------ Markenrampen */
+
+/* NUR FÜR DEN PROTOTYP. Der Schalter „Marke“ in der Seitenleiste setzt data-brand
+   auf <html>; hier stehen die Rampen, die er einwechselt.
+
+   Getauscht werden ausschliesslich die PRIMITIVE der Teal-Rampe, nie eine
+   semantische Rolle. Jede Rolle in tokens.css zeigt auf einen dieser sieben
+   Schritte — background/brand/bold auf 500, subtlest auf 100, border/brand/bold
+   auf 500, focus-ring auf 500, und der Dunkelmodus auf 600/400/950. Wird das
+   Primitiv ausgetauscht, folgt alles davon von selbst, einschliesslich des
+   Kontrast-Passes in tokens.a11y.css, der background/brand/bold auf den
+   700-Schritt umbiegt. Keine Komponente und keine Rolle weiss von diesem Schalter.
+
+   Die Rampen sind nach derselben Regel gebaut wie die Teal-Rampe des Kontrakts:
+   100-400 sind Aufhellungen des Seed-Werts (90/80/60/20 % Weiss), 600 und 700 sind
+   Abdunklungen. Die Abdunklung ist NICHT fest, sondern der erste Schritt, der als
+   Grund fuer weisse Schrift 4.5:1 erreicht - dieselbe Regel, die der Kontrast-Pass
+   auf Teal anwendet. Deshalb liegt Korallen-700 tiefer als Teal-700: der Seed ist
+   zu hell, um ihn nur leicht abzudunkeln.
+
+   Die 950-Stufe ist der Grund fuer background/brand/subtlest im Dunkelmodus.
+
+   Gemessene Verhaeltnisse stehen an jeder Rampe. Was NICHT geloest ist: die
+   500-Stufe traegt als Rahmen- und Icon-Rolle unter 3:1, wenn der Seed hell ist
+   (Koralle 2.91:1, WCAG 1.4.11 will 3.0) - dieselbe Klasse von Luecke wie G-01 fuer
+   Teal. Ein Prototyp-Schalter loest das nicht; er macht es sichtbar. */
+
+/* Koralle — Seed #FD6564.  700 #C04D4C: 4.76:1 auf Weiss, 4.31:1 auf der eigenen 100.
+   600 #C04D4C: gleich 700 — kein sichtbarer Hover, wie bei Teal (G-24) */
+:root[data-brand="coral"] {
+  --_ds-color-teal-100: #FFF0F0;
+  --_ds-color-teal-200: #FFE0E0;
+  --_ds-color-teal-300: #FEC1C1;
+  --_ds-color-teal-400: #FD8483;
+  --_ds-color-teal-500: #FD6564;
+  --_ds-color-teal-600: #C04D4C;
+  --_ds-color-teal-700: #C04D4C;
+  --_ds-ext-color-teal-950: #562222;
+}
+
+/* Blau — Seed #003EB4.  700 #003291: 11.26:1 auf Weiss, 9.50:1 auf der eigenen 100.
+   600 #0038A2: 10.06:1 auf Weiss, sichtbarer Hover */
+:root[data-brand="blue"] {
+  --_ds-color-teal-100: #E6ECF8;
+  --_ds-color-teal-200: #CCD8F0;
+  --_ds-color-teal-300: #99B2E1;
+  --_ds-color-teal-400: #3365C3;
+  --_ds-color-teal-500: #003EB4;
+  --_ds-color-teal-600: #0038A2;
+  --_ds-color-teal-700: #003291;
+  --_ds-ext-color-teal-950: #00153D;
+}
+
+/* Stahl — Seed #20558F.  700 #1A4473: 9.91:1 auf Weiss, 8.50:1 auf der eigenen 100.
+   600 #1D4C81: 8.74:1 auf Weiss, sichtbarer Hover */
+:root[data-brand="steel"] {
+  --_ds-color-teal-100: #E9EEF4;
+  --_ds-color-teal-200: #D2DDE9;
+  --_ds-color-teal-300: #A6BBD2;
+  --_ds-color-teal-400: #4D77A5;
+  --_ds-color-teal-500: #20558F;
+  --_ds-color-teal-600: #1D4C81;
+  --_ds-color-teal-700: #1A4473;
+  --_ds-ext-color-teal-950: #0B1D31;
+}
+
+/* Der Kontrast-Pass klemmt background/brand/bold auf default UND hovered denselben
+   700-Schritt, weil Teals Rampe bei 700 endet (G-24). Fuer die drei Prototyp-Marken
+   gibt es einen dunkleren Schritt, der 4.5:1 haelt, also bekommen sie ihren Hover
+   zurueck. Nur hell: der Dunkelmodus hat in tokens.ext.css seine eigene, bewusst
+   umgekehrte Zuordnung (bold=600, hover=500), die hier nicht ueberschrieben wird. */
+:root[data-brand="coral"]:not([data-appearance="dark"]),
+:root[data-brand="blue"]:not([data-appearance="dark"]),
+:root[data-brand="steel"]:not([data-appearance="dark"]) {
+  --ds-color-background-brand-bold-hovered: var(--_ds-color-teal-600);
+}
+
+
+/* ------------------------------------------- Gesendet: Versionen A / B / C
+
+   Nur für den Prototyp. A ist die Seite wie bisher: Text links, Beraterblock rechts,
+   der Knopf in der Leiste unten. B stellt alles in die Mitte des Fensters — Text,
+   darunter der Knopf, darunter der Beraterblock — und lässt die Leiste weg, deren
+   einziger Inhalt der Knopf war. C ist B mit einem Bild unter dem Text, damit die
+   Seite nicht so leer steht. Der Umschalter liegt oben rechts, gegenüber von
+   „Darstellung“, auf derselben Höhe. */
+.sent-variant {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--ds-spacing-8);
+  margin-bottom: var(--ds-spacing-16);
+  color: var(--ds-color-text-neutral-subtle-default);
+}
+.sent-variant .seg { padding: 0; flex-wrap: nowrap; }
+.sent-variant .seg button { min-width: var(--ds-spacing-32); }
+@media (min-width: 901px) {
+  .sent-variant {
+    position: fixed;
+    top: var(--ds-spacing-40);
+    right: var(--ds-layout-gutter);
+    z-index: 6;
+    min-height: var(--ds-field-height);
+    margin: 0;
+  }
+}
+
+.sent-art,
+.sent-actions { display: none; }
+
+:root[data-sent-variant="b"] #bar-sent,
+:root[data-sent-variant="c"] #bar-sent { display: none; }
+
+:root[data-sent-variant="b"] #sent-view:not([hidden]),
+:root[data-sent-variant="c"] #sent-view:not([hidden]) {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  /* Das Fenster abzüglich des Bands oben, in dem Umschalter und „Darstellung“ stehen —
+     so liegt die Mitte des Inhalts auf der Mitte dessen, was man sieht. */
+  min-height: calc(100svh - 2 * (var(--ds-spacing-40) + var(--ds-field-height) + var(--ds-spacing-16)));
+}
+:root[data-sent-variant="b"] #sent-view .page-head,
+:root[data-sent-variant="c"] #sent-view .page-head {
+  flex-direction: column;
+  align-items: center;
+  gap: var(--ds-spacing-32);
+  margin-bottom: 0;
+  text-align: center;
+}
+/* Unter 900px steht der Umschalter im Fluss statt fest oben rechts. Ohne die
+   automatischen Ränder würde er mit dem Inhalt in die Mitte rutschen. */
+@media (max-width: 900px) {
+  :root[data-sent-variant="b"] #sent-view .sent-variant,
+  :root[data-sent-variant="c"] #sent-view .sent-variant { margin-bottom: auto; }
+  :root[data-sent-variant="b"] #sent-view .page-head,
+  :root[data-sent-variant="c"] #sent-view .page-head { margin-bottom: auto; }
+}
+:root[data-sent-variant="b"] #sent-view .lede,
+:root[data-sent-variant="c"] #sent-view .lede { margin-inline: auto; }
+:root[data-sent-variant="b"] #sent-view .sent-actions,
+:root[data-sent-variant="c"] #sent-view .sent-actions {
+  display: flex;
+  justify-content: center;
+  margin-top: var(--ds-spacing-32);
+}
+/* Der Beraterblock steht unter dem Knopf, abgesetzt durch eine Haarlinie über die
+   Breite des Blocks — er ist die Antwort auf „an wen wende ich mich“, nicht Teil
+   der Bestätigung. */
+:root[data-sent-variant="b"] #sent-view .advisor,
+:root[data-sent-variant="c"] #sent-view .advisor {
+  padding-top: var(--ds-spacing-32);
+  border-top: var(--ds-border-width-1) solid var(--ds-color-border-neutral-subtle-default);
+  text-align: left;
+}
+
+:root[data-sent-variant="c"] #sent-view .sent-art {
+  display: block;
+  width: 240px;
+  max-width: 100%;
+  height: auto;
+  margin: var(--ds-spacing-32) auto 0;
+}
+/* Nur Grautöne und das Erfolgsgrün des Hakens — keine Markenfarbe, damit das Bild
+   auch zu einem anderen Farbthema passt. */
+.sent-art .sa-halo     { fill: var(--ds-color-background-neutral-subtle-hovered); }
+.sent-art .sa-dot      { fill: var(--ds-color-icon-neutral-subtlest-default); opacity: .6; }
+.sent-art .sa-spark    { stroke: var(--ds-color-icon-neutral-subtlest-default); stroke-width: 2.5; stroke-linecap: round; }
+.sent-art .sa-paper    { fill: var(--ds-surface-card); stroke: var(--ds-color-icon-neutral-subtle-default); stroke-width: 2.5; }
+.sent-art .sa-line     { stroke: var(--ds-color-border-neutral-subtle-default); stroke-width: 4; stroke-linecap: round; }
+.sent-art .sa-check-bg { fill: var(--ds-color-background-success-bold-default); }
+.sent-art .sa-check    { stroke: var(--ds-surface-card); stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; }
+
+/* C: der Block bleibt in der Mitte des Fensters, liest sich aber linksbündig —
+   Überschrift, Text und Beraterblock auf einer linken Kante. Bild und Knopf stehen
+   mittig in der Spalte. */
+:root[data-sent-variant="c"] #sent-view .page-head {
+  align-items: flex-start;
+  width: 100%;
+  max-width: var(--ds-layout-measure-prose);
+  margin-inline: auto;
+  text-align: left;
+}
+:root[data-sent-variant="c"] #sent-view .lede { margin-inline: 0; }
+:root[data-sent-variant="c"] #sent-view .sent-art { margin-inline: auto; }
+:root[data-sent-variant="c"] #sent-view .sent-actions { justify-content: center; }
+:root[data-sent-variant="c"] #sent-view .advisor { align-self: stretch; }
+:root[data-sent-variant="c"] #sent-view .page-intro { align-self: stretch; }
+/* B: kürzere Zeilen im mittigen Satz — 30 % unter dem üblichen Zeilenmaß, damit der
+   zentrierte Text als Block steht statt als zwei lange Zeilen. */
+:root[data-sent-variant="b"] #sent-view .lede { max-width: calc(0.7 * var(--ds-layout-measure-prose)); }
+/* C: dieselben kürzeren Zeilen wie in B. Die Spalte nimmt die Breite ihres breitesten
+   Teils an — Text oder Beraterblock —, damit Bild und Knopf mittig über genau dem
+   Block stehen, an dessen linker Kante der Text beginnt. */
+:root[data-sent-variant="c"] #sent-view .page-head { width: fit-content; max-width: 100%; }
+:root[data-sent-variant="c"] #sent-view .lede { max-width: calc(0.7 * var(--ds-layout-measure-prose)); }
+/* C: Überschrift und Text doch mittig, wie in B. */
+:root[data-sent-variant="c"] #sent-view .page-intro { text-align: center; }
+:root[data-sent-variant="c"] #sent-view .lede { margin-inline: auto; }
